@@ -271,7 +271,52 @@ export default function ContactPage() {
                   onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
                 />
               </div>
-              <Button type="submit" className="w-full bg-brand hover:bg-brand-mid text-white font-semibold mt-1 gap-2">
+              {/* Live message preview */}
+              {(form.firstName || form.message) && (
+                <div className="rounded-xl overflow-hidden border border-border">
+                  <div className="bg-[#075E54] px-4 py-2.5 flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-white">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-white text-sm font-semibold">CareerCraft Pro</div>
+                      <div className="text-white/60 text-[10px]">WhatsApp message preview</div>
+                    </div>
+                  </div>
+                  <div className="bg-[#ECE5DD] px-4 py-4">
+                    <div className="bg-white rounded-lg rounded-tl-none shadow-sm px-3.5 py-2.5 max-w-[85%] text-[13px] leading-relaxed text-[#303030]">
+                      <div className="font-bold text-[#075E54] mb-1.5">New enquiry from CareerCraft Pro</div>
+                      {(form.firstName || form.lastName) && (
+                        <div><span className="font-semibold">Name:</span> {form.firstName} {form.lastName}</div>
+                      )}
+                      {form.email && (
+                        <div><span className="font-semibold">Email:</span> {form.email}</div>
+                      )}
+                      {form.phone && (
+                        <div><span className="font-semibold">Phone:</span> {form.countryCode} {form.phone}</div>
+                      )}
+                      {form.service && (
+                        <div><span className="font-semibold">Service:</span> {serviceOptions.find((o) => o.value === form.service)?.label}</div>
+                      )}
+                      {form.message && (
+                        <>
+                          <div className="mt-1.5 font-semibold">Message:</div>
+                          <div className="text-[#555] whitespace-pre-wrap">{form.message}</div>
+                        </>
+                      )}
+                      <div className="text-[10px] text-[#999] text-right mt-1.5">
+                        {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <Button type="submit" className="w-full bg-[#25D366] hover:bg-[#1da851] text-white font-semibold mt-1 gap-2">
                 <MessageCircle className="w-4 h-4" /> Send via WhatsApp →
               </Button>
             </form>
