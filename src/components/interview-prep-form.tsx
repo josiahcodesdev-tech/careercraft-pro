@@ -258,6 +258,7 @@ export function InterviewPrepForm() {
   const [dialogue, setDialogue] = useState<QA[]>([]);
   const [generating, setGenerating] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<string>("");
+  const [uploadedCv, setUploadedCv] = useState<string>("");
   const previewRef = useRef<HTMLDivElement>(null);
 
   const canGenerate = data.candidateName.trim() && data.roleTitle.trim() && data.jobDescription.trim();
@@ -416,8 +417,64 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
               </p>
             </div>
 
-            <label className="space-y-1.5 block">
-              <span className="text-sm font-medium">Your qualifications</span>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Your qualifications</span>
+                {!uploadedCv && (
+                  <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs font-medium cursor-pointer hover:bg-background transition-colors">
+                    <Upload className="w-3 h-3" /> Upload CV
+                    <input
+                      type="file"
+                      accept=".txt,.pdf,.doc,.docx"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          let text: string;
+                          if (file.name.toLowerCase().endsWith(".pdf")) {
+                            text = await extractTextFromPdf(file);
+                          } else {
+                            text = await file.text();
+                          }
+                          setData((prev) => ({
+                            ...prev,
+                            qualifications: prev.qualifications
+                              ? prev.qualifications + "\n\n" + text
+                              : text,
+                          }));
+                          setUploadedCv(file.name);
+                        } catch {
+                          alert("Could not read this file. Try pasting the content directly.");
+                        }
+                        e.target.value = "";
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+
+              {uploadedCv && (
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-background">
+                  <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-brand" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{uploadedCv}</p>
+                    <p className="text-xs text-text-muted">CV extracted successfully</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setUploadedCv("");
+                      setData((prev) => ({ ...prev, qualifications: "" }));
+                    }}
+                    className="text-text-muted hover:text-red-500 transition-colors p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
               <Textarea
                 value={data.qualifications}
                 onChange={(e) =>
@@ -427,13 +484,14 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                   }))
                 }
                 placeholder={"e.g.\nBSc Computer Science — University of Nairobi\nAWS Certified Solutions Architect\n5 years experience in data analysis\nProficient in Python, SQL, Power BI"}
-                className="min-h-[120px]"
+                className={uploadedCv ? "min-h-[80px]" : "min-h-[120px]"}
               />
               <p className="text-xs text-text-muted">
-                List your degrees, certifications, skills, and years of
-                experience. These will be woven into your answers.
+                {uploadedCv
+                  ? "CV content extracted. You can edit or add more details below."
+                  : "Upload your CV to auto-fill, or type your degrees, certifications, skills, and experience."}
               </p>
-            </label>
+            </div>
 
             <button
               onClick={handleGenerate}
