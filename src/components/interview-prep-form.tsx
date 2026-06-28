@@ -67,12 +67,22 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
   const skillsList = keywords.length > 0 ? keywords.join(", ") : "the required skills";
   const topSkills = keywords.slice(0, 3).join(", ") || "relevant tools and methodologies";
   const quals = qualifications.trim();
-  const headerPattern = /^(professional\s+summary|professional\s+experience|experience|education|skills|core\s+skills|certifications?|references?|contact|personal\s+(details|info|information)|objective|profile|about\s+me|work\s+history|qualifications|competenc|training|awards|hobbies|interests|languages?|projects?|publications?|curriculum\s+vitae|resume|cv)\s*:?\s*$/i;
+
+  function isUsefulLine(l: string): boolean {
+    if (!l || l.length <= 5) return false;
+    if (/^[A-Z\s&,|·•\-:/()]+$/.test(l)) return false;
+    if (/^(professional\s+summary|professional\s+experience|work\s+experience|experience|education|skills|core\s+skills|key\s+skills|technical\s+skills|soft\s+skills|certifications?|references?|referees?|contact(\s+me)?|personal\s+(details|info|information)|objective|career\s+objective|profile|summary|about\s+me|work\s+history|qualifications|competenc|training|awards|hobbies|interests|languages?|projects?|publications?|curriculum\s+vitae|resume|cv|phone|email|address|location|linkedin|date\s+of\s+birth|nationality|gender|marital|id\s+no|passport)\s*:?\s*$/i.test(l)) return false;
+    if (/^[\+]?\d[\d\s\-()]{6,}$/.test(l)) return false;
+    if (/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(l)) return false;
+    if (/^https?:\/\//i.test(l) || /^linkedin\.com/i.test(l)) return false;
+    if (/^(january|february|march|april|may|june|july|august|september|october|november|december|\d{4})\s*[-–—to]\s*/i.test(l) && l.length < 30) return false;
+    if (/^(present|current|to\s+date|ongoing)\s*$/i.test(l)) return false;
+    if (l.split(" ").length <= 2 && /^[A-Z]/.test(l)) return false;
+    return true;
+  }
+
   const contentLines = quals
-    ? quals
-        .split("\n")
-        .map((l) => l.trim())
-        .filter((l) => l && !headerPattern.test(l) && l.length > 5 && !/^[A-Z\s&,|·•\-:]+$/.test(l))
+    ? quals.split("\n").map((l) => l.trim()).filter(isUsefulLine)
     : [];
   const qualsSnippet = contentLines.slice(0, 5).join(", ").substring(0, 300);
 
@@ -88,11 +98,12 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
   const allSkills = cvSkills
     ? `${topSkills}, ${cvSkills}`
     : topSkills;
-  const backgroundLine = quals
-    ? `My background includes ${qualsSnippet}, which I've applied across various roles to deliver measurable results.`
+  const backgroundSummary = cvExperience || cvSkills || qualsSnippet;
+  const backgroundLine = backgroundSummary
+    ? `My background includes experience in ${cvSkills || allSkills}${cvExperience ? `. Specifically, ${cvExperience.split(". ")[0]}` : ""}, which I've applied across various roles to deliver measurable results.`
     : `Over the years, I've developed expertise in ${topSkills}, and I'm passionate about delivering results that align with organisational goals.`;
-  const qualsFit = quals
-    ? `My qualifications — including ${qualsSnippet} — directly align with what you're looking for.`
+  const qualsFit = backgroundSummary
+    ? `My experience in ${cvSkills || allSkills} directly aligns with what you're looking for.`
     : `The job description highlights ${skillsList}, which are areas I've actively worked in.`;
 
   return [
