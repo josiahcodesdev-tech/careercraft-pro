@@ -151,7 +151,7 @@ export default function ContactPage() {
   return (
     <>
       {/* Page hero */}
-      <section className="bg-card border-b border-border py-16 px-8">
+      <section className="bg-card border-b border-border py-8 px-8">
         <div className="max-w-[1100px] mx-auto text-center">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-brand mb-3">
             Get in touch
