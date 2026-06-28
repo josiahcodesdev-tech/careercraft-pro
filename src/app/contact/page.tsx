@@ -87,11 +87,41 @@ const serviceOptions = [
   { value: "other", label: "Other / Not sure" },
 ];
 
+const countryCodes = [
+  { code: "+254", country: "KE", label: "Kenya (+254)" },
+  { code: "+256", country: "UG", label: "Uganda (+256)" },
+  { code: "+255", country: "TZ", label: "Tanzania (+255)" },
+  { code: "+251", country: "ET", label: "Ethiopia (+251)" },
+  { code: "+250", country: "RW", label: "Rwanda (+250)" },
+  { code: "+257", country: "BI", label: "Burundi (+257)" },
+  { code: "+211", country: "SS", label: "South Sudan (+211)" },
+  { code: "+252", country: "SO", label: "Somalia (+252)" },
+  { code: "+253", country: "DJ", label: "Djibouti (+253)" },
+  { code: "+291", country: "ER", label: "Eritrea (+291)" },
+  { code: "+27", country: "ZA", label: "South Africa (+27)" },
+  { code: "+234", country: "NG", label: "Nigeria (+234)" },
+  { code: "+233", country: "GH", label: "Ghana (+233)" },
+  { code: "+237", country: "CM", label: "Cameroon (+237)" },
+  { code: "+243", country: "CD", label: "DR Congo (+243)" },
+  { code: "+20", country: "EG", label: "Egypt (+20)" },
+  { code: "+212", country: "MA", label: "Morocco (+212)" },
+  { code: "+1", country: "US", label: "USA (+1)" },
+  { code: "+44", country: "GB", label: "UK (+44)" },
+  { code: "+971", country: "AE", label: "UAE (+971)" },
+  { code: "+966", country: "SA", label: "Saudi Arabia (+966)" },
+  { code: "+91", country: "IN", label: "India (+91)" },
+  { code: "+86", country: "CN", label: "China (+86)" },
+  { code: "+61", country: "AU", label: "Australia (+61)" },
+  { code: "+49", country: "DE", label: "Germany (+49)" },
+  { code: "+33", country: "FR", label: "France (+33)" },
+];
+
 export default function ContactPage() {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     email: "",
+    countryCode: "+254",
     phone: "",
     service: "",
     message: "",
@@ -105,7 +135,7 @@ export default function ContactPage() {
       ``,
       `*Name:* ${form.firstName} ${form.lastName}`,
       `*Email:* ${form.email}`,
-      form.phone && `*Phone:* ${form.phone}`,
+      form.phone && `*Phone:* ${form.countryCode} ${form.phone}`,
       serviceName && `*Service:* ${serviceName}`,
       ``,
       `*Message:*`,
@@ -198,14 +228,31 @@ export default function ContactPage() {
                 <label htmlFor="phone" className="text-sm font-semibold mb-1.5 block">
                   Phone number (optional)
                 </label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+254 700 000 000"
-                  className="bg-background"
-                  value={form.phone}
-                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                />
+                <div className="flex gap-2">
+                  <select
+                    value={form.countryCode}
+                    onChange={(e) => setForm((f) => ({ ...f, countryCode: e.target.value }))}
+                    className="h-8 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 w-[130px] flex-shrink-0"
+                  >
+                    {countryCodes.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.country} {c.code}
+                      </option>
+                    ))}
+                  </select>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="712 345 678"
+                    className="bg-background flex-1"
+                    value={form.phone}
+                    onChange={(e) => {
+                      let val = e.target.value.replace(/[^\d\s]/g, "");
+                      if (val.startsWith("0")) val = val.slice(1);
+                      setForm((f) => ({ ...f, phone: val }));
+                    }}
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-sm font-semibold mb-1.5 block">
