@@ -35,7 +35,7 @@ export function CtaSection() {
             wait. Neither should you.
           </h2>
           <p className="text-white/60 mb-8 max-w-[540px] leading-relaxed">
-            Book a free 30-minute consultation. No obligation — just a
+            Book a free 30-minute consultation. No obligation just a
             conversation about where you are and where you want to go.
           </p>
           <div className="flex flex-wrap gap-3">

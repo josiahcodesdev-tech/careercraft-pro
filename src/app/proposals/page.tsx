@@ -112,7 +112,7 @@ export default function ProposalsPage() {
               Personalised to You
             </h2>
             <p className="text-text-secondary leading-relaxed mb-8">
-              Winning proposals require more than good writing — they need
+              Winning proposals require more than good writing they need
               strategy, structure, and a deep understanding of what funders and
               decision-makers look for. We craft compelling, data-backed
               proposals tailored to each opportunity. From grant applications and

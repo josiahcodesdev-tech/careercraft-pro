@@ -377,7 +377,7 @@ li{margin-bottom:2px;font-size:9.5pt}
               Build your ATS-friendly CV
             </h1>
             <p className="text-sm text-text-secondary">
-              Fill in each section — your CV updates live on the right.
+              Fill in each section your CV updates live on the right.
             </p>
           </div>
 
