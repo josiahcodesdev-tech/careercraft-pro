@@ -153,6 +153,70 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Testimonials */}
+      <section className="py-20 px-8">
+        <div className="max-w-[1100px] mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-gold mb-3">
+              Testimonials
+            </p>
+            <h2 className="font-heading text-[clamp(26px,3.2vw,40px)] font-black tracking-tight leading-tight">
+              What Clients Say
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5">
+            {[
+              {
+                quote:
+                  "Josiah built our website in record time. Beautiful design, clean code, zero issues.",
+                initials: "SK",
+                name: "Sarah K.",
+                role: "Startup Founder, Nairobi",
+              },
+              {
+                quote:
+                  "His proposal won us a KES 2M contract. Professional, compelling, delivered ahead of schedule.",
+                initials: "DM",
+                name: "David M.",
+                role: "NGO Director, Mombasa",
+              },
+              {
+                quote:
+                  "My new CV landed 3 interviews in one week. Outstanding work — genuinely impressed.",
+                initials: "AO",
+                name: "Amina O.",
+                role: "Graduate, Nairobi",
+              },
+            ].map((t) => (
+              <div
+                key={t.initials}
+                className="bg-card border border-border rounded-2xl p-7"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-8 h-8 text-gold/30 mb-4"
+                  fill="currentColor"
+                >
+                  <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5 3.871 3.871 0 01-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5 3.871 3.871 0 01-2.748-1.179z" />
+                </svg>
+                <p className="text-[15px] text-foreground leading-relaxed italic mb-6">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#1B2838] text-white flex items-center justify-center text-xs font-bold">
+                    {t.initials}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">{t.name}</div>
+                    <div className="text-xs text-text-muted">{t.role}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <CtaSection />
     </>
   );
