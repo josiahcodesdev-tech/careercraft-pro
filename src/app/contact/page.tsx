@@ -62,20 +62,6 @@ const hours = [
   { day: "Sunday", time: "Closed" },
 ];
 
-const faqs = [
-  {
-    q: "How long does a CV take?",
-    a: "Most CVs are delivered within 48 hours. Rush delivery is available on request.",
-  },
-  {
-    q: "Is the consultation really free?",
-    a: "Yes — a 30-minute initial consultation is completely free, with no obligation.",
-  },
-  {
-    q: "Do you offer revisions?",
-    a: "One round of revisions is included with every service. Additional rounds can be arranged.",
-  },
-];
 
 const serviceOptions = [
   { value: "career-assessment", label: "Career assessment" },
@@ -328,23 +314,6 @@ export default function ContactPage() {
               ))}
             </div>
 
-            {/* FAQ */}
-            <div className="bg-card border border-border rounded-2xl p-7">
-              <h4 className="font-heading text-base font-extrabold mb-4">
-                Quick answers
-              </h4>
-              {faqs.map((faq) => (
-                <div
-                  key={faq.q}
-                  className="py-2.5 border-b border-border last:border-b-0"
-                >
-                  <div className="text-sm font-semibold mb-1">{faq.q}</div>
-                  <div className="text-[13px] text-text-secondary leading-relaxed">
-                    {faq.a}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
