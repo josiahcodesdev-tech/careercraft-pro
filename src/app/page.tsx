@@ -44,7 +44,7 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/interview-prep"
-                className={cn(buttonVariants({ variant: "outline" }))}
+                className={cn(buttonVariants(), "bg-gold hover:bg-gold/90 text-white")}
               >
                 Interview Preparation
               </Link>
