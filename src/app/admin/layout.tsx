@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { AdminAuthProvider, useAdminAuth } from "@/lib/admin-auth";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 
 const pageTitles: Record<string, string> = {
   "/admin": "Dashboard",
@@ -16,6 +17,7 @@ const pageTitles: Record<string, string> = {
 function AdminShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, logout } = useAdminAuth();
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (pathname === "/admin/login") return <>{children}</>;
 
@@ -33,13 +35,22 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <AdminSidebar />
+      <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="h-14 bg-white border-b border-border flex items-center justify-between px-6 flex-shrink-0">
-          <h1 className="font-heading text-lg font-extrabold tracking-tight">
-            {title}
-          </h1>
+        <header className="h-14 bg-white border-b border-border flex items-center justify-between px-4 sm:px-6 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-1.5 rounded-lg hover:bg-background transition-colors"
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <h1 className="font-heading text-lg font-extrabold tracking-tight">
+              {title}
+            </h1>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-xs text-text-muted hidden sm:block">
               josiahcodes.dev@gmail.com

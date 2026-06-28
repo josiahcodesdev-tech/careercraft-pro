@@ -22,7 +22,7 @@ const navItems = [
   { href: "/admin/enquiries", label: "Enquiries", icon: Mail },
 ];
 
-export function AdminSidebar() {
+export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { logout } = useAdminAuth();
 
@@ -31,7 +31,21 @@ export function AdminSidebar() {
   }
 
   return (
-    <aside className="w-60 bg-[#1B2838] text-white flex flex-col flex-shrink-0 h-screen">
+    <>
+      {/* Mobile backdrop */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+      <aside
+        className={cn(
+          "bg-[#1B2838] text-white flex flex-col flex-shrink-0 h-screen z-50 transition-transform duration-300",
+          "fixed lg:static w-60",
+          open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
+      >
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-2.5">
@@ -60,6 +74,7 @@ export function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 active
@@ -92,5 +107,6 @@ export function AdminSidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }
