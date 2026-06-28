@@ -107,6 +107,73 @@ export default function AdminDashboardPage() {
           emptyMessage="No activity yet. Use the public site to generate data."
         />
       </div>
+      {/* CV Writing Log */}
+      <div>
+        <h2 className="font-heading text-lg font-extrabold tracking-tight mb-4">
+          CV Writing Log
+        </h2>
+        <DataTable
+          columns={[
+            {
+              key: "date",
+              header: "Date",
+              render: (item: { date: string }) => (
+                <span className="text-text-secondary whitespace-nowrap">
+                  {new Date(item.date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              ),
+            },
+            { key: "name", header: "Candidate" },
+            {
+              key: "template",
+              header: "Template",
+              render: (item: { template: string }) => (
+                <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold bg-brand-light text-brand capitalize">
+                  {item.template}
+                </span>
+              ),
+            },
+          ]}
+          data={data.cvDownloads}
+          emptyMessage="No CVs generated yet."
+        />
+      </div>
+
+      {/* Interview Prep Log */}
+      <div>
+        <h2 className="font-heading text-lg font-extrabold tracking-tight mb-4">
+          Interview Prep Log
+        </h2>
+        <DataTable
+          columns={[
+            {
+              key: "date",
+              header: "Date",
+              render: (item: { date: string }) => (
+                <span className="text-text-secondary whitespace-nowrap">
+                  {new Date(item.date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              ),
+            },
+            { key: "name", header: "Candidate" },
+            { key: "role", header: "Role / Job Title" },
+          ]}
+          data={data.interviewPreps}
+          emptyMessage="No interview preps generated yet."
+        />
+      </div>
     </div>
   );
 }
