@@ -4,12 +4,12 @@ import { ArrowRight } from "lucide-react";
 
 const services = [
   {
-    image: "/images/career-assessment.jpg",
-    badge: "Development",
-    title: "Web Design",
-    href: "/services",
+    image: "/images/interview-coaching.jpg",
+    badge: "Preparation",
+    title: "Interview Preparation",
+    href: "/interview-prep",
     description:
-      "End-to-end design and development of professional websites tailored to business needs. Includes responsive layouts, UI/UX design, and modern technology stacks.",
+      "Structured mock interviews, personalised feedback, and proven answer frameworks to help you walk in confident and walk out hired.",
   },
   {
     image: "/images/proposals-grants.jpg",

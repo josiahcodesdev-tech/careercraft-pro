@@ -18,11 +18,16 @@ import {
   Wrench,
   Users,
   LayoutTemplate,
+  Upload,
+  ZoomIn,
+  ZoomOut,
+  X,
+  Move,
 } from "lucide-react";
 
-type Template = "classic" | "modern" | "executive" | "minimal";
+type Template = "classic" | "modern" | "executive" | "minimal" | "bold" | "professional" | "creative" | "corporate";
 
-const TEMPLATES: { id: Template; name: string; description: string; accent: string; font: string }[] = [
+const TEMPLATES: { id: Template; name: string; description: string; accent: string; font: string; hasPhoto?: boolean }[] = [
   {
     id: "classic",
     name: "Classic",
@@ -33,23 +38,55 @@ const TEMPLATES: { id: Template; name: string; description: string; accent: stri
   {
     id: "modern",
     name: "Modern",
-    description: "Bold green header banner with clean sans-serif typography. Contemporary and eye-catching.",
+    description: "Bold green header banner with clean sans-serif typography.",
     accent: "#1A5C3A",
     font: "Segoe UI",
   },
   {
     id: "executive",
     name: "Executive",
-    description: "Navy blue accents with a refined sidebar stripe. Ideal for senior and leadership roles.",
+    description: "Navy blue accents with a refined sidebar stripe for leadership roles.",
     accent: "#1B3A5C",
     font: "Georgia",
   },
   {
     id: "minimal",
     name: "Minimal",
-    description: "Ultra-clean design with subtle grey lines and maximum whitespace. Lets content speak.",
+    description: "Ultra-clean design with subtle grey lines and maximum whitespace.",
     accent: "#888888",
     font: "Helvetica Neue",
+  },
+  {
+    id: "bold",
+    name: "Bold",
+    description: "Dark background with orange accents and circular photo. High visual impact.",
+    accent: "#E8840C",
+    font: "Segoe UI",
+    hasPhoto: true,
+  },
+  {
+    id: "professional",
+    name: "Professional",
+    description: "Navy sidebar with gold accents and photo. Polished two-column layout.",
+    accent: "#D4A017",
+    font: "Segoe UI",
+    hasPhoto: true,
+  },
+  {
+    id: "creative",
+    name: "Creative",
+    description: "Warm beige sidebar with black headings and circular photo. Distinctive and elegant.",
+    accent: "#C8A84E",
+    font: "Georgia",
+    hasPhoto: true,
+  },
+  {
+    id: "corporate",
+    name: "Corporate",
+    description: "Navy header and sidebar with circle photo. Clean and authoritative.",
+    accent: "#1B3A5C",
+    font: "Segoe UI",
+    hasPhoto: true,
   },
 ];
 
@@ -90,6 +127,10 @@ interface CvData {
   phone: string;
   location: string;
   linkedin: string;
+  photo: string;
+  photoZoom: number;
+  photoOffsetX: number;
+  photoOffsetY: number;
   summary: string;
   experience: WorkEntry[];
   education: EducationEntry[];
@@ -141,6 +182,10 @@ const initial: CvData = {
   phone: "+254 712 345 678",
   location: "Nairobi, Kenya",
   linkedin: "linkedin.com/in/josiah-mwangi",
+  photo: "",
+  photoZoom: 1,
+  photoOffsetX: 0,
+  photoOffsetY: 0,
   summary:
     "Results-driven full-stack developer with 6+ years of experience designing and delivering scalable web applications across fintech, e-commerce, and SaaS domains. Proficient in React, Next.js, Node.js, and cloud-native architectures on AWS and GCP. Known for translating complex business requirements into clean, maintainable code and mentoring junior engineers. Consistently improved system performance and reduced deployment cycles by adopting CI/CD best practices and infrastructure-as-code.",
   experience: [
@@ -263,6 +308,17 @@ export function CvBuilderForm() {
     update("referees", next);
   }
 
+  function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => update("photo", reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  const selectedTemplate = TEMPLATES.find((t) => t.id === template);
+  const needsPhoto = selectedTemplate?.hasPhoto;
+
   function updateBullet(expIndex: number, bulletIndex: number, value: string) {
     const next = data.experience.map((e, i) => {
       if (i !== expIndex) return e;
@@ -296,39 +352,66 @@ export function CvBuilderForm() {
 
     const printStyles: Record<Template, string> = {
       classic: `
-body{font-family:'Palatino Linotype','Times New Roman',serif;font-size:10pt;color:#1a1a1a;padding:40px 56px;line-height:1.5}
-h1{font-size:22pt;font-weight:700;margin-bottom:2px}
-h2{font-size:10.5pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5px solid #1a1a1a;padding-bottom:3px;margin:16px 0 10px}
+body{font-family:'Palatino Linotype','Times New Roman',serif;font-size:10pt;color:#1a1a1a;padding:0.25in;line-height:1.5;text-align:justify}
+h1{font-size:22pt;font-weight:700;margin-bottom:2px;text-align:left;color:#1B3A5C}
+h2{font-size:10.5pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5px solid #1a1a1a;padding-bottom:3px;margin:16px 0 10px;text-align:left}
 ul{list-style:disc;padding-left:18px;margin-top:3px}
 li{margin-bottom:2px;font-size:9.5pt}
-@media print{body{padding:0.5in 0.65in}@page{margin:0.5in 0.65in}}`,
+@media print{body{padding:0.25in}@page{margin:0.25in}}`,
       modern: `
-body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#2d2d2d;padding:0;line-height:1.5}
-.modern-header{background:#1A5C3A;color:#fff;padding:32px 40px 24px}
-.modern-header h1{color:#fff}
-.modern-body{padding:24px 40px 40px}
-h2{font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#1A5C3A;border-bottom:2px solid #1A5C3A;padding-bottom:4px;margin:20px 0 10px}
+body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#2d2d2d;padding:0;line-height:1.5;text-align:justify}
+.modern-header{background:#1A5C3A;color:#fff;padding:0.25in}
+.modern-header h1{color:#fff;text-align:left}
+.modern-body{padding:0.25in}
+h2{font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#1A5C3A;border-bottom:2px solid #1A5C3A;padding-bottom:4px;margin:20px 0 10px;text-align:left}
 ul{list-style:none;padding-left:0;margin-top:3px}
 li{margin-bottom:3px;font-size:9.5pt;padding-left:14px;position:relative}
 li::before{content:'';position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:#1A5C3A}
 @media print{.modern-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{padding:0}@page{margin:0}}`,
       executive: `
-body{font-family:Georgia,'Times New Roman',serif;font-size:10pt;color:#1a1a1a;padding:0;line-height:1.5}
+body{font-family:Georgia,'Times New Roman',serif;font-size:10pt;color:#1a1a1a;padding:0;line-height:1.5;text-align:justify}
 .exec-stripe{position:absolute;left:0;top:0;bottom:0;width:6px;background:#1B3A5C}
-.exec-wrap{position:relative;padding:40px 48px 40px 54px}
-h1{font-size:22pt;font-weight:700;color:#1B3A5C;margin-bottom:2px}
-h2{font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#1B3A5C;border-bottom:2px solid #1B3A5C;padding-bottom:3px;margin:18px 0 10px}
+.exec-wrap{position:relative;padding:0.25in 0.25in 0.25in calc(0.25in + 6px)}
+h1{font-size:22pt;font-weight:700;color:#1B3A5C;margin-bottom:2px;text-align:left}
+h2{font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#1B3A5C;border-bottom:2px solid #1B3A5C;padding-bottom:3px;margin:18px 0 10px;text-align:left}
 ul{list-style:disc;padding-left:18px;margin-top:3px}
 li{margin-bottom:2px;font-size:9.5pt}
 @media print{.exec-stripe{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{padding:0}@page{margin:0}}`,
       minimal: `
-body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#333;padding:48px 56px;line-height:1.6}
-h1{font-size:20pt;font-weight:400;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px}
-h2{font-size:9pt;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#888;border-bottom:1px solid #ddd;padding-bottom:4px;margin:20px 0 10px}
+body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#333;padding:0.25in;line-height:1.6;text-align:justify}
+h1{font-size:20pt;font-weight:400;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;text-align:left}
+h2{font-size:9pt;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#888;border-bottom:1px solid #ddd;padding-bottom:4px;margin:20px 0 10px;text-align:left}
 ul{list-style:none;padding-left:0;margin-top:3px}
 li{margin-bottom:3px;font-size:9.5pt;padding-left:12px;position:relative}
 li::before{content:'–';position:absolute;left:0;color:#aaa}
-@media print{body{padding:0.5in 0.65in}@page{margin:0.5in 0.65in}}`,
+@media print{body{padding:0.25in}@page{margin:0.25in}}`,
+      bold: `
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#fff;padding:0;margin:0;line-height:1.5;background:#2D2D2D;text-align:justify}
+img{border-radius:50%}
+h2{color:#E8840C;text-align:left}
+ul{list-style:disc;padding-left:18px;margin-top:3px}
+li{margin-bottom:2px;font-size:9.5pt}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0}}`,
+      professional: `
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:0;margin:0;line-height:1.5;text-align:justify}
+img{border-radius:50%}
+h2{color:#D4A017;text-align:left}
+ul{list-style:disc;padding-left:18px;margin-top:3px}
+li{margin-bottom:2px;font-size:9.5pt}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0}}`,
+      creative: `
+body{font-family:Georgia,serif;font-size:10pt;color:#1a1a1a;padding:0;margin:0;line-height:1.5;text-align:justify}
+img{border-radius:50%}
+ul{list-style:disc;padding-left:18px;margin-top:3px}
+li{margin-bottom:2px;font-size:9.5pt}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0}}`,
+      corporate: `
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:0;margin:0;line-height:1.5;text-align:justify}
+img{border-radius:50%}
+h2{color:#1B3A5C;text-align:left}
+ul{list-style:disc;padding-left:18px;margin-top:3px}
+li{margin-bottom:2px;font-size:9.5pt}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0}}`,
     };
 
     win.document.write(`<!DOCTYPE html><html><head><title>${data.fullName || "CV"}</title>
@@ -399,6 +482,104 @@ li::before{content:'–';position:absolute;left:0;color:#aaa}
                 <p className="text-sm text-text-secondary">
                   This information appears at the top of your CV.
                 </p>
+
+                {needsPhoto && (
+                  <div className="border border-border rounded-xl p-4 bg-background space-y-3">
+                    <span className="text-sm font-medium">Profile photo</span>
+                    <div className="flex items-start gap-4">
+                      {/* Preview circle */}
+                      <div className="w-24 h-24 rounded-full bg-card border-2 border-dashed border-border flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {data.photo ? (
+                          <img
+                            src={data.photo}
+                            alt="Profile"
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              transform: `scale(${data.photoZoom}) translate(${data.photoOffsetX}%, ${data.photoOffsetY}%)`,
+                            }}
+                          />
+                        ) : (
+                          <User className="w-10 h-10 text-text-muted" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 space-y-3">
+                        {/* Upload / Remove buttons */}
+                        <div className="flex items-center gap-2">
+                          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium cursor-pointer hover:bg-card transition-colors">
+                            <Upload className="w-3.5 h-3.5" />
+                            {data.photo ? "Change" : "Upload"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handlePhotoUpload}
+                              className="hidden"
+                            />
+                          </label>
+                          {data.photo && (
+                            <button
+                              onClick={() => update("photo", "")}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" /> Remove
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Zoom + Position controls */}
+                        {data.photo && (
+                          <div className="space-y-2">
+                            {/* Zoom */}
+                            <div className="flex items-center gap-2">
+                              <ZoomOut className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+                              <input
+                                type="range"
+                                min="1"
+                                max="2.5"
+                                step="0.05"
+                                value={data.photoZoom}
+                                onChange={(e) => update("photoZoom", parseFloat(e.target.value))}
+                                className="flex-1 accent-brand h-1.5"
+                              />
+                              <ZoomIn className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+                            </div>
+                            {/* Position */}
+                            <div className="flex items-center gap-3">
+                              <Move className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+                              <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                                <span>X</span>
+                                <input
+                                  type="range"
+                                  min="-30"
+                                  max="30"
+                                  step="1"
+                                  value={data.photoOffsetX}
+                                  onChange={(e) => update("photoOffsetX", parseFloat(e.target.value))}
+                                  className="w-20 accent-brand h-1.5"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                                <span>Y</span>
+                                <input
+                                  type="range"
+                                  min="-30"
+                                  max="30"
+                                  step="1"
+                                  value={data.photoOffsetY}
+                                  onChange={(e) => update("photoOffsetY", parseFloat(e.target.value))}
+                                  className="w-20 accent-brand h-1.5"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid sm:grid-cols-2 gap-4">
                   <label className="space-y-1.5">
                     <span className="text-sm font-medium">
@@ -971,7 +1152,7 @@ li::before{content:'–';position:absolute;left:0;color:#aaa}
           onClick={() => setShowTemplates(false)}
         >
           <div
-            className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-[720px] mx-4 overflow-hidden"
+            className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-[860px] mx-4 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -990,7 +1171,7 @@ li::before{content:'–';position:absolute;left:0;color:#aaa}
                 ×
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-4 p-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-6 max-h-[70vh] overflow-y-auto">
               {TEMPLATES.map((t) => (
                 <button
                   key={t.id}
@@ -1005,18 +1186,22 @@ li::before{content:'–';position:absolute;left:0;color:#aaa}
                       : "border-border hover:border-gray-300"
                   )}
                 >
-                  {/* Mini preview thumbnail */}
-                  <div className="h-[140px] bg-white relative overflow-hidden">
+                  <div className="h-[120px] bg-white relative overflow-hidden">
                     <TemplateThumbnail id={t.id} accent={t.accent} />
                     {template === t.id && (
-                      <div className="absolute top-2 right-2 bg-brand text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <div className="absolute top-1.5 right-1.5 bg-brand text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
                         Active
                       </div>
                     )}
+                    {t.hasPhoto && (
+                      <div className="absolute bottom-1.5 left-1.5 bg-black/60 text-white text-[9px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                        <User className="w-2.5 h-2.5" /> Photo
+                      </div>
+                    )}
                   </div>
-                  <div className="p-3">
-                    <div className="text-sm font-semibold mb-0.5">{t.name}</div>
-                    <p className="text-xs text-text-secondary leading-relaxed">
+                  <div className="p-2.5">
+                    <div className="text-xs font-semibold mb-0.5">{t.name}</div>
+                    <p className="text-[10px] text-text-secondary leading-snug">
                       {t.description}
                     </p>
                   </div>
@@ -1077,6 +1262,10 @@ li::before{content:'–';position:absolute;left:0;color:#aaa}
                 {template === "modern" && <ModernPreview data={data} />}
                 {template === "executive" && <ExecutivePreview data={data} />}
                 {template === "minimal" && <MinimalPreview data={data} />}
+                {template === "bold" && <BoldPreview data={data} />}
+                {template === "professional" && <ProfessionalPreview data={data} />}
+                {template === "creative" && <CreativePreview data={data} />}
+                {template === "corporate" && <CorporatePreview data={data} />}
               </>
             )}
           </div>
@@ -1240,8 +1429,8 @@ function ReferencesBlock({ data }: { data: CvData }) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "12px 32px",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: "12px 24px",
       }}
     >
       {data.referees
@@ -1299,21 +1488,28 @@ function ClassicPreview({ data }: { data: CvData }) {
     <div
       style={{
         fontFamily: "'Palatino Linotype', 'Times New Roman', serif",
-        padding: "40px 48px",
+        padding: 24,
+        textAlign: "justify" as const,
       }}
     >
-      <h1 style={{ fontSize: "22pt", fontWeight: 700, marginBottom: 2, color: "#1a1a1a" }}>
-        {data.fullName || "Your Name"}
-      </h1>
-      {data.tagline && (
-        <div style={{ fontSize: "10pt", color: "#555", marginBottom: 6 }}>
-          {data.tagline}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, marginBottom: 18, borderBottom: "2px solid #1B3A5C", paddingBottom: 14 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{ fontSize: "22pt", fontWeight: 700, marginBottom: 2, color: "#1B3A5C", textAlign: "left" }}>
+            {data.fullName || "Your Name"}
+          </h1>
+          {data.tagline && (
+            <div style={{ fontSize: "10pt", color: "#666", lineHeight: 1.4 }}>
+              {data.tagline}
+            </div>
+          )}
         </div>
-      )}
-      <div style={{ fontSize: "8.5pt", color: "#555", marginBottom: 18 }}>
-        {[data.email, data.phone, data.location, data.linkedin]
-          .filter(Boolean)
-          .join("  |  ")}
+        <div style={{ fontSize: "8.5pt", color: "#555", textAlign: "right", lineHeight: 1.7, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 4 }}>
+          {[data.phone, data.email, data.linkedin, data.location]
+            .filter(Boolean)
+            .map((item, i) => (
+              <div key={i}>{item}</div>
+            ))}
+        </div>
       </div>
 
       {data.summary && (
@@ -1384,7 +1580,7 @@ function ModernPreview({ data }: { data: CvData }) {
         style={{
           background: "#1A5C3A",
           color: "#fff",
-          padding: "32px 40px 24px",
+          padding: 24,
         }}
       >
         <h1 style={{ fontSize: "22pt", fontWeight: 700, marginBottom: 2, color: "#fff" }}>
@@ -1413,7 +1609,7 @@ function ModernPreview({ data }: { data: CvData }) {
       </div>
 
       {/* Body */}
-      <div className="modern-body" style={{ padding: "24px 40px 40px" }}>
+      <div className="modern-body" style={{ padding: 24, textAlign: "justify" as const }}>
         {data.summary && (
           <>
             <ModernSectionHeading>Professional Summary</ModernSectionHeading>
@@ -1512,7 +1708,8 @@ function ExecutivePreview({ data }: { data: CvData }) {
       style={{
         fontFamily: "Georgia, 'Times New Roman', serif",
         position: "relative",
-        padding: "40px 48px 40px 54px",
+        padding: "24px 24px 24px 30px",
+        textAlign: "justify" as const,
       }}
     >
       <div
@@ -1605,7 +1802,8 @@ function MinimalPreview({ data }: { data: CvData }) {
     <div
       style={{
         fontFamily: "'Helvetica Neue', Arial, sans-serif",
-        padding: "48px 56px",
+        padding: 24,
+        textAlign: "justify" as const,
         color: "#333",
       }}
     >
@@ -1756,6 +1954,87 @@ function TemplateThumbnail({ id, accent }: { id: Template; accent: string }) {
     );
   }
 
+  if (id === "bold") {
+    return (
+      <div style={{ height: "100%", background: "#2D2D2D", padding: "10px 14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#555", flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ height: 6, width: "60%", background: "#fff", borderRadius: 2, marginBottom: 3 }} />
+            <div style={{ height: 3, width: "40%", background: accent, borderRadius: 2 }} />
+          </div>
+        </div>
+        <div style={{ height: 3, width: "25%", background: accent, borderRadius: 2, marginBottom: 4 }} />
+        {lineW.slice(0, 4).map((w, i) => (
+          <div key={i} style={{ height: 2.5, width: w, background: "#555", borderRadius: 2, marginBottom: 2.5 }} />
+        ))}
+      </div>
+    );
+  }
+
+  if (id === "professional") {
+    return (
+      <div style={{ height: "100%", display: "flex" }}>
+        <div style={{ width: "35%", background: "#1B2838", padding: "10px 8px" }}>
+          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#2a4060", margin: "0 auto 6px" }} />
+          <div style={{ height: 3, width: "80%", background: "#3a5575", borderRadius: 2, marginBottom: 3, marginLeft: "auto", marginRight: "auto" }} />
+          <div style={{ height: 3, width: "60%", background: "#3a5575", borderRadius: 2, marginLeft: "auto", marginRight: "auto" }} />
+        </div>
+        <div style={{ flex: 1, padding: "10px 10px" }}>
+          <div style={{ height: 6, width: "50%", background: "#1a1a1a", borderRadius: 2, marginBottom: 4 }} />
+          <div style={{ height: 3, width: "25%", background: accent, borderRadius: 2, marginBottom: 5 }} />
+          {lineW.slice(0, 4).map((w, i) => (
+            <div key={i} style={{ height: 2.5, width: w, background: "#e5e5e5", borderRadius: 2, marginBottom: 2.5 }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (id === "creative") {
+    return (
+      <div style={{ height: "100%", display: "flex" }}>
+        <div style={{ width: "38%", background: "#F5F0E8", padding: "12px 8px", textAlign: "center" as const }}>
+          <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#ddd5c5", margin: "0 auto 6px" }} />
+          <div style={{ height: 4, width: "70%", background: "#1a1a1a", borderRadius: 2, marginBottom: 3, marginLeft: "auto", marginRight: "auto" }} />
+          <div style={{ height: 3, width: "50%", background: "#bbb", borderRadius: 2, marginLeft: "auto", marginRight: "auto" }} />
+        </div>
+        <div style={{ flex: 1, padding: "12px 10px" }}>
+          <div style={{ height: 4, width: "35%", background: accent, borderRadius: 2, marginBottom: 5 }} />
+          {lineW.slice(0, 4).map((w, i) => (
+            <div key={i} style={{ height: 2.5, width: w, background: "#e5e5e5", borderRadius: 2, marginBottom: 2.5 }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (id === "corporate") {
+    return (
+      <div style={{ height: "100%" }}>
+        <div style={{ background: accent, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(255,255,255,0.2)", flexShrink: 0 }} />
+          <div>
+            <div style={{ height: 5, width: 60, background: "rgba(255,255,255,0.9)", borderRadius: 2, marginBottom: 2 }} />
+            <div style={{ height: 3, width: 40, background: "rgba(255,255,255,0.4)", borderRadius: 2 }} />
+          </div>
+        </div>
+        <div style={{ display: "flex", flex: 1 }}>
+          <div style={{ width: "30%", background: "#e8ecf0", padding: "6px 6px" }}>
+            {[30, 20, 25].map((w, i) => (
+              <div key={i} style={{ height: 2.5, width: `${w}px`, background: "#c5cdd5", borderRadius: 2, marginBottom: 3 }} />
+            ))}
+          </div>
+          <div style={{ flex: 1, padding: "6px 8px" }}>
+            {lineW.slice(0, 4).map((w, i) => (
+              <div key={i} style={{ height: 2.5, width: w, background: "#e5e5e5", borderRadius: 2, marginBottom: 2.5 }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // classic
   return (
     <div style={{ height: "100%", padding: "14px 16px" }}>
@@ -1771,6 +2050,386 @@ function TemplateThumbnail({ id, accent }: { id: Template; accent: string }) {
       {lineW.slice(0, 3).map((w, i) => (
         <div key={i} style={{ height: 3, width: w, background: "#e5e5e5", borderRadius: 2, marginBottom: 3 }} />
       ))}
+    </div>
+  );
+}
+
+/* ── Photo circle helper ─────────────────────────────────── */
+
+function PhotoCircle({ photo, zoom = 1, offsetX = 0, offsetY = 0, size = 120, border = "4px solid #fff", placeholderBg = "#ccc", placeholderIcon = "#999" }: { photo: string; zoom?: number; offsetX?: number; offsetY?: number; size?: number; border?: string; placeholderBg?: string; placeholderIcon?: string }) {
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        border,
+        overflow: "hidden",
+        flexShrink: 0,
+        background: placeholderBg,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {photo ? (
+        <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${zoom}) translate(${offsetX}%, ${offsetY}%)` }} />
+      ) : (
+        <svg width={size * 0.45} height={size * 0.45} viewBox="0 0 24 24" fill="none" stroke={placeholderIcon} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      )}
+    </div>
+  );
+}
+
+/* ── Sidebar contact block ───────────────────────────────── */
+
+function SidebarContact({ data, color = "#fff", muted = "rgba(255,255,255,0.7)" }: { data: CvData; color?: string; muted?: string }) {
+  const items = [
+    data.email && { label: "Email", value: data.email },
+    data.phone && { label: "Phone", value: data.phone },
+    data.location && { label: "Location", value: data.location },
+    data.linkedin && { label: "Web", value: data.linkedin },
+  ].filter(Boolean) as { label: string; value: string }[];
+
+  return (
+    <div>
+      {items.map((item, i) => (
+        <div key={i} style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: "7.5pt", textTransform: "uppercase", letterSpacing: "1px", color: muted, marginBottom: 1 }}>{item.label}</div>
+          <div style={{ fontSize: "8.5pt", color, wordBreak: "break-all" }}>{item.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Bold template (dark bg + orange) ────────────────────── */
+
+function BoldPreview({ data }: { data: CvData }) {
+  const accent = "#E8840C";
+  return (
+    <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", background: "#2D2D2D", color: "#fff", minHeight: 900 }}>
+      {/* Header */}
+      <div style={{ background: "#363636", padding: 24, display: "flex", alignItems: "center", gap: 24 }}>
+        <PhotoCircle photo={data.photo} zoom={data.photoZoom} offsetX={data.photoOffsetX} offsetY={data.photoOffsetY} size={100} border={`4px solid ${accent}`} placeholderBg="#555" placeholderIcon="#888" />
+        <div>
+          <h1 style={{ fontSize: "22pt", fontWeight: 700, color: "#fff", marginBottom: 2 }}>
+            {data.fullName || "Your Name"}
+          </h1>
+          {data.tagline && (
+            <div style={{ fontSize: "10pt", color: accent, marginBottom: 4 }}>{data.tagline}</div>
+          )}
+          <div style={{ fontSize: "8.5pt", color: "rgba(255,255,255,0.6)" }}>
+            {[data.email, data.phone, data.location].filter(Boolean).join("  |  ")}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: 24, textAlign: "justify" as const }}>
+        {data.summary && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "12px 0 10px" }}>
+              Professional Summary
+            </h2>
+            <p style={{ fontSize: "9.5pt", lineHeight: 1.6, color: "rgba(255,255,255,0.85)" }}>{data.summary}</p>
+          </>
+        )}
+
+        {data.experience.some((e) => e.company || e.role) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>
+              Experience
+            </h2>
+            <ExperienceEntries data={data} />
+          </>
+        )}
+
+        {data.education.some((e) => e.institution || e.degree) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>
+              Education
+            </h2>
+            <EducationEntries data={data} />
+          </>
+        )}
+
+        {data.skillGroups.some((g) => g.category && g.skills) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>
+              Core Skills
+            </h2>
+            <div>
+              {data.skillGroups.filter((g) => g.category && g.skills).map((g, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, marginBottom: 6 }}>
+                  <span style={{ fontWeight: 700, fontSize: "9.5pt", color: accent, minWidth: 160, flexShrink: 0 }}>{g.category}</span>
+                  <span style={{ fontSize: "9.5pt", color: "rgba(255,255,255,0.85)" }}>{g.skills}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {hasRefs(data) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>
+              References
+            </h2>
+            <ReferencesBlock data={data} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Professional template (navy sidebar + gold) ─────────── */
+
+function ProfessionalPreview({ data }: { data: CvData }) {
+  const navy = "#1B2838";
+  const gold = "#D4A017";
+  return (
+    <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", display: "flex", minHeight: 900 }}>
+      {/* Sidebar */}
+      <div style={{ width: "35%", background: navy, color: "#fff", padding: "24px 18px", flexShrink: 0 }}>
+        <div style={{ textAlign: "center" as const, marginBottom: 20 }}>
+          <PhotoCircle photo={data.photo} zoom={data.photoZoom} offsetX={data.photoOffsetX} offsetY={data.photoOffsetY} size={100} border={`3px solid ${gold}`} placeholderBg="#2a4060" placeholderIcon="#5a7a9a" />
+        </div>
+
+        <h2 style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: gold, borderBottom: `2px solid ${gold}`, paddingBottom: 3, marginBottom: 12 }}>
+          Contact
+        </h2>
+        <SidebarContact data={data} />
+
+        {data.skillGroups.some((g) => g.category && g.skills) && (
+          <>
+            <h2 style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: gold, borderBottom: `2px solid ${gold}`, paddingBottom: 3, margin: "20px 0 12px" }}>
+              Skills
+            </h2>
+            {data.skillGroups.filter((g) => g.category && g.skills).map((g, i) => (
+              <div key={i} style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: "8.5pt", fontWeight: 700, color: gold, marginBottom: 2 }}>{g.category}</div>
+                <div style={{ fontSize: "8.5pt", color: "rgba(255,255,255,0.8)" }}>{g.skills}</div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {hasRefs(data) && (
+          <>
+            <h2 style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: gold, borderBottom: `2px solid ${gold}`, paddingBottom: 3, margin: "20px 0 12px" }}>
+              References
+            </h2>
+            {data.referencesUponRequest ? (
+              <p style={{ fontSize: "8.5pt", fontStyle: "italic", color: "rgba(255,255,255,0.7)" }}>Upon request.</p>
+            ) : (
+              data.referees.filter((r) => r.name).map((ref, i) => (
+                <div key={i} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: "8.5pt", fontWeight: 700 }}>{ref.name}</div>
+                  <div style={{ fontSize: "8pt", color: "rgba(255,255,255,0.7)" }}>{ref.title}{ref.title && ref.company && ", "}{ref.company}</div>
+                </div>
+              ))
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Main content */}
+      <div style={{ flex: 1, padding: 24, textAlign: "justify" as const }}>
+        <h1 style={{ fontSize: "22pt", fontWeight: 700, color: navy, marginBottom: 2 }}>
+          {data.fullName || "Your Name"}
+        </h1>
+        {data.tagline && (
+          <div style={{ fontSize: "10pt", color: gold, marginBottom: 16 }}>{data.tagline}</div>
+        )}
+
+        {data.summary && (
+          <>
+            <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: gold, borderBottom: `2px solid ${gold}`, paddingBottom: 3, margin: "0 0 10px" }}>About Me</h2>
+            <p style={{ fontSize: "9.5pt", lineHeight: 1.6, color: "#333" }}>{data.summary}</p>
+          </>
+        )}
+
+        {data.experience.some((e) => e.company || e.role) && (
+          <>
+            <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: gold, borderBottom: `2px solid ${gold}`, paddingBottom: 3, margin: "16px 0 10px" }}>Experience</h2>
+            <ExperienceEntries data={data} />
+          </>
+        )}
+
+        {data.education.some((e) => e.institution || e.degree) && (
+          <>
+            <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: gold, borderBottom: `2px solid ${gold}`, paddingBottom: 3, margin: "16px 0 10px" }}>Education</h2>
+            <EducationEntries data={data} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Creative template (beige sidebar + black headings) ──── */
+
+function CreativePreview({ data }: { data: CvData }) {
+  const beige = "#F5F0E8";
+  const dark = "#1a1a1a";
+  const accent = "#C8A84E";
+  return (
+    <div style={{ fontFamily: "Georgia, serif", display: "flex", minHeight: 900 }}>
+      {/* Sidebar */}
+      <div style={{ width: "38%", background: beige, padding: "24px 18px", flexShrink: 0 }}>
+        <div style={{ textAlign: "center" as const, marginBottom: 20 }}>
+          <PhotoCircle photo={data.photo} zoom={data.photoZoom} offsetX={data.photoOffsetX} offsetY={data.photoOffsetY} size={110} border={`4px solid ${dark}`} placeholderBg="#ddd5c5" placeholderIcon="#b0a890" />
+        </div>
+
+        <div style={{ background: dark, color: "#fff", padding: "6px 12px", marginBottom: 14, fontWeight: 700, fontSize: "10pt", textTransform: "uppercase", letterSpacing: "1px" }}>
+          About Me
+        </div>
+        {data.summary && (
+          <p style={{ fontSize: "8.5pt", lineHeight: 1.6, color: "#444", marginBottom: 16 }}>{data.summary}</p>
+        )}
+
+        <div style={{ background: dark, color: "#fff", padding: "6px 12px", marginBottom: 14, fontWeight: 700, fontSize: "10pt", textTransform: "uppercase", letterSpacing: "1px" }}>
+          Contact
+        </div>
+        <SidebarContact data={data} color="#333" muted="#888" />
+
+        {data.skillGroups.some((g) => g.category && g.skills) && (
+          <>
+            <div style={{ background: dark, color: "#fff", padding: "6px 12px", marginBottom: 14, marginTop: 16, fontWeight: 700, fontSize: "10pt", textTransform: "uppercase", letterSpacing: "1px" }}>
+              Skills
+            </div>
+            {data.skillGroups.filter((g) => g.category && g.skills).map((g, i) => (
+              <div key={i} style={{ marginBottom: 6 }}>
+                <div style={{ fontSize: "8.5pt", fontWeight: 700, color: dark, marginBottom: 1 }}>{g.category}</div>
+                <div style={{ fontSize: "8.5pt", color: "#555" }}>{g.skills}</div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Main content */}
+      <div style={{ flex: 1, padding: 24, background: "#fff", textAlign: "justify" as const }}>
+        <h1 style={{ fontSize: "22pt", fontWeight: 700, color: dark, marginBottom: 2 }}>
+          {data.fullName || "Your Name"}
+        </h1>
+        {data.tagline && (
+          <div style={{ fontSize: "10pt", color: accent, marginBottom: 18, fontStyle: "italic" }}>{data.tagline}</div>
+        )}
+
+        {data.experience.some((e) => e.company || e.role) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: dark, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "0 0 10px" }}>Experience</h2>
+            <ExperienceEntries data={data} />
+          </>
+        )}
+
+        {data.education.some((e) => e.institution || e.degree) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: dark, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>Education</h2>
+            <EducationEntries data={data} />
+          </>
+        )}
+
+        {hasRefs(data) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: dark, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>References</h2>
+            <ReferencesBlock data={data} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Corporate template (navy header + sidebar) ──────────── */
+
+function CorporatePreview({ data }: { data: CvData }) {
+  const navy = "#1B3A5C";
+  return (
+    <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", minHeight: 900 }}>
+      {/* Header */}
+      <div style={{ background: navy, color: "#fff", padding: 24, display: "flex", alignItems: "center", gap: 20 }}>
+        <PhotoCircle photo={data.photo} zoom={data.photoZoom} offsetX={data.photoOffsetX} offsetY={data.photoOffsetY} size={80} border="3px solid rgba(255,255,255,0.3)" placeholderBg="rgba(255,255,255,0.15)" placeholderIcon="rgba(255,255,255,0.4)" />
+        <div>
+          <h1 style={{ fontSize: "22pt", fontWeight: 700, color: "#fff", marginBottom: 2, textTransform: "uppercase", letterSpacing: "1px" }}>
+            {data.fullName || "Your Name"}
+          </h1>
+          {data.tagline && (
+            <div style={{ fontSize: "9pt", color: "rgba(255,255,255,0.7)", letterSpacing: "1.5px", textTransform: "uppercase" }}>{data.tagline}</div>
+          )}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ display: "flex" }}>
+        {/* Sidebar */}
+        <div style={{ width: "32%", background: "#EDF1F5", padding: "24px 18px", flexShrink: 0 }}>
+          <h2 style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, marginBottom: 10 }}>
+            Contact
+          </h2>
+          <SidebarContact data={data} color="#333" muted={navy} />
+
+          {data.skillGroups.some((g) => g.category && g.skills) && (
+            <>
+              <h2 style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "18px 0 10px" }}>
+                Skills
+              </h2>
+              {data.skillGroups.filter((g) => g.category && g.skills).map((g, i) => (
+                <div key={i} style={{ marginBottom: 6 }}>
+                  <div style={{ fontSize: "8.5pt", fontWeight: 700, color: navy, marginBottom: 1 }}>{g.category}</div>
+                  <div style={{ fontSize: "8.5pt", color: "#555" }}>{g.skills}</div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {hasRefs(data) && (
+            <>
+              <h2 style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "18px 0 10px" }}>
+                References
+              </h2>
+              {data.referencesUponRequest ? (
+                <p style={{ fontSize: "8.5pt", fontStyle: "italic", color: "#777" }}>Upon request.</p>
+              ) : (
+                data.referees.filter((r) => r.name).map((ref, i) => (
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: "8.5pt", fontWeight: 700, color: "#333" }}>{ref.name}</div>
+                    <div style={{ fontSize: "8pt", color: "#777" }}>{ref.title}{ref.title && ref.company && ", "}{ref.company}</div>
+                  </div>
+                ))
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Main */}
+        <div style={{ flex: 1, padding: 24, textAlign: "justify" as const }}>
+          {data.summary && (
+            <>
+              <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "0 0 10px" }}>Profile</h2>
+              <p style={{ fontSize: "9.5pt", lineHeight: 1.6, color: "#333" }}>{data.summary}</p>
+            </>
+          )}
+
+          {data.experience.some((e) => e.company || e.role) && (
+            <>
+              <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "16px 0 10px" }}>Experience</h2>
+              <ExperienceEntries data={data} />
+            </>
+          )}
+
+          {data.education.some((e) => e.institution || e.degree) && (
+            <>
+              <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "16px 0 10px" }}>Education</h2>
+              <EducationEntries data={data} />
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
