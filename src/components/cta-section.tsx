@@ -4,15 +4,15 @@ import { cn } from "@/lib/utils";
 import { Mail, Clock, MapPin, Phone } from "lucide-react";
 
 const features = [
-  { icon: Mail, title: "Email us", desc: "hello@careercraft.pro" },
+  { icon: Mail, title: "Email us", desc: "josiahcodes.dev@gmail.com" },
   { icon: Clock, title: "Response time", desc: "Within a few hours" },
   { icon: MapPin, title: "Based in", desc: "Nairobi, serving globally" },
-  { icon: Phone, title: "Call us", desc: "Available on request" },
+  { icon: Phone, title: "Call us", desc: "+254 110 242 289" },
 ];
 
 export function CtaSection() {
   return (
-    <section className="bg-foreground text-white py-20 px-8">
+    <section className="bg-brand-dark text-white py-20 px-8">
       <div className="max-w-[1100px] mx-auto grid md:grid-cols-2 gap-16 items-center">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-light/70 mb-3">

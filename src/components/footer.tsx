@@ -48,7 +48,7 @@ const socialLinks = [
 
 export function Footer() {
   return (
-    <footer className="bg-[#0D0D0C] text-white/40">
+    <footer className="bg-brand-dark text-white/40">
       <div className="max-w-[1100px] mx-auto px-8 pt-12 pb-6">
         <div className="flex flex-wrap justify-between gap-8 mb-8">
           <div>
