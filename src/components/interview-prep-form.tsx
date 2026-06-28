@@ -67,9 +67,27 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
   const skillsList = keywords.length > 0 ? keywords.join(", ") : "the required skills";
   const topSkills = keywords.slice(0, 3).join(", ") || "relevant tools and methodologies";
   const quals = qualifications.trim();
-  const qualsSnippet = quals
-    ? quals.split("\n").filter((l) => l.trim()).slice(0, 3).join(", ").substring(0, 200)
-    : "";
+  const headerPattern = /^(professional\s+summary|professional\s+experience|experience|education|skills|core\s+skills|certifications?|references?|contact|personal\s+(details|info|information)|objective|profile|about\s+me|work\s+history|qualifications|competenc|training|awards|hobbies|interests|languages?|projects?|publications?|curriculum\s+vitae|resume|cv)\s*:?\s*$/i;
+  const contentLines = quals
+    ? quals
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l && !headerPattern.test(l) && l.length > 5 && !/^[A-Z\s&,|·•\-:]+$/.test(l))
+    : [];
+  const qualsSnippet = contentLines.slice(0, 5).join(", ").substring(0, 300);
+
+  const cvSkills = contentLines
+    .filter((l) => /[,·;]/.test(l) || /proficient|experienced|skilled|knowledge/i.test(l))
+    .join(", ")
+    .substring(0, 200);
+  const cvExperience = contentLines
+    .filter((l) => /\b(years?|managed|led|developed|built|implemented|delivered|responsible|coordinated|designed|created)\b/i.test(l))
+    .slice(0, 5)
+    .join(". ");
+
+  const allSkills = cvSkills
+    ? `${topSkills}, ${cvSkills}`
+    : topSkills;
   const backgroundLine = quals
     ? `My background includes ${qualsSnippet}, which I've applied across various roles to deliver measurable results.`
     : `Over the years, I've developed expertise in ${topSkills}, and I'm passionate about delivering results that align with organisational goals.`;
@@ -99,11 +117,15 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
     {
       section: "Experience & Skills",
       question: "Can you walk me through your most relevant experience for this role?",
-      answer: `Certainly. In my most recent role, I was responsible for tasks directly related to ${topSkills}. I led initiatives that delivered measurable outcomes — for example, I streamlined processes that improved efficiency and collaborated with cross-functional teams to ensure project success. These experiences have prepared me well for the responsibilities outlined in your job description.`,
+      answer: cvExperience
+        ? `Certainly. ${cvExperience}. These experiences have prepared me well for the responsibilities outlined in your job description.`
+        : `Certainly. In my most recent role, I was responsible for tasks directly related to ${topSkills}. I led initiatives that delivered measurable outcomes — for example, I streamlined processes that improved efficiency and collaborated with cross-functional teams to ensure project success. These experiences have prepared me well for the responsibilities outlined in your job description.`,
     },
     {
       question: `The role requires strong skills in ${skillsList}. How would you rate your proficiency, and can you give an example?`,
-      answer: `I'd rate myself highly proficient in these areas. For instance, I've used ${keywords[0] || "these tools"} extensively in previous projects to analyse data, generate reports, and support decision-making. I make it a priority to stay updated through continuous learning, and I'm confident I can apply these skills effectively in this role.`,
+      answer: cvSkills
+        ? `I'd rate myself highly proficient in these areas. My skills include ${cvSkills}. I've applied these extensively in previous projects and make it a priority to stay updated through continuous learning. I'm confident I can apply these skills effectively in this role.`
+        : `I'd rate myself highly proficient in these areas. For instance, I've used ${keywords[0] || "these tools"} extensively in previous projects to analyse data, generate reports, and support decision-making. I make it a priority to stay updated through continuous learning, and I'm confident I can apply these skills effectively in this role.`,
     },
     {
       question: "What is your greatest professional achievement?",
@@ -220,7 +242,7 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
     {
       question: `Why should we hire you for ${title}?`,
       answer: quals
-        ? `I bring a strong combination of qualifications — including ${qualsSnippet} — along with hands-on experience in ${topSkills}. I've demonstrated the ability to adapt quickly, collaborate effectively, and drive outcomes that matter. I believe my background and values are well aligned with what you're looking for, and I'm confident I would make a positive contribution to your team.`
+        ? `I bring a strong combination of qualifications — including ${qualsSnippet} — along with hands-on experience in ${allSkills}. I've demonstrated the ability to adapt quickly, collaborate effectively, and drive outcomes that matter. I believe my background and values are well aligned with what you're looking for, and I'm confident I would make a positive contribution to your team.`
         : `I bring a strong combination of ${topSkills} expertise, a proven track record of delivering results, and a genuine enthusiasm for this kind of work. I've demonstrated the ability to adapt quickly, collaborate effectively, and drive outcomes that matter. I believe my skills and values are well aligned with what you're looking for, and I'm confident I would make a positive contribution to your team.`,
     },
 
