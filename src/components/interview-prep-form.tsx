@@ -454,14 +454,14 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                 )}
               </div>
 
-              {uploadedCv && (
+              {uploadedCv ? (
                 <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-background">
                   <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
                     <FileText className="w-5 h-5 text-brand" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{uploadedCv}</p>
-                    <p className="text-xs text-text-muted">CV extracted successfully</p>
+                    <p className="text-xs text-text-muted">CV uploaded successfully</p>
                   </div>
                   <button
                     onClick={() => {
@@ -473,22 +473,22 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                     <X className="w-4 h-4" />
                   </button>
                 </div>
+              ) : (
+                <Textarea
+                  value={data.qualifications}
+                  onChange={(e) =>
+                    setData((prev) => ({
+                      ...prev,
+                      qualifications: e.target.value,
+                    }))
+                  }
+                  placeholder={"e.g.\nBSc Computer Science — University of Nairobi\nAWS Certified Solutions Architect\n5 years experience in data analysis\nProficient in Python, SQL, Power BI"}
+                  className="min-h-[120px]"
+                />
               )}
-
-              <Textarea
-                value={data.qualifications}
-                onChange={(e) =>
-                  setData((prev) => ({
-                    ...prev,
-                    qualifications: e.target.value,
-                  }))
-                }
-                placeholder={"e.g.\nBSc Computer Science — University of Nairobi\nAWS Certified Solutions Architect\n5 years experience in data analysis\nProficient in Python, SQL, Power BI"}
-                className={uploadedCv ? "min-h-[80px]" : "min-h-[120px]"}
-              />
               <p className="text-xs text-text-muted">
                 {uploadedCv
-                  ? "CV content extracted. You can edit or add more details below."
+                  ? "Your CV content will be used to personalise your interview answers."
                   : "Upload your CV to auto-fill, or type your degrees, certifications, skills, and experience."}
               </p>
             </div>
