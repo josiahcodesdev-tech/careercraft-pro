@@ -67,9 +67,9 @@ export default function ServicesPage() {
   return (
     <>
       {/* Page hero */}
-      <section className="bg-card border-b border-border py-8 px-8">
+      <section className="bg-brand-dark text-white py-8 px-8">
         <div className="max-w-[1100px] mx-auto text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-brand mb-3">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-light/70 mb-3">
             Our services
           </p>
           <h1 className="font-heading text-[clamp(26px,3.2vw,40px)] font-black tracking-tight leading-tight mb-4">
@@ -77,7 +77,7 @@ export default function ServicesPage() {
             <br />
             development services
           </h1>
-          <p className="text-text-secondary max-w-[540px] mx-auto leading-relaxed">
+          <p className="text-white/60 max-w-[540px] mx-auto leading-relaxed">
             From your first career move to your next big leap — we provide the
             tools, strategy, and expert support to get you there.
           </p>
