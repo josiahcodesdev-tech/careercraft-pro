@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Mail, Clock, MapPin, Phone } from "lucide-react";
@@ -12,8 +13,18 @@ const features = [
 
 export function CtaSection() {
   return (
-    <section className="bg-brand-dark text-white py-20 px-8">
-      <div className="max-w-[1100px] mx-auto grid md:grid-cols-2 gap-16 items-center">
+    <section className="relative text-white py-20 px-8 overflow-hidden">
+      {/* Background image */}
+      <Image
+        src="/images/career-assessment.jpg"
+        alt=""
+        fill
+        className="object-cover"
+      />
+      {/* Dark green overlay */}
+      <div className="absolute inset-0 bg-brand-dark/75" />
+
+      <div className="relative max-w-[1100px] mx-auto grid md:grid-cols-2 gap-16 items-center">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-light/70 mb-3">
             Start today
@@ -29,7 +40,7 @@ export function CtaSection() {
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
-              href="/contact"
+              href="/cv-builder"
               className={cn(buttonVariants(), "bg-white text-foreground font-semibold hover:bg-background")}
             >
               Build Your ATS-Ready CV Now →
@@ -50,7 +61,7 @@ export function CtaSection() {
           {features.map((f) => (
             <div
               key={f.title}
-              className="bg-white/6 border border-white/10 rounded-xl p-5"
+              className="bg-white/8 backdrop-blur-sm border border-white/10 rounded-xl p-5"
             >
               <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center mb-3">
                 <f.icon className="w-[18px] h-[18px] text-white/80" />

@@ -70,7 +70,7 @@ export function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-white/40 hover:text-white/70 transition-colors"
+                    className="text-sm text-gold/80 hover:text-gold transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -88,7 +88,7 @@ export function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-white/40 hover:text-white/70 transition-colors"
+                    className="text-sm text-gold/80 hover:text-gold transition-colors"
                   >
                     {link.label}
                   </Link>

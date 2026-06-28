@@ -15,7 +15,7 @@ const services = [
     image: "/images/proposals-grants.jpg",
     badge: "Writing",
     title: "Proposal Writing & Grants",
-    href: "/services",
+    href: "/proposals",
     description:
       "Professional proposal and grant writing services for NGOs, businesses, and individuals. Crafting compelling, well-researched documents that win funding.",
   },
