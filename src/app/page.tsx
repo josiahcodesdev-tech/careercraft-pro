@@ -43,10 +43,10 @@ export default function HomePage() {
                 Build Your ATS-Ready CV Now →
               </Link>
               <Link
-                href="/services"
+                href="/interview-prep"
                 className={cn(buttonVariants({ variant: "outline" }))}
               >
-                Explore services
+                Interview Preparation
               </Link>
             </div>
             <div className="flex items-center gap-3 text-sm text-text-muted">
