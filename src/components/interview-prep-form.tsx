@@ -259,6 +259,9 @@ export function InterviewPrepForm() {
   const [generating, setGenerating] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<string>("");
   const [uploadedCv, setUploadedCv] = useState<string>("");
+  const [scanningJd, setScanningJd] = useState(false);
+  const [scanningCv, setScanningCv] = useState(false);
+  const [scanStep, setScanStep] = useState(0);
   const previewRef = useRef<HTMLDivElement>(null);
 
   const canGenerate = data.candidateName.trim() && data.roleTitle.trim() && data.jobDescription.trim();
@@ -349,7 +352,7 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                 <span className="text-sm font-medium">
                   Job description <span className="text-red-500">*</span>
                 </span>
-                {!uploadedFile && (
+                {!uploadedFile && !scanningJd && (
                   <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs font-medium cursor-pointer hover:bg-background transition-colors">
                     <Upload className="w-3 h-3" /> Upload file
                     <input
@@ -358,6 +361,10 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        setScanningJd(true);
+                        setScanStep(0);
+                        const stepTimer1 = setTimeout(() => setScanStep(1), 800);
+                        const stepTimer2 = setTimeout(() => setScanStep(2), 1800);
                         try {
                           let text: string;
                           if (file.name.toLowerCase().endsWith(".pdf")) {
@@ -365,11 +372,16 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                           } else {
                             text = await file.text();
                           }
+                          await new Promise((r) => setTimeout(r, 2500));
                           setData((prev) => ({ ...prev, jobDescription: text }));
                           setUploadedFile(file.name);
                         } catch {
                           alert("Could not read this file. Try pasting the content directly.");
                         }
+                        clearTimeout(stepTimer1);
+                        clearTimeout(stepTimer2);
+                        setScanningJd(false);
+                        setScanStep(0);
                         e.target.value = "";
                       }}
                       className="hidden"
@@ -378,7 +390,9 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                 )}
               </div>
 
-              {uploadedFile ? (
+              {scanningJd ? (
+                <ScanningIndicator step={scanStep} label="job description" />
+              ) : uploadedFile ? (
                 <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-background">
                   <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
                     <FileText className="w-5 h-5 text-brand" />
@@ -420,7 +434,7 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Your qualifications</span>
-                {!uploadedCv && (
+                {!uploadedCv && !scanningCv && (
                   <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs font-medium cursor-pointer hover:bg-background transition-colors">
                     <Upload className="w-3 h-3" /> Upload CV
                     <input
@@ -429,6 +443,10 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        setScanningCv(true);
+                        setScanStep(0);
+                        const stepTimer1 = setTimeout(() => setScanStep(1), 1000);
+                        const stepTimer2 = setTimeout(() => setScanStep(2), 2200);
                         try {
                           let text: string;
                           if (file.name.toLowerCase().endsWith(".pdf")) {
@@ -436,6 +454,7 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                           } else {
                             text = await file.text();
                           }
+                          await new Promise((r) => setTimeout(r, 3000));
                           setData((prev) => ({
                             ...prev,
                             qualifications: prev.qualifications
@@ -446,6 +465,10 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                         } catch {
                           alert("Could not read this file. Try pasting the content directly.");
                         }
+                        clearTimeout(stepTimer1);
+                        clearTimeout(stepTimer2);
+                        setScanningCv(false);
+                        setScanStep(0);
                         e.target.value = "";
                       }}
                       className="hidden"
@@ -454,7 +477,9 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                 )}
               </div>
 
-              {uploadedCv ? (
+              {scanningCv ? (
+                <ScanningIndicator step={scanStep} label="CV" />
+              ) : uploadedCv ? (
                 <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-background">
                   <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
                     <FileText className="w-5 h-5 text-brand" />
@@ -714,6 +739,48 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+const scanSteps = [
+  "Scanning document...",
+  "Understanding content...",
+  "Extracting key information...",
+];
+
+function ScanningIndicator({ step, label }: { step: number; label: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-background p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
+          <Loader2 className="w-5 h-5 text-brand animate-spin" />
+        </div>
+        <div>
+          <p className="text-sm font-medium">Analysing {label}</p>
+          <p className="text-xs text-text-muted">Please wait...</p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {scanSteps.map((s, i) => (
+          <div key={i} className="flex items-center gap-2">
+            {i < step ? (
+              <div className="w-4 h-4 rounded-full bg-brand flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+            ) : i === step ? (
+              <div className="w-4 h-4 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+            ) : (
+              <div className="w-4 h-4 rounded-full border-2 border-border" />
+            )}
+            <span className={`text-xs ${i <= step ? "text-foreground font-medium" : "text-text-muted"}`}>
+              {s}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
