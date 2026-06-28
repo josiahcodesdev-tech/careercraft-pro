@@ -14,6 +14,7 @@ import {
   User,
   MessageSquare,
   Upload,
+  X,
 } from "lucide-react";
 
 interface QA {
@@ -256,6 +257,7 @@ export function InterviewPrepForm() {
   });
   const [dialogue, setDialogue] = useState<QA[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<string>("");
   const previewRef = useRef<HTMLDivElement>(null);
 
   const canGenerate = data.candidateName.trim() && data.roleTitle.trim() && data.jobDescription.trim();
@@ -346,45 +348,71 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                 <span className="text-sm font-medium">
                   Job description <span className="text-red-500">*</span>
                 </span>
-                <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs font-medium cursor-pointer hover:bg-background transition-colors">
-                  <Upload className="w-3 h-3" /> Upload file
-                  <input
-                    type="file"
-                    accept=".txt,.pdf,.doc,.docx"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      try {
-                        let text: string;
-                        if (file.name.toLowerCase().endsWith(".pdf")) {
-                          text = await extractTextFromPdf(file);
-                        } else {
-                          text = await file.text();
+                {!uploadedFile && (
+                  <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs font-medium cursor-pointer hover:bg-background transition-colors">
+                    <Upload className="w-3 h-3" /> Upload file
+                    <input
+                      type="file"
+                      accept=".txt,.pdf,.doc,.docx"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          let text: string;
+                          if (file.name.toLowerCase().endsWith(".pdf")) {
+                            text = await extractTextFromPdf(file);
+                          } else {
+                            text = await file.text();
+                          }
+                          setData((prev) => ({ ...prev, jobDescription: text }));
+                          setUploadedFile(file.name);
+                        } catch {
+                          alert("Could not read this file. Try pasting the content directly.");
                         }
-                        setData((prev) => ({ ...prev, jobDescription: text }));
-                      } catch {
-                        alert("Could not read this file. Try pasting the content directly.");
-                      }
-                      e.target.value = "";
-                    }}
-                    className="hidden"
-                  />
-                </label>
+                        e.target.value = "";
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
-              <Textarea
-                value={data.jobDescription}
-                onChange={(e) =>
-                  setData((prev) => ({
-                    ...prev,
-                    jobDescription: e.target.value,
-                  }))
-                }
-                placeholder="Paste the full job description here or upload a file..."
-                className="min-h-[280px]"
-              />
+
+              {uploadedFile ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-background">
+                  <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-brand" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{uploadedFile}</p>
+                    <p className="text-xs text-text-muted">Uploaded successfully</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setUploadedFile("");
+                      setData((prev) => ({ ...prev, jobDescription: "" }));
+                    }}
+                    className="text-text-muted hover:text-red-500 transition-colors p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <Textarea
+                  value={data.jobDescription}
+                  onChange={(e) =>
+                    setData((prev) => ({
+                      ...prev,
+                      jobDescription: e.target.value,
+                    }))
+                  }
+                  placeholder="Paste the full job description here or upload a file..."
+                  className="min-h-[280px]"
+                />
+              )}
               <p className="text-xs text-text-muted">
-                Supports .txt, .pdf, and .docx files. You can also paste
-                directly into the field above.
+                {uploadedFile
+                  ? "File content will be used to generate your interview prep."
+                  : "Supports .txt, .pdf, and .docx files. You can also paste directly."}
               </p>
             </div>
 
