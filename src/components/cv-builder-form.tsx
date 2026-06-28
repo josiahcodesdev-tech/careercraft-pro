@@ -176,96 +176,21 @@ const emptyReferee: RefereeEntry = {
 };
 
 const initial: CvData = {
-  fullName: "Josiah Mwangi",
-  tagline: "Full-Stack Developer | React, Node.js & Cloud Infrastructure",
-  email: "josiah.mwangi@example.com",
-  phone: "+254 712 345 678",
-  location: "Nairobi, Kenya",
-  linkedin: "linkedin.com/in/josiah-mwangi",
+  fullName: "",
+  tagline: "",
+  email: "",
+  phone: "",
+  location: "",
+  linkedin: "",
   photo: "",
   photoZoom: 1,
   photoOffsetX: 0,
   photoOffsetY: 0,
-  summary:
-    "Results-driven full-stack developer with 6+ years of experience designing and delivering scalable web applications across fintech, e-commerce, and SaaS domains. Proficient in React, Next.js, Node.js, and cloud-native architectures on AWS and GCP. Known for translating complex business requirements into clean, maintainable code and mentoring junior engineers. Consistently improved system performance and reduced deployment cycles by adopting CI/CD best practices and infrastructure-as-code.",
-  experience: [
-    {
-      company: "Safaricom PLC",
-      role: "Senior Software Engineer",
-      startDate: "2022-03",
-      endDate: "",
-      current: true,
-      bullets: [
-        "Architected and shipped a customer self-service portal serving 2M+ monthly active users, built with Next.js and GraphQL",
-        "Reduced API response times by 45% by migrating legacy REST endpoints to optimised GraphQL resolvers with DataLoader batching",
-        "Led a squad of 5 engineers through two major product launches, coordinating cross-team dependencies and sprint planning",
-        "Implemented automated CI/CD pipelines with GitHub Actions and Docker, cutting release cycles from 2 weeks to same-day",
-        "Established front-end testing standards achieving 85% code coverage using Jest and React Testing Library",
-      ],
-    },
-    {
-      company: "Andela",
-      role: "Software Developer",
-      startDate: "2019-06",
-      endDate: "2022-02",
-      current: false,
-      bullets: [
-        "Built and maintained microservices powering a talent-matching platform used by 500+ global companies",
-        "Developed a real-time notifications system using WebSockets and Redis Pub/Sub, improving user engagement by 30%",
-        "Collaborated with US-based product teams across time zones, delivering features on two-week agile sprints",
-      ],
-    },
-    {
-      company: "Freelance",
-      role: "Web Developer",
-      startDate: "2017-01",
-      endDate: "2019-05",
-      current: false,
-      bullets: [
-        "Delivered 15+ responsive websites for SMEs across East Africa using React, WordPress, and Tailwind CSS",
-        "Integrated M-Pesa and Stripe payment gateways for e-commerce clients, processing KES 10M+ in transactions",
-      ],
-    },
-  ],
-  education: [
-    {
-      institution: "University of Nairobi",
-      degree: "Bachelor of Science",
-      field: "Computer Science",
-      startDate: "2013-09",
-      endDate: "2017-07",
-    },
-    {
-      institution: "AWS",
-      degree: "AWS Certified Solutions Architect",
-      field: "Associate",
-      startDate: "2021-04",
-      endDate: "2024-04",
-    },
-  ],
-  skillGroups: [
-    { category: "Languages", skills: "JavaScript · TypeScript · Python · SQL · HTML · CSS" },
-    { category: "Frameworks", skills: "React · Next.js · Node.js · Express · Tailwind CSS · NestJS" },
-    { category: "Cloud & DevOps", skills: "AWS (EC2, Lambda, S3) · GCP · Docker · Kubernetes · GitHub Actions · Terraform" },
-    { category: "Databases", skills: "PostgreSQL · MongoDB · Redis · DynamoDB" },
-    { category: "Tools & Methods", skills: "Git · Jira · Figma · Agile/Scrum · TDD · CI/CD" },
-  ],
-  referees: [
-    {
-      name: "Dr. Amina Osei",
-      title: "Engineering Director",
-      company: "Safaricom PLC",
-      email: "a.osei@safaricom.co.ke",
-      phone: "+254 720 111 222",
-    },
-    {
-      name: "James Kariuki",
-      title: "Senior Technical Lead",
-      company: "Andela",
-      email: "j.kariuki@andela.com",
-      phone: "+254 733 444 555",
-    },
-  ],
+  summary: "",
+  experience: [{ ...emptyWork, bullets: [""] }],
+  education: [{ ...emptyEducation }],
+  skillGroups: [{ ...emptySkillGroup }],
+  referees: [{ ...emptyReferee }],
   referencesUponRequest: false,
 };
 

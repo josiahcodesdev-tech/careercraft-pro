@@ -58,7 +58,7 @@ const infoCards = [
 
 const hours = [
   { day: "Monday – Friday", time: "8:00 AM – 6:00 PM" },
-  { day: "Saturday", time: "9:00 AM – 2:00 PM" },
+  { day: "Saturday", time: "9:00 AM – 6:00 PM" },
   { day: "Sunday", time: "Closed" },
 ];
 
