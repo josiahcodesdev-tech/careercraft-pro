@@ -4,12 +4,14 @@ export interface CvEvent {
   name: string;
   template: string;
   date: string;
+  id?: string;
 }
 
 export interface InterviewEvent {
   name: string;
   role: string;
   date: string;
+  id?: string;
 }
 
 export interface EnquiryEvent {
@@ -55,16 +57,42 @@ function save(data: Analytics) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-export function trackCvDownload(event: Omit<CvEvent, "date">) {
-  const data = getAnalytics();
-  data.cvDownloads.unshift({ ...event, date: new Date().toISOString() });
-  save(data);
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-export function trackInterviewPrep(event: Omit<InterviewEvent, "date">) {
+export function trackCvDownload(event: Omit<CvEvent, "date" | "id">, fullData?: Record<string, unknown>) {
+  const id = genId();
   const data = getAnalytics();
-  data.interviewPreps.unshift({ ...event, date: new Date().toISOString() });
+  data.cvDownloads.unshift({ ...event, id, date: new Date().toISOString() });
   save(data);
+  if (fullData) {
+    try { localStorage.setItem(`careercraft_cv_${id}`, JSON.stringify(fullData)); } catch {}
+  }
+}
+
+export function trackInterviewPrep(event: Omit<InterviewEvent, "date" | "id">, fullData?: Record<string, unknown>) {
+  const id = genId();
+  const data = getAnalytics();
+  data.interviewPreps.unshift({ ...event, id, date: new Date().toISOString() });
+  save(data);
+  if (fullData) {
+    try { localStorage.setItem(`careercraft_prep_${id}`, JSON.stringify(fullData)); } catch {}
+  }
+}
+
+export function getSavedCv(id: string): Record<string, unknown> | null {
+  try {
+    const raw = localStorage.getItem(`careercraft_cv_${id}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+export function getSavedPrep(id: string): Record<string, unknown> | null {
+  try {
+    const raw = localStorage.getItem(`careercraft_prep_${id}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 
 export function trackEnquiry(event: Omit<EnquiryEvent, "date">) {

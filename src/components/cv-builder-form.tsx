@@ -274,7 +274,7 @@ export function CvBuilderForm() {
     if (!el) return;
 
     import("@/lib/analytics").then(({ trackCvDownload }) => {
-      trackCvDownload({ name: data.fullName, template });
+      trackCvDownload({ name: data.fullName, template }, { ...data, template } as unknown as Record<string, unknown>);
     });
 
     const win = window.open("", "_blank");
