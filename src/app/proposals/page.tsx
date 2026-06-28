@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CheckCircle, ArrowRight } from "lucide-react";
+import { CheckCircle, ArrowRight, ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -16,6 +16,7 @@ const services = [
     title: "Grant Proposals",
     description:
       "Compelling grant applications tailored to specific funders and their evaluation criteria.",
+    href: "https://www.cognitoforms.com/josiahmwangi/grantwritingclientintakeformjosiahmwangi",
   },
   {
     title: "Project Proposals",
@@ -173,6 +174,16 @@ export default function ProposalsPage() {
                 <p className="text-sm text-text-secondary leading-relaxed">
                   {service.description}
                 </p>
+                {service.href && (
+                  <a
+                    href={service.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold hover:underline mt-3"
+                  >
+                    Fill out form <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
               </div>
             ))}
           </div>
