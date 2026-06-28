@@ -275,12 +275,8 @@ export default function ContactPage() {
               {(form.firstName || form.message) && (
                 <div className="rounded-xl overflow-hidden border border-border">
                   <div className="bg-[#075E54] px-4 py-2.5 flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-white">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                        <path d="M2 17l10 5 10-5" />
-                        <path d="M2 12l10 5 10-5" />
-                      </svg>
+                    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center overflow-hidden p-1.5">
+                      <img src="/favicon.svg" alt="CareerCraft Pro" className="w-full h-full" />
                     </div>
                     <div>
                       <div className="text-white text-sm font-semibold">CareerCraft Pro</div>
