@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300">
+  <rect width="600" height="300" fill="#3B3B3B"/>
+  <rect x="200" y="30" width="200" height="240" rx="8" fill="#fff" opacity="0.12"/>
+  <rect x="220" y="55" width="60" height="60" rx="30" fill="#fff" opacity="0.08"/>
+  <circle cx="250" cy="78" r="12" fill="#fff" opacity="0.15"/>
+  <rect x="300" y="60" width="80" height="8" rx="4" fill="#fff" opacity="0.3"/>
+  <rect x="300" y="76" width="60" height="6" rx="3" fill="#fff" opacity="0.15"/>
+  <line x1="220" y1="130" x2="380" y2="130" stroke="#fff" stroke-width="1" opacity="0.1"/>
+  <rect x="220" y="145" width="160" height="6" rx="3" fill="#fff" opacity="0.15"/>
+  <rect x="220" y="160" width="140" height="6" rx="3" fill="#fff" opacity="0.15"/>
+  <rect x="220" y="175" width="150" height="6" rx="3" fill="#fff" opacity="0.15"/>
+  <rect x="220" y="195" width="120" height="6" rx="3" fill="#fff" opacity="0.1"/>
+  <rect x="220" y="210" width="130" height="6" rx="3" fill="#fff" opacity="0.1"/>
+  <rect x="220" y="230" width="80" height="24" rx="4" fill="#1A5C3A" opacity="0.6"/>
+  <path d="M430 180l-30-10v-40h60v40z" fill="#D4A017" opacity="0.3"/>
+  <rect x="140" y="120" width="40" height="50" rx="4" fill="#fff" opacity="0.06" transform="rotate(-12 160 145)"/>
+</svg>
