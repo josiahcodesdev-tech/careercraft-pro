@@ -267,6 +267,9 @@ export function InterviewPrepForm() {
       const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
       setDialogue(result);
       setGenerating(false);
+      import("@/lib/analytics").then(({ trackInterviewPrep }) => {
+        trackInterviewPrep({ name: data.candidateName.trim(), role: data.roleTitle });
+      });
     }, 800);
   }, [canGenerate, data.candidateName, data.roleTitle, data.jobDescription, data.qualifications]);
 

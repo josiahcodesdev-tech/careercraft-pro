@@ -347,6 +347,11 @@ export function CvBuilderForm() {
   function handlePrint() {
     const el = previewRef.current;
     if (!el) return;
+
+    import("@/lib/analytics").then(({ trackCvDownload }) => {
+      trackCvDownload({ name: data.fullName, template });
+    });
+
     const win = window.open("", "_blank");
     if (!win) return;
 

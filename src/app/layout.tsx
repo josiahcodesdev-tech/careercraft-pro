@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { DM_Sans, Inter } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
 import { ScrollToTop } from "@/components/scroll-to-top";
+import { PublicLayoutWrapper } from "@/components/public-layout-wrapper";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -35,9 +34,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${dmSans.variable}`}>
       <body className="min-h-screen flex flex-col">
         <ScrollToTop />
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <PublicLayoutWrapper>{children}</PublicLayoutWrapper>
       </body>
     </html>
   );

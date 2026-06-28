@@ -130,6 +130,16 @@ export default function ContactPage() {
       .filter(Boolean)
       .join("\n");
 
+    import("@/lib/analytics").then(({ trackEnquiry }) => {
+      trackEnquiry({
+        name: `${form.firstName} ${form.lastName}`,
+        email: form.email,
+        phone: form.phone ? `${form.countryCode} ${form.phone}` : "",
+        service: serviceName,
+        message: form.message,
+      });
+    });
+
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   }
