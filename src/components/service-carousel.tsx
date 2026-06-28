@@ -5,11 +5,11 @@ import { ArrowRight } from "lucide-react";
 const services = [
   {
     image: "/images/interview-coaching.jpg",
-    badge: "Preparation",
-    title: "Interview Preparation",
+    badge: "Coaching",
+    title: "Interview Coaching",
     href: "/interview-prep",
     description:
-      "Structured mock interviews, personalised feedback, and proven answer frameworks to help you walk in confident and walk out hired.",
+      "Mock interviews, feedback sessions, and proven frameworks to help you communicate confidently and win the room.",
   },
   {
     image: "/images/proposals-grants.jpg",

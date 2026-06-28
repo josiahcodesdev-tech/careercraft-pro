@@ -33,7 +33,7 @@ const services = [
     image: "/images/interview-coaching.jpg",
     badge: "Coaching",
     title: "Interview Coaching",
-    href: "/contact",
+    href: "/interview-prep",
     description:
       "Mock interviews, feedback sessions, and proven frameworks to help you communicate confidently and win the room.",
   },
@@ -60,14 +60,6 @@ const services = [
     href: "/contact",
     description:
       "Professional proposal and grant writing services for NGOs, businesses, and individuals. Crafting compelling documents that win funding.",
-  },
-  {
-    image: "/images/interview-coaching.jpg",
-    badge: "Preparation",
-    title: "Interview Preparation",
-    href: "/interview-prep",
-    description:
-      "Structured mock interviews, personalised feedback, and proven answer frameworks to help you walk in confident and walk out hired.",
   },
 ];
 
