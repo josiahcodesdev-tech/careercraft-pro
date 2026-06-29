@@ -67,33 +67,89 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
   const skillsList = keywords.length > 0 ? keywords.join(", ") : "the required skills";
   const topSkills = keywords.slice(0, 3).join(", ") || "relevant tools and methodologies";
   const quals = qualifications.trim();
-  const headerPattern = /^(professional\s+summary|professional\s+experience|experience|education|skills|core\s+skills|certifications?|references?|contact|personal\s+(details|info|information)|objective|profile|about\s+me|work\s+history|qualifications|competenc|training|awards|hobbies|interests|languages?|projects?|publications?|curriculum\s+vitae|resume|cv)\s*:?\s*$/i;
+  const nameParts = name.toLowerCase().split(/\s+/);
   const contentLines = quals
     ? quals
         .split("\n")
         .map((l) => l.trim())
-        .filter((l) => l && !headerPattern.test(l) && l.length > 5 && !/^[A-Z\s&,|·•\-:]+$/.test(l))
+        .filter((l) => {
+          if (!l || l.length <= 5) return false;
+          if (/^[A-Z\s&,|·•\-:/()]+$/.test(l)) return false;
+          if (/^(professional\s+summary|professional\s+experience|work\s+experience|experience|education|skills|core\s+skills|key\s+skills|technical\s+skills|soft\s+skills|certifications?|references?|referees?|contact(\s+me)?|personal\s+(details|info|information)|objective|career\s+objective|profile|summary|about\s+me|work\s+history|qualifications|competenc|training|awards|hobbies|interests|languages?|projects?|publications?|curriculum\s+vitae|resume|cv|phone|email|address|location|linkedin|date\s+of\s+birth|nationality|gender|marital|id\s+no|passport)\s*:?\s*$/i.test(l)) return false;
+          if (/^[\+]?\d[\d\s\-()]{6,}$/.test(l)) return false;
+          if (/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(l)) return false;
+          if (/https?:\/\//i.test(l) || /linkedin/i.test(l)) return false;
+          if (/^(january|february|march|april|may|june|july|august|september|october|november|december|\d{4})\s*[-–—to]\s*/i.test(l) && l.length < 30) return false;
+          if (/^(present|current|to\s+date|ongoing)\s*$/i.test(l)) return false;
+          if (l.split(" ").length <= 2 && /^[A-Z]/.test(l)) return false;
+          const lower = l.toLowerCase();
+          if (nameParts.length >= 2 && nameParts.every((p) => lower.includes(p)) && l.split(" ").length <= 4) return false;
+          if (/^[A-Za-z\s]+(\s*[|·\/&]\s*[A-Za-z\s]+){1,}$/.test(l) && l.split(" ").length <= 10) return false;
+          if (/^(phone|tel|mobile|cell|whatsapp)\s*:?\s*/i.test(l)) return false;
+          if (/^(nairobi|mombasa|kisumu|kenya|address)\s*[,:]?\s*/i.test(l) && l.split(" ").length <= 5) return false;
+          // Date-only or timeframe-only lines
+          if (/^\d{4}\s*[-–—]\s*(\d{4}|present|current|to\s+date)/i.test(l) && l.split(" ").length <= 5) return false;
+          if (/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}/i.test(l) && l.split(" ").length <= 5) return false;
+          return true;
+        })
     : [];
-  const qualsSnippet = contentLines.slice(0, 5).join(", ").substring(0, 300);
 
-  const cvSkills = contentLines
+  function stripDates(text: string): string {
+    return text
+      .replace(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}/gi, "")
+      .replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\.?\s+\d{4}/gi, "")
+      .replace(/\b\d{4}\s*[-–—]\s*(\d{4}|present|current|to\s+date|ongoing)/gi, "")
+      .replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}/g, "")
+      .replace(/\b\d{4}\b/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+
+  function summarizeDegree(text: string): string {
+    return text
+      .replace(/\b(bachelor\s+of\s+science|b\.?sc\.?)\s+(in\s+)?/gi, "a degree in ")
+      .replace(/\b(bachelor\s+of\s+arts|b\.?a\.?)\s+(in\s+)?/gi, "a degree in ")
+      .replace(/\b(master\s+of\s+science|m\.?sc\.?)\s+(in\s+)?/gi, "a postgraduate degree in ")
+      .replace(/\b(master\s+of\s+arts|m\.?a\.?)\s+(in\s+)?/gi, "a postgraduate degree in ")
+      .replace(/\b(master\s+of\s+business\s+administration|m\.?b\.?a\.?)\b/gi, "a business administration qualification")
+      .replace(/\b(doctor\s+of\s+philosophy|ph\.?d\.?)\s+(in\s+)?/gi, "a doctoral qualification in ")
+      .replace(/\b(diploma|higher\s+diploma|h\.?nd\.?)\s+(in\s+)?/gi, "a diploma in ")
+      .replace(/\b(certificate|certification)\s+(in\s+)?/gi, "a certification in ")
+      .trim();
+  }
+
+  const cleanedLines = contentLines.map((l) => stripDates(l)).filter((l) => l.length > 5);
+
+  // Only pick skills that match JD keywords
+  const jdText = jd.toLowerCase();
+  const relevantSkills = cleanedLines
     .filter((l) => /[,·;]/.test(l) || /proficient|experienced|skilled|knowledge/i.test(l))
-    .join(", ")
-    .substring(0, 200);
-  const cvExperience = contentLines
-    .filter((l) => /\b(years?|managed|led|developed|built|implemented|delivered|responsible|coordinated|designed|created)\b/i.test(l))
-    .slice(0, 5)
+    .flatMap((l) => l.split(/[,·;]/).map((s) => s.trim()))
+    .filter((s) => s.length > 2 && keywords.some((k) => s.toLowerCase().includes(k) || jdText.includes(s.toLowerCase())))
+    .slice(0, 6);
+  const cvSkillsSummary = relevantSkills.length > 0 ? relevantSkills.join(", ") : "";
+
+  // Experience: pick top 3 most relevant to JD, summarize
+  const cvExperience = cleanedLines
+    .filter((l) => /\b(managed|led|developed|built|implemented|delivered|responsible|coordinated|designed|created)\b/i.test(l))
+    .filter((l) => keywords.some((k) => l.toLowerCase().includes(k)) || l.split(" ").length > 5)
+    .slice(0, 3)
     .join(". ");
 
-  const allSkills = cvSkills
-    ? `${topSkills}, ${cvSkills}`
+  // Education lines — only for education-specific answers
+  const educationLines = cleanedLines
+    .filter((l) => /\b(degree|bachelor|master|diploma|certificate|university|college|school|institute)\b/i.test(l))
+    .map(summarizeDegree)
+    .slice(0, 2);
+
+  // Use only top 3 JD-relevant skills for natural answers
+  const relevantTopSkills = cvSkillsSummary
+    ? cvSkillsSummary.split(", ").slice(0, 3).join(", ")
     : topSkills;
-  const backgroundLine = quals
-    ? `My background includes ${qualsSnippet}, which I've applied across various roles to deliver measurable results.`
-    : `Over the years, I've developed expertise in ${topSkills}, and I'm passionate about delivering results that align with organisational goals.`;
-  const qualsFit = quals
-    ? `My qualifications — including ${qualsSnippet} — directly align with what you're looking for.`
-    : `The job description highlights ${skillsList}, which are areas I've actively worked in.`;
+  const backgroundLine = cvExperience
+    ? `I've spent much of my career working with ${relevantTopSkills}, and most recently I've been focused on work that's closely aligned with what this role involves.`
+    : `Over the years, I've built strong experience in ${relevantTopSkills}, and I'm passionate about using those skills to deliver real impact.`;
+  const qualsFit = `The role's focus on ${relevantTopSkills} is a strong match for the kind of work I've been doing and want to continue growing in.`;
 
   return [
     // ── Opening & About You ──────────────────────────────
@@ -104,9 +160,7 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
     },
     {
       question: "Walk me through your CV. What would you like to highlight?",
-      answer: quals
-        ? `Certainly. My key qualifications include ${qualsSnippet}. Throughout my career, I've focused on applying these in practical, results-driven ways — whether that's leading projects, improving processes, or collaborating across teams. I'd be happy to go deeper into any specific area.`
-        : `My career has been focused on building expertise in ${topSkills}. I've progressed through roles that gave me increasing responsibility, and each one strengthened my ability to deliver outcomes. I'd be happy to go deeper into any specific area.`,
+      answer: `Sure. The thread running through my career has been ${relevantTopSkills}. I've moved through roles where I took on more responsibility each time, and I'd say the biggest constant has been a focus on delivering work that actually makes a difference. Happy to dive into any part of it.`,
     },
     {
       question: `What interests you about ${title} and why did you apply?`,
@@ -118,18 +172,16 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
       section: "Experience & Skills",
       question: "Can you walk me through your most relevant experience for this role?",
       answer: cvExperience
-        ? `Certainly. ${cvExperience}. These experiences have prepared me well for the responsibilities outlined in your job description.`
-        : `Certainly. In my most recent role, I was responsible for tasks directly related to ${topSkills}. I led initiatives that delivered measurable outcomes — for example, I streamlined processes that improved efficiency and collaborated with cross-functional teams to ensure project success. These experiences have prepared me well for the responsibilities outlined in your job description.`,
+        ? `Of course. The work I've done most recently is very relevant here — I've been involved in ${cvExperience.split(". ")[0].toLowerCase()}. That kind of hands-on experience taught me how to deliver under real constraints, and I think it maps directly to what you're looking for in this role.`
+        : `Of course. In my most recent role, I worked closely with ${relevantTopSkills}. I took the lead on several initiatives that had a tangible impact — things like streamlining processes and collaborating across teams. That hands-on experience is what I'd bring to this role.`,
     },
     {
       question: `The role requires strong skills in ${skillsList}. How would you rate your proficiency, and can you give an example?`,
-      answer: cvSkills
-        ? `I'd rate myself highly proficient in these areas. My skills include ${cvSkills}. I've applied these extensively in previous projects and make it a priority to stay updated through continuous learning. I'm confident I can apply these skills effectively in this role.`
-        : `I'd rate myself highly proficient in these areas. For instance, I've used ${keywords[0] || "these tools"} extensively in previous projects to analyse data, generate reports, and support decision-making. I make it a priority to stay updated through continuous learning, and I'm confident I can apply these skills effectively in this role.`,
+      answer: `I'm very comfortable with ${relevantTopSkills}. To give you a concrete example — in a recent project, I used ${keywords[0] || "these skills"} to solve a problem that had been slowing the team down, and the result was a noticeable improvement in how we worked. I'm always looking to sharpen those skills further, whether through practice or staying on top of what's new in the field.`,
     },
     {
       question: "What is your greatest professional achievement?",
-      answer: `One achievement I'm particularly proud of was leading a project that had a direct, measurable impact on the organisation. I identified an opportunity to improve an existing process using ${keywords[1] || "the tools available"}, proposed a solution, secured stakeholder buy-in, and delivered the project ahead of schedule. It resulted in significant efficiency gains and was recognised by senior leadership.`,
+      answer: `There's one that stands out. I spotted an opportunity to improve a process that was costing the team time, put together a plan, got buy-in from stakeholders, and delivered it ahead of schedule. The impact was measurable and it was recognised by leadership. It reinforced for me that the best results come from taking initiative and following through.`,
     },
     {
       question: "How do you stay current with developments in your field?",
@@ -201,9 +253,7 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
     {
       section: "Strengths & Self-Awareness",
       question: "What are your greatest strengths?",
-      answer: quals
-        ? `My greatest strengths are my analytical thinking, adaptability, and commitment to quality. Combined with my qualifications in ${qualsSnippet}, I'm able to approach complex problems methodically, deliver under pressure, and maintain high standards even in fast-paced environments.`
-        : `My greatest strengths are my analytical thinking, adaptability, and commitment to quality. I approach complex problems methodically, deliver under pressure, and maintain high standards even in fast-paced environments. Colleagues often tell me I'm reliable and solution-oriented.`,
+      answer: `My greatest strengths are my analytical thinking, adaptability, and commitment to quality. I approach complex problems methodically, deliver under pressure, and maintain high standards even in fast-paced environments. Colleagues often tell me I'm reliable and solution-oriented.`,
     },
     {
       question: "What would you say is your greatest weakness?",
@@ -241,9 +291,7 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
     },
     {
       question: `Why should we hire you for ${title}?`,
-      answer: quals
-        ? `I bring a strong combination of qualifications — including ${qualsSnippet} — along with hands-on experience in ${allSkills}. I've demonstrated the ability to adapt quickly, collaborate effectively, and drive outcomes that matter. I believe my background and values are well aligned with what you're looking for, and I'm confident I would make a positive contribution to your team.`
-        : `I bring a strong combination of ${topSkills} expertise, a proven track record of delivering results, and a genuine enthusiasm for this kind of work. I've demonstrated the ability to adapt quickly, collaborate effectively, and drive outcomes that matter. I believe my skills and values are well aligned with what you're looking for, and I'm confident I would make a positive contribution to your team.`,
+      answer: `Honestly, I think it comes down to fit. I've got solid experience in ${relevantTopSkills}, I've consistently delivered in roles like this, and I genuinely enjoy this kind of work. I pick things up quickly, I work well with teams, and I care about getting things right. I think I'd add real value here.`,
     },
 
     // ── Salary & Expectations ────────────────────────────
@@ -261,7 +309,7 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
     {
       section: "Closing",
       question: "Is there anything else you'd like us to know about you?",
-      answer: `I'd just like to reiterate how enthusiastic I am about this opportunity. ${quals ? `My qualifications in ${qualsSnippet} combined with` : "My"} practical experience make me confident I can hit the ground running and add real value to your team. I'm genuinely excited about the possibility of contributing here.`,
+      answer: `Just that I'm genuinely excited about this opportunity. The work you're doing here resonates with me, and I'm confident I can contribute from day one. I'm ready to get started.`,
     },
     {
       question: "Do you have any questions for us?",
