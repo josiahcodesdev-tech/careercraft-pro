@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { buttonVariants } from "@/components/ui/button";
@@ -200,6 +201,72 @@ export function CvBuilderForm() {
   const [template, setTemplate] = useState<Template>("classic");
   const [showTemplates, setShowTemplates] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("transform") === "1") {
+      try {
+        const raw = localStorage.getItem("careercraft_cv_transform");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+
+          const experience = Array.isArray(parsed.experience) && parsed.experience.length > 0
+            ? parsed.experience.map((exp: Record<string, unknown>) => ({
+                company: String(exp.company || ""),
+                role: String(exp.role || ""),
+                startDate: String(exp.startDate || ""),
+                endDate: String(exp.endDate || ""),
+                current: exp.current === true || /present/i.test(String(exp.endDate || "")),
+                bullets: Array.isArray(exp.bullets) && exp.bullets.length > 0
+                  ? exp.bullets.map(String)
+                  : [""],
+              }))
+            : [{ company: "", role: "", startDate: "", endDate: "", current: false, bullets: [""] }];
+
+          const education = Array.isArray(parsed.education) && parsed.education.length > 0
+            ? parsed.education.map((edu: Record<string, unknown>) => ({
+                institution: String(edu.institution || ""),
+                degree: String(edu.degree || ""),
+                field: String(edu.field || ""),
+                startDate: String(edu.startDate || ""),
+                endDate: String(edu.endDate || ""),
+              }))
+            : [{ institution: "", degree: "", field: "", startDate: "", endDate: "" }];
+
+          const skillGroups = Array.isArray(parsed.skillGroups) && parsed.skillGroups.length > 0
+            ? parsed.skillGroups.map((g: Record<string, unknown>) => ({
+                category: String(g.category || ""),
+                skills: String(g.skills || ""),
+              }))
+            : [{ category: "", skills: "" }];
+
+          setData((prev) => ({
+            ...prev,
+            fullName: String(parsed.fullName || ""),
+            tagline: String(parsed.tagline || ""),
+            email: String(parsed.email || ""),
+            phone: String(parsed.phone || ""),
+            location: String(parsed.location || ""),
+            linkedin: String(parsed.linkedin || ""),
+            photo: "",
+            photoZoom: 1,
+            photoOffsetX: 0,
+            photoOffsetY: 0,
+            summary: String(parsed.summary || ""),
+            experience,
+            education,
+            skillGroups,
+            referees: prev.referees,
+            referencesUponRequest: prev.referencesUponRequest,
+          }));
+
+          localStorage.removeItem("careercraft_cv_transform");
+        }
+      } catch (err) {
+        console.error("Failed to load transform data:", err);
+      }
+    }
+  }, [searchParams]);
 
   function update<K extends keyof CvData>(key: K, value: CvData[K]) {
     setData((prev) => ({ ...prev, [key]: value }));
@@ -344,10 +411,12 @@ li{margin-bottom:2px;font-size:9.5pt}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0}}`,
     };
 
-    win.document.write(`<!DOCTYPE html><html><head><title>${data.fullName || "CV"}</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}${printStyles[template]}</style></head><body>${el.innerHTML}</body></html>`);
+    const fileName = data.fullName ? `${data.fullName.replace(/\s+/g, "_")}_CV` : "CV";
+    win.document.write(`<!DOCTYPE html><html><head><title>${fileName}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}${printStyles[template]}</style>
+<script>window.onafterprint=function(){};window.onload=function(){window.print()}<\/script>
+</head><body>${el.innerHTML}</body></html>`);
     win.document.close();
-    win.print();
   }
 
   const canGoNext = () => {

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { CvBuilderForm } from "@/components/cv-builder-form";
 
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function CvBuilderPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
-      <CvBuilderForm />
+      <Suspense>
+        <CvBuilderForm />
+      </Suspense>
     </div>
   );
 }

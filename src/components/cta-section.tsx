@@ -46,13 +46,13 @@ export function CtaSection() {
               Build Your ATS-Ready CV Now →
             </Link>
             <Link
-              href="/services"
+              href="/cv-transform"
               className={cn(
                 buttonVariants({ variant: "outline" }),
                 "border-white/25 text-white/80 hover:border-white/50 hover:text-white bg-transparent"
               )}
             >
-              Explore services
+              Transform Your CV to ATS
             </Link>
           </div>
         </div>

@@ -357,7 +357,8 @@ export function InterviewPrepForm() {
     if (!el) return;
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><title>Interview Prep — ${data.candidateName || "Candidate"}</title>
+    const fileName = `Interview_Prep_${(data.candidateName || "Candidate").replace(/\s+/g, "_")}`;
+    win.document.write(`<!DOCTYPE html><html><head><title>${fileName}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:0.25in;line-height:1.6}
@@ -369,9 +370,10 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
 .candidate{color:#1A5C3A}
 .text{font-size:9.5pt;text-align:justify;line-height:1.6}
 @media print{body{padding:0.25in}@page{margin:0.25in}}
-</style></head><body>${el.innerHTML}</body></html>`);
+</style>
+<script>window.onload=function(){window.print()}<\/script>
+</head><body>${el.innerHTML}</body></html>`);
     win.document.close();
-    win.print();
   }
 
   return (
