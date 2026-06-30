@@ -327,6 +327,7 @@ export function InterviewPrepForm() {
   });
   const [dialogue, setDialogue] = useState<QA[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState("");
   const [uploadedFile, setUploadedFile] = useState<string>("");
   const [uploadedCv, setUploadedCv] = useState<string>("");
   const [scanningJd, setScanningJd] = useState(false);
@@ -336,21 +337,54 @@ export function InterviewPrepForm() {
 
   const canGenerate = data.candidateName.trim() && data.roleTitle.trim() && data.jobDescription.trim();
 
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback(async () => {
     if (!canGenerate) return;
     setGenerating(true);
-    setTimeout(() => {
-      const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
+    setGenerateError("");
+    try {
+      const res = await fetch("/api/interview-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.candidateName.trim(),
+          role: data.roleTitle,
+          jobDescription: data.jobDescription,
+          qualifications: data.qualifications,
+        }),
+      });
+      const json = await res.json() as { qa?: QA[]; error?: string };
+      if (!res.ok) {
+        // Fallback to local generation if API not configured
+        if (res.status === 503) {
+          const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
+          setDialogue(result);
+          import("@/lib/analytics").then(({ trackInterviewPrep }) => {
+            trackInterviewPrep(
+              { name: data.candidateName.trim(), role: data.roleTitle },
+              { ...data, dialogue: result } as unknown as Record<string, unknown>,
+            );
+          });
+          return;
+        }
+        throw new Error(json.error ?? "Generation failed");
+      }
+      const result = json.qa ?? [];
       setDialogue(result);
-      setGenerating(false);
       import("@/lib/analytics").then(({ trackInterviewPrep }) => {
         trackInterviewPrep(
           { name: data.candidateName.trim(), role: data.roleTitle },
           { ...data, dialogue: result } as unknown as Record<string, unknown>,
         );
       });
-    }, 800);
-  }, [canGenerate, data.candidateName, data.roleTitle, data.jobDescription, data.qualifications]);
+    } catch (e) {
+      setGenerateError(e instanceof Error ? e.message : "Generation failed. Please try again.");
+      // Fallback to local generation
+      const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
+      setDialogue(result);
+    } finally {
+      setGenerating(false);
+    }
+  }, [canGenerate, data]);
 
   function handlePrint() {
     const el = previewRef.current;
@@ -611,6 +645,9 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
                 </>
               )}
             </button>
+            {generateError && (
+              <p className="text-xs text-amber-600 mt-2">{generateError} (used local fallback)</p>
+            )}
           </div>
         </div>
       </div>

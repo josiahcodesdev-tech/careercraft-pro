@@ -24,6 +24,8 @@ import {
   ZoomOut,
   X,
   Move,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 
 type Template = "classic" | "modern" | "executive" | "minimal" | "bold" | "professional" | "creative" | "corporate";
@@ -200,6 +202,9 @@ export function CvBuilderForm() {
   const [data, setData] = useState<CvData>(initial);
   const [template, setTemplate] = useState<Template>("classic");
   const [showTemplates, setShowTemplates] = useState(false);
+  const [enhancingSummary, setEnhancingSummary] = useState(false);
+  const [enhancingBullets, setEnhancingBullets] = useState<number | null>(null);
+  const [aiError, setAiError] = useState("");
   const previewRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
@@ -334,6 +339,49 @@ export function CvBuilderForm() {
         : e
     );
     update("experience", next);
+  }
+
+  async function handleEnhanceSummary() {
+    if (!data.summary.trim()) return;
+    setAiError("");
+    setEnhancingSummary(true);
+    try {
+      const res = await fetch("/api/ai-enhance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "summary", summary: data.summary, targetRole: data.tagline }),
+      });
+      const json = await res.json() as { result?: string; error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Failed");
+      if (json.result) update("summary", json.result);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "AI enhance failed.");
+    } finally {
+      setEnhancingSummary(false);
+    }
+  }
+
+  async function handleEnhanceBullets(expIndex: number) {
+    const exp = data.experience[expIndex];
+    if (!exp.bullets.some((b) => b.trim())) return;
+    setAiError("");
+    setEnhancingBullets(expIndex);
+    try {
+      const res = await fetch("/api/ai-enhance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "bullets", role: exp.role, company: exp.company, bullets: exp.bullets }),
+      });
+      const json = await res.json() as { result?: string[]; error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Failed");
+      if (Array.isArray(json.result) && json.result.length > 0) {
+        updateExperience(expIndex, { bullets: json.result });
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "AI enhance failed.");
+    } finally {
+      setEnhancingBullets(null);
+    }
   }
 
   function handlePrint() {
@@ -653,10 +701,27 @@ li{margin-bottom:2px;font-size:9.5pt}
                   placeholder="Results-driven software engineer with 8+ years of experience building scalable web applications..."
                   className="min-h-[160px]"
                 />
-                <p className="text-xs text-text-muted">
-                  Tip: Mention your years of experience, core domain, 2–3
-                  signature skills, and the type of impact you deliver.
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-text-muted">
+                    Tip: Mention your years of experience, core domain, 2–3
+                    signature skills, and the type of impact you deliver.
+                  </p>
+                  <button
+                    onClick={handleEnhanceSummary}
+                    disabled={!data.summary.trim() || enhancingSummary}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-mid transition-colors disabled:opacity-40 flex-shrink-0 ml-3"
+                  >
+                    {enhancingSummary ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    {enhancingSummary ? "Enhancing…" : "AI Enhance"}
+                  </button>
+                </div>
+                {aiError && step === 1 && (
+                  <p className="text-xs text-red-500">{aiError}</p>
+                )}
               </div>
             )}
 
@@ -781,12 +846,29 @@ li{margin-bottom:2px;font-size:9.5pt}
                           )}
                         </div>
                       ))}
-                      <button
-                        onClick={() => addBullet(i)}
-                        className="text-sm text-brand font-medium flex items-center gap-1 hover:underline"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Add bullet
-                      </button>
+                      <div className="flex items-center justify-between pt-1">
+                        <button
+                          onClick={() => addBullet(i)}
+                          className="text-sm text-brand font-medium flex items-center gap-1 hover:underline"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Add bullet
+                        </button>
+                        <button
+                          onClick={() => handleEnhanceBullets(i)}
+                          disabled={!exp.bullets.some((b) => b.trim()) || enhancingBullets === i}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-mid transition-colors disabled:opacity-40"
+                        >
+                          {enhancingBullets === i ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          )}
+                          {enhancingBullets === i ? "Enhancing…" : "AI Enhance"}
+                        </button>
+                      </div>
+                      {aiError && step === 2 && enhancingBullets === null && (
+                        <p className="text-xs text-red-500">{aiError}</p>
+                      )}
                     </div>
                   </div>
                 ))}
