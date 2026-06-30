@@ -17,10 +17,10 @@ import {
 
 const scanSteps = [
   "Scanning document...",
-  "Extracting personal details...",
-  "Identifying work experience...",
-  "Parsing education & skills...",
-  "Formatting for ATS...",
+  "Extracting text content...",
+  "Analysing CV structure with AI...",
+  "Parsing experience & education...",
+  "Formatting for ATS compliance...",
 ];
 
 interface ParsedCv {
@@ -436,12 +436,9 @@ export function CvTransformForm() {
     setScanning(true);
     setScanStep(0);
 
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    scanSteps.forEach((_, i) => {
-      timers.push(setTimeout(() => setScanStep(i), i * 800));
-    });
-
     try {
+      // Step 0-1: Extract text from file
+      setScanStep(0);
       let text: string;
       if (f.name.toLowerCase().endsWith(".pdf")) {
         text = await extractTextFromPdf(f);
@@ -450,25 +447,51 @@ export function CvTransformForm() {
       }
 
       if (!text || text.trim().length < 20) {
-        throw new Error("Empty or unreadable content");
+        throw new Error("Could not extract readable text from this file.");
       }
 
-      // Wait for scanning animation to finish
-      const elapsed = Date.now();
-      const minWait = scanSteps.length * 800;
-      const remaining = minWait - (Date.now() - elapsed);
-      if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
+      setScanStep(1);
+      await new Promise((r) => setTimeout(r, 500));
 
-      const result = parseCvText(text);
-      setParsed(result);
-      localStorage.setItem(CV_TRANSFORM_KEY, JSON.stringify(result));
+      // Step 2-4: AI parsing via API
+      setScanStep(2);
+      const res = await fetch("/api/cv-transform", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      setScanStep(3);
+      await new Promise((r) => setTimeout(r, 400));
+
+      if (!res.ok) {
+        const json = await res.json() as { error?: string };
+        // Fallback to local parser if API not available
+        if (res.status === 503) {
+          const result = parseCvText(text);
+          setScanStep(4);
+          await new Promise((r) => setTimeout(r, 400));
+          setParsed(result);
+          localStorage.setItem(CV_TRANSFORM_KEY, JSON.stringify(result));
+          return;
+        }
+        throw new Error(json.error ?? "AI parsing failed.");
+      }
+
+      const json = await res.json() as { result?: ParsedCv; error?: string };
+      if (!json.result) throw new Error("AI returned no data.");
+
+      setScanStep(4);
+      await new Promise((r) => setTimeout(r, 400));
+
+      setParsed(json.result);
+      localStorage.setItem(CV_TRANSFORM_KEY, JSON.stringify(json.result));
     } catch (err) {
       console.error("CV Transform upload error:", err);
-      setError("Could not read this file. Please try a different format or paste content manually.");
+      setError(err instanceof Error ? err.message : "Could not process this file. Please try again.");
       setFile("");
       setParsed(null);
     } finally {
-      timers.forEach(clearTimeout);
       setScanning(false);
       setScanStep(0);
       e.target.value = "";
