@@ -6,34 +6,27 @@ import { FileText, Users, Eye, LogOut } from "lucide-react";
 import { useClientAuth } from "@/lib/client-auth";
 import { supabase } from "@/lib/supabase/client";
 
-interface CvRow {
-  id: string;
-  full_name: string | null;
-  template: string | null;
-  created_at: string;
-  data: Record<string, unknown>;
-}
+type Filter = "all" | "cv" | "prep";
 
-interface PrepRow {
+interface Item {
   id: string;
-  candidate_name: string | null;
-  role_title: string | null;
-  created_at: string;
+  type: "cv" | "prep";
+  title: string;
+  subtitle: string;
+  date: string;
   data: Record<string, unknown>;
 }
 
 export default function DashboardPage() {
   const { user, isLoading, logout } = useClientAuth();
   const router = useRouter();
-  const [cvs, setCvs] = useState<CvRow[]>([]);
-  const [preps, setPreps] = useState<PrepRow[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [filter, setFilter] = useState<Filter>("all");
   const [viewing, setViewing] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace("/login");
-    }
+    if (!isLoading && !user) router.replace("/login");
   }, [isLoading, user, router]);
 
   useEffect(() => {
@@ -42,22 +35,37 @@ export default function DashboardPage() {
       supabase.from("cvs").select("id, full_name, template, created_at, data").order("created_at", { ascending: false }),
       supabase.from("interview_preps").select("id, candidate_name, role_title, created_at, data").order("created_at", { ascending: false }),
     ]).then(([cvRes, prepRes]) => {
-      setCvs(cvRes.data ?? []);
-      setPreps(prepRes.data ?? []);
+      const cvItems: Item[] = (cvRes.data ?? []).map((r) => ({
+        id: r.id,
+        type: "cv",
+        title: r.full_name || "Untitled CV",
+        subtitle: r.template || "",
+        date: r.created_at,
+        data: r.data,
+      }));
+      const prepItems: Item[] = (prepRes.data ?? []).map((r) => ({
+        id: r.id,
+        type: "prep",
+        title: r.candidate_name || "Untitled prep",
+        subtitle: r.role_title || "",
+        date: r.created_at,
+        data: r.data,
+      }));
+      setItems([...cvItems, ...prepItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       setLoadingData(false);
     });
   }, [user]);
 
   if (isLoading || !user) return null;
 
+  const filtered = filter === "all" ? items : items.filter((i) => i.type === filter);
+
   return (
     <section className="py-16 px-8">
       <div className="max-w-[900px] mx-auto">
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="font-heading text-2xl font-black tracking-tight">
-              Your dashboard
-            </h1>
+            <h1 className="font-heading text-2xl font-black tracking-tight">Your dashboard</h1>
             <p className="text-sm text-text-secondary mt-1">{user.email}</p>
           </div>
           <button
@@ -68,67 +76,66 @@ export default function DashboardPage() {
           </button>
         </div>
 
+        {/* Filter bar */}
+        <div className="flex items-center gap-2 mb-6">
+          {(["all", "cv", "prep"] as Filter[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                filter === f
+                  ? "bg-brand text-white"
+                  : "bg-card border border-border text-text-secondary hover:text-foreground"
+              }`}
+            >
+              {f === "cv" && <FileText className="w-3.5 h-3.5" />}
+              {f === "prep" && <Users className="w-3.5 h-3.5" />}
+              {f === "all" ? "All" : f === "cv" ? "CVs" : "Interview Preps"}
+              {f !== "all" && (
+                <span className={`text-xs ${filter === f ? "text-white/70" : "text-text-muted"}`}>
+                  {items.filter((i) => i.type === f).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {loadingData ? (
           <p className="text-sm text-text-muted">Loading your saved items…</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-text-muted">
+            {filter === "cv"
+              ? "No CVs saved yet. Build one from the CV Builder."
+              : filter === "prep"
+              ? "No interview preps saved yet. Generate one from Interview Coaching."
+              : "No saved items yet."}
+          </p>
         ) : (
-          <div className="space-y-10">
-            <div>
-              <h2 className="font-heading text-lg font-extrabold tracking-tight mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-brand" /> Your CVs
-              </h2>
-              {cvs.length === 0 ? (
-                <p className="text-sm text-text-muted">No CVs saved yet. Build one from the CV Builder.</p>
-              ) : (
-                <div className="space-y-2">
-                  {cvs.map((cv) => (
-                    <div key={cv.id} className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-3.5">
-                      <div>
-                        <p className="font-medium text-sm">{cv.full_name || "Untitled CV"}</p>
-                        <p className="text-xs text-text-muted">
-                          {cv.template ? `${cv.template} · ` : ""}
-                          {new Date(cv.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setViewing(cv.data)}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
-                      >
-                        <Eye className="w-3.5 h-3.5" /> View
-                      </button>
-                    </div>
-                  ))}
+          <div className="space-y-2">
+            {filtered.map((item) => (
+              <div key={item.id} className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
+                    {item.type === "cv"
+                      ? <FileText className="w-4 h-4 text-brand" />
+                      : <Users className="w-4 h-4 text-brand" />}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{item.title}</p>
+                    <p className="text-xs text-text-muted">
+                      {item.subtitle ? `${item.subtitle} · ` : ""}
+                      {new Date(item.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
-
-            <div>
-              <h2 className="font-heading text-lg font-extrabold tracking-tight mb-4 flex items-center gap-2">
-                <Users className="w-5 h-5 text-brand" /> Your Interview Preps
-              </h2>
-              {preps.length === 0 ? (
-                <p className="text-sm text-text-muted">No interview preps saved yet. Generate one from Interview Coaching.</p>
-              ) : (
-                <div className="space-y-2">
-                  {preps.map((prep) => (
-                    <div key={prep.id} className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-3.5">
-                      <div>
-                        <p className="font-medium text-sm">{prep.candidate_name || "Untitled prep"}</p>
-                        <p className="text-xs text-text-muted">
-                          {prep.role_title ? `${prep.role_title} · ` : ""}
-                          {new Date(prep.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setViewing(prep.data)}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
-                      >
-                        <Eye className="w-3.5 h-3.5" /> View
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                <button
+                  onClick={() => setViewing(item.data)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+                >
+                  <Eye className="w-3.5 h-3.5" /> View
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
