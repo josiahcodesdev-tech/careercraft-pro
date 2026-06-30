@@ -85,6 +85,13 @@ ATS formatting rules:
     return NextResponse.json({ result: parsed });
   } catch (err) {
     console.error("CV transform error:", err);
-    return NextResponse.json({ error: "AI request failed." }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Unknown error";
+    if (message.includes("401") || message.includes("Incorrect API key") || message.includes("authentication")) {
+      return NextResponse.json({ error: "Invalid API key. Please check your OpenAI key in settings." }, { status: 401 });
+    }
+    if (message.includes("429") || message.includes("quota") || message.includes("billing")) {
+      return NextResponse.json({ error: "OpenAI quota exceeded. Please check your billing at platform.openai.com." }, { status: 429 });
+    }
+    return NextResponse.json({ error: `AI request failed: ${message}` }, { status: 500 });
   }
 }

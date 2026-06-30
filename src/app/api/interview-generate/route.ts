@@ -82,6 +82,13 @@ Only include "section" on the first question of each new section.`;
     return NextResponse.json({ qa });
   } catch (err) {
     console.error("Interview generate error:", err);
-    return NextResponse.json({ error: "AI request failed." }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Unknown error";
+    if (message.includes("401") || message.includes("Incorrect API key") || message.includes("authentication")) {
+      return NextResponse.json({ error: "Invalid API key. Please check your OpenAI key." }, { status: 401 });
+    }
+    if (message.includes("429") || message.includes("quota") || message.includes("billing")) {
+      return NextResponse.json({ error: "OpenAI quota exceeded. Please check your billing." }, { status: 429 });
+    }
+    return NextResponse.json({ error: `AI request failed: ${message}` }, { status: 500 });
   }
 }
