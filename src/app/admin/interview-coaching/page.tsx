@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAnalytics, getSavedPrep, type InterviewEvent } from "@/lib/analytics";
+import { type InterviewEvent } from "@/lib/analytics";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { Users, Eye, User, FileText } from "lucide-react";
@@ -11,7 +11,10 @@ export default function InterviewCoachingPage() {
   const [viewing, setViewing] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
-    setItems(getAnalytics().interviewPreps);
+    fetch("/api/admin/analytics")
+      .then((res) => res.json())
+      .then((json) => setItems(json.interviewPreps ?? []))
+      .catch(() => setItems([]));
   }, []);
 
   const dialogue = viewing?.dialogue as Array<{ section?: string; question: string; answer: string }> | undefined;
@@ -54,9 +57,13 @@ export default function InterviewCoachingPage() {
               return (
                 <button
                   onClick={() => {
-                    const saved = getSavedPrep(item.id!);
-                    if (saved) setViewing(saved);
-                    else alert("Interview prep data not found. It may have been cleared from browser storage.");
+                    fetch(`/api/admin/prep/${item.id}`)
+                      .then((res) => res.json())
+                      .then((json) => {
+                        if (json.data) setViewing(json.data);
+                        else alert("Interview prep data not found.");
+                      })
+                      .catch(() => alert("Failed to load interview prep data."));
                   }}
                   className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
                 >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAnalytics, type ProposalEvent } from "@/lib/analytics";
+import { type ProposalEvent } from "@/lib/analytics";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { Briefcase } from "lucide-react";
@@ -10,7 +10,10 @@ export default function ProposalsPage() {
   const [items, setItems] = useState<ProposalEvent[]>([]);
 
   useEffect(() => {
-    setItems(getAnalytics().proposals);
+    fetch("/api/admin/analytics")
+      .then((res) => res.json())
+      .then((json) => setItems(json.proposals ?? []))
+      .catch(() => setItems([]));
   }, []);
 
   return (

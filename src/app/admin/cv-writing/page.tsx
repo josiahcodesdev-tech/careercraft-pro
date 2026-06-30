@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAnalytics, getSavedCv, type CvEvent } from "@/lib/analytics";
+import { type CvEvent } from "@/lib/analytics";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { FileText, Eye, X } from "lucide-react";
@@ -11,7 +11,10 @@ export default function CvWritingPage() {
   const [viewing, setViewing] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
-    setItems(getAnalytics().cvDownloads);
+    fetch("/api/admin/analytics")
+      .then((res) => res.json())
+      .then((json) => setItems(json.cvDownloads ?? []))
+      .catch(() => setItems([]));
   }, []);
 
   return (
@@ -60,9 +63,13 @@ export default function CvWritingPage() {
               return (
                 <button
                   onClick={() => {
-                    const saved = getSavedCv(item.id!);
-                    if (saved) setViewing(saved);
-                    else alert("CV data not found. It may have been cleared from browser storage.");
+                    fetch(`/api/admin/cv/${item.id}`)
+                      .then((res) => res.json())
+                      .then((json) => {
+                        if (json.data) setViewing(json.data);
+                        else alert("CV data not found.");
+                      })
+                      .catch(() => alert("Failed to load CV data."));
                   }}
                   className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
                 >

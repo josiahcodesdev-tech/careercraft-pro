@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAnalytics, type Analytics } from "@/lib/analytics";
+import { type Analytics } from "@/lib/analytics";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { Mail, FileText, Users, Briefcase } from "lucide-react";
@@ -17,7 +17,10 @@ export default function AdminDashboardPage() {
   const [data, setData] = useState<Analytics | null>(null);
 
   useEffect(() => {
-    setData(getAnalytics());
+    fetch("/api/admin/analytics")
+      .then((res) => res.json())
+      .then((json) => setData(json as Analytics))
+      .catch(() => setData({ cvDownloads: [], interviewPreps: [], enquiries: [], proposals: [] }));
   }, []);
 
   if (!data) return null;

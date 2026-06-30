@@ -1,4 +1,4 @@
-const STORAGE_KEY = "careercraft_analytics";
+import { supabase } from "@/lib/supabase/client";
 
 export interface CvEvent {
   name: string;
@@ -35,74 +35,36 @@ export interface Analytics {
   proposals: ProposalEvent[];
 }
 
-const empty: Analytics = {
-  cvDownloads: [],
-  interviewPreps: [],
-  enquiries: [],
-  proposals: [],
-};
-
-export function getAnalytics(): Analytics {
-  if (typeof window === "undefined") return empty;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return empty;
-    return { ...empty, ...JSON.parse(raw) };
-  } catch {
-    return empty;
-  }
+export async function trackCvDownload(event: Omit<CvEvent, "date" | "id">, fullData?: Record<string, unknown>) {
+  const { data: { session } } = await supabase.auth.getSession();
+  await supabase.from("cvs").insert({
+    user_id: session?.user.id ?? null,
+    full_name: event.name,
+    template: event.template,
+    data: fullData ?? event,
+  });
 }
 
-function save(data: Analytics) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+export async function trackInterviewPrep(event: Omit<InterviewEvent, "date" | "id">, fullData?: Record<string, unknown>) {
+  const { data: { session } } = await supabase.auth.getSession();
+  await supabase.from("interview_preps").insert({
+    user_id: session?.user.id ?? null,
+    candidate_name: event.name,
+    role_title: event.role,
+    data: fullData ?? event,
+  });
 }
 
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+export async function trackEnquiry(event: Omit<EnquiryEvent, "date">) {
+  await supabase.from("enquiries").insert({
+    name: event.name,
+    email: event.email,
+    phone: event.phone,
+    service: event.service,
+    message: event.message,
+  });
 }
 
-export function trackCvDownload(event: Omit<CvEvent, "date" | "id">, fullData?: Record<string, unknown>) {
-  const id = genId();
-  const data = getAnalytics();
-  data.cvDownloads.unshift({ ...event, id, date: new Date().toISOString() });
-  save(data);
-  if (fullData) {
-    try { localStorage.setItem(`careercraft_cv_${id}`, JSON.stringify(fullData)); } catch {}
-  }
-}
-
-export function trackInterviewPrep(event: Omit<InterviewEvent, "date" | "id">, fullData?: Record<string, unknown>) {
-  const id = genId();
-  const data = getAnalytics();
-  data.interviewPreps.unshift({ ...event, id, date: new Date().toISOString() });
-  save(data);
-  if (fullData) {
-    try { localStorage.setItem(`careercraft_prep_${id}`, JSON.stringify(fullData)); } catch {}
-  }
-}
-
-export function getSavedCv(id: string): Record<string, unknown> | null {
-  try {
-    const raw = localStorage.getItem(`careercraft_cv_${id}`);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
-}
-
-export function getSavedPrep(id: string): Record<string, unknown> | null {
-  try {
-    const raw = localStorage.getItem(`careercraft_prep_${id}`);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
-}
-
-export function trackEnquiry(event: Omit<EnquiryEvent, "date">) {
-  const data = getAnalytics();
-  data.enquiries.unshift({ ...event, date: new Date().toISOString() });
-  save(data);
-}
-
-export function trackProposal(event: Omit<ProposalEvent, "date">) {
-  const data = getAnalytics();
-  data.proposals.unshift({ ...event, date: new Date().toISOString() });
-  save(data);
+export async function trackProposal(event: Omit<ProposalEvent, "date">) {
+  await supabase.from("proposals").insert({ name: event.name, data: event });
 }

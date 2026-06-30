@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAnalytics, type EnquiryEvent } from "@/lib/analytics";
+import { type EnquiryEvent } from "@/lib/analytics";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { Mail } from "lucide-react";
@@ -10,7 +10,10 @@ export default function EnquiriesPage() {
   const [items, setItems] = useState<EnquiryEvent[]>([]);
 
   useEffect(() => {
-    setItems(getAnalytics().enquiries);
+    fetch("/api/admin/analytics")
+      .then((res) => res.json())
+      .then((json) => setItems(json.enquiries ?? []))
+      .catch(() => setItems([]));
   }, []);
 
   return (
