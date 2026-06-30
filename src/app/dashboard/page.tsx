@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Users, Eye, LogOut } from "lucide-react";
+import { FileText, Users, Eye, LogOut, Camera } from "lucide-react";
 import { useClientAuth } from "@/lib/client-auth";
 import { supabase } from "@/lib/supabase/client";
 
@@ -24,6 +24,10 @@ export default function DashboardPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [viewing, setViewing] = useState<Record<string, unknown> | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isLoading && !user) router.replace("/login");
@@ -31,6 +35,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
+    supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).single().then(({ data }) => {
+      setDisplayName(data?.full_name || user.email?.split("@")[0] || "User");
+      setAvatarUrl(data?.avatar_url || null);
+    });
     Promise.all([
       supabase.from("cvs").select("id, full_name, template, created_at, data").order("created_at", { ascending: false }),
       supabase.from("interview_preps").select("id, candidate_name, role_title, created_at, data").order("created_at", { ascending: false }),
@@ -56,6 +64,20 @@ export default function DashboardPage() {
     });
   }, [user]);
 
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/avatar.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (uploadError) { setUploading(false); return; }
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", user.id);
+    setAvatarUrl(publicUrl + `?t=${Date.now()}`);
+    setUploading(false);
+  }
+
   if (isLoading || !user) return null;
 
   const filtered = filter === "all" ? items : items.filter((i) => i.type === filter);
@@ -64,9 +86,40 @@ export default function DashboardPage() {
     <section className="py-16 px-8">
       <div className="max-w-[900px] mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="font-heading text-2xl font-black tracking-tight">Your dashboard</h1>
-            <p className="text-sm text-text-secondary mt-1">{user.email}</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="relative w-11 h-11 rounded-full flex-shrink-0 group"
+              title="Change photo"
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  className="w-11 h-11 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-11 h-11 rounded-full bg-brand flex items-center justify-center text-white font-bold text-base">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {uploading
+                  ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Camera className="w-4 h-4 text-white" />}
+              </div>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <div>
+              <h1 className="font-heading text-xl font-black tracking-tight">{displayName}</h1>
+              <p className="text-xs text-text-muted">Your dashboard</p>
+            </div>
           </div>
           <button
             onClick={() => logout()}
