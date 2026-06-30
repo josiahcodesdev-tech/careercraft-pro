@@ -52,10 +52,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               {title}
             </h1>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-text-muted hidden sm:block">
-              josiahcodes.dev@gmail.com
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-sm font-bold">
+              J
+            </div>
             <button
               onClick={logout}
               className="text-xs text-text-muted hover:text-red-500 flex items-center gap-1 transition-colors"
