@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Users, Eye, LogOut, Camera } from "lucide-react";
+import { FileText, Users, Eye, LogOut, Camera, Search } from "lucide-react";
 import { useClientAuth } from "@/lib/client-auth";
 import { supabase } from "@/lib/supabase/client";
-
-type Filter = "all" | "cv" | "prep";
 
 interface Item {
   id: string;
@@ -17,17 +15,23 @@ interface Item {
   data: Record<string, unknown>;
 }
 
+const selectClass = "h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors";
+
 export default function DashboardPage() {
   const { user, isLoading, logout } = useClientAuth();
   const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [filter, setFilter] = useState<Filter>("all");
   const [viewing, setViewing] = useState<Record<string, unknown> | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
 
   useEffect(() => {
     if (!isLoading && !user) router.replace("/login");
@@ -78,13 +82,25 @@ export default function DashboardPage() {
     setUploading(false);
   }
 
-  if (isLoading || !user) return null;
+  const filtered = useMemo(() => {
+    let result = items;
+    if (typeFilter !== "all") result = result.filter((i) => i.type === typeFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((i) => i.title.toLowerCase().includes(q) || i.subtitle.toLowerCase().includes(q));
+    }
+    if (sortOrder === "oldest") result = [...result].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    else result = [...result].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return result;
+  }, [items, typeFilter, search, sortOrder]);
 
-  const filtered = filter === "all" ? items : items.filter((i) => i.type === filter);
+  if (isLoading || !user) return null;
 
   return (
     <section className="py-16 px-8">
       <div className="max-w-[900px] mx-auto">
+
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <button
@@ -93,11 +109,7 @@ export default function DashboardPage() {
               title="Change photo"
             >
               {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={displayName}
-                  className="w-11 h-11 rounded-full object-cover"
-                />
+                <img src={avatarUrl} alt={displayName} className="w-11 h-11 rounded-full object-cover" />
               ) : (
                 <div className="w-11 h-11 rounded-full bg-brand flex items-center justify-center text-white font-bold text-base">
                   {displayName.charAt(0).toUpperCase()}
@@ -109,13 +121,7 @@ export default function DashboardPage() {
                   : <Camera className="w-4 h-4 text-white" />}
               </div>
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
             <div>
               <h1 className="font-heading text-xl font-black tracking-tight">{displayName}</h1>
               <p className="text-xs text-text-muted">Your dashboard</p>
@@ -130,39 +136,61 @@ export default function DashboardPage() {
         </div>
 
         {/* Filter bar */}
-        <div className="flex items-center gap-2 mb-6">
-          {(["all", "cv", "prep"] as Filter[]).map((f) => (
+        <div className="bg-card border border-border rounded-2xl p-4 mb-6 flex flex-wrap gap-3 items-end">
+          <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
+            <label className="text-xs text-text-muted font-medium">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
+              <input
+                type="text"
+                placeholder="Name, role, template..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-text-muted font-medium">Type</label>
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={selectClass}>
+              <option value="all">All Types</option>
+              <option value="cv">CVs</option>
+              <option value="prep">Interview Preps</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-text-muted font-medium">Sort</label>
+            <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className={selectClass}>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+
+          <div className="flex items-end">
             <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                filter === f
-                  ? "bg-brand text-white"
-                  : "bg-card border border-border text-text-secondary hover:text-foreground"
-              }`}
+              onClick={() => { setSearch(""); setTypeFilter("all"); setSortOrder("newest"); }}
+              className="h-9 px-4 rounded-lg border border-border bg-background text-sm text-text-secondary hover:text-foreground transition-colors"
             >
-              {f === "cv" && <FileText className="w-3.5 h-3.5" />}
-              {f === "prep" && <Users className="w-3.5 h-3.5" />}
-              {f === "all" ? "All" : f === "cv" ? "CVs" : "Interview Preps"}
-              {f !== "all" && (
-                <span className={`text-xs ${filter === f ? "text-white/70" : "text-text-muted"}`}>
-                  {items.filter((i) => i.type === f).length}
-                </span>
-              )}
+              Reset
             </button>
-          ))}
+          </div>
         </div>
 
+        {/* Results count */}
+        {!loadingData && (
+          <p className="text-xs text-text-muted mb-3">
+            {filtered.length} {filtered.length === 1 ? "item" : "items"}
+            {(search || typeFilter !== "all") && " matching filters"}
+          </p>
+        )}
+
+        {/* List */}
         {loadingData ? (
           <p className="text-sm text-text-muted">Loading your saved items…</p>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-text-muted">
-            {filter === "cv"
-              ? "No CVs saved yet. Build one from the CV Builder."
-              : filter === "prep"
-              ? "No interview preps saved yet. Generate one from Interview Coaching."
-              : "No saved items yet."}
-          </p>
+          <p className="text-sm text-text-muted">No items match your filters.</p>
         ) : (
           <div className="space-y-2">
             {filtered.map((item) => (
