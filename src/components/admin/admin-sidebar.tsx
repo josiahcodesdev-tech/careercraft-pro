@@ -12,11 +12,13 @@ import {
   Mail,
   LogOut,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/cv-writing", label: "CV Writing", icon: FileText },
+  { href: "/admin/cv-transform", label: "Batch CV Transform", icon: Sparkles },
   { href: "/admin/interview-coaching", label: "Interview Coaching", icon: Users },
   { href: "/admin/proposals", label: "Proposals", icon: Briefcase },
   { href: "/admin/enquiries", label: "Enquiries", icon: Mail },

@@ -420,96 +420,74 @@ function atsFormat(cv: ParsedCv): ParsedCv {
 
 const CV_TRANSFORM_KEY = "careercraft_cv_transform";
 
-interface FileItem {
-  id: string;
-  name: string;
-  status: "pending" | "scanning" | "done" | "error";
-  scanStep: number;
-  parsed: ParsedCv | null;
-  error: string;
-}
-
-async function processFile(f: File): Promise<ParsedCv> {
-  let text: string;
-  if (f.name.toLowerCase().endsWith(".pdf")) {
-    text = await extractTextFromPdf(f);
-  } else {
-    text = await f.text();
-  }
-  if (!text || text.trim().length < 20) throw new Error("Could not extract readable text.");
-
-  const res = await fetch("/api/cv-transform", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  if (!res.ok) {
-    const json = await res.json() as { error?: string };
-    if (res.status === 503) return parseCvText(text);
-    throw new Error(json.error ?? "AI parsing failed.");
-  }
-  const json = await res.json() as { result?: ParsedCv };
-  if (!json.result) throw new Error("AI returned no data.");
-  return json.result;
-}
-
 export function CvTransformForm() {
-  const [items, setItems] = useState<FileItem[]>([]);
-  const [processing, setProcessing] = useState(false);
+  const [file, setFile] = useState<string>("");
+  const [scanning, setScanning] = useState(false);
+  const [scanStep, setScanStep] = useState(0);
+  const [parsed, setParsed] = useState<ParsedCv | null>(null);
+  const [error, setError] = useState("");
   const router = useRouter();
 
-  const updateItem = useCallback((id: string, patch: Partial<FileItem>) => {
-    setItems((prev) => prev.map((it) => it.id === id ? { ...it, ...patch } : it));
-  }, []);
-
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-    e.target.value = "";
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setError("");
+    setFile(f.name);
+    setScanning(true);
+    setScanStep(0);
 
-    const newItems: FileItem[] = files.map((f) => ({
-      id: Math.random().toString(36).slice(2),
-      name: f.name,
-      status: "pending",
-      scanStep: 0,
-      parsed: null,
-      error: "",
-    }));
-    setItems((prev) => [...prev, ...newItems]);
-    setProcessing(true);
+    try {
+      setScanStep(0);
+      let text: string;
+      if (f.name.toLowerCase().endsWith(".pdf")) {
+        text = await extractTextFromPdf(f);
+      } else {
+        text = await f.text();
+      }
+      if (!text || text.trim().length < 20) throw new Error("Could not extract readable text from this file.");
 
-    for (let i = 0; i < files.length; i++) {
-      const item = newItems[i];
-      updateItem(item.id, { status: "scanning", scanStep: 0 });
+      setScanStep(1);
+      await new Promise((r) => setTimeout(r, 500));
+      setScanStep(2);
 
-      // Animate scan steps
-      for (let s = 0; s < scanSteps.length - 1; s++) {
-        await new Promise((r) => setTimeout(r, 600));
-        updateItem(item.id, { scanStep: s + 1 });
+      const res = await fetch("/api/cv-transform", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      setScanStep(3);
+      await new Promise((r) => setTimeout(r, 400));
+
+      if (!res.ok) {
+        const json = await res.json() as { error?: string };
+        if (res.status === 503) {
+          const result = parseCvText(text);
+          setScanStep(4);
+          setParsed(result);
+          localStorage.setItem(CV_TRANSFORM_KEY, JSON.stringify(result));
+          return;
+        }
+        throw new Error(json.error ?? "AI parsing failed.");
       }
 
-      try {
-        const parsed = await processFile(files[i]);
-        updateItem(item.id, { status: "done", parsed, scanStep: scanSteps.length - 1 });
-      } catch (err) {
-        updateItem(item.id, {
-          status: "error",
-          error: err instanceof Error ? err.message : "Failed to process.",
-        });
-      }
+      const json = await res.json() as { result?: ParsedCv; error?: string };
+      if (!json.result) throw new Error("AI returned no data.");
+
+      setScanStep(4);
+      await new Promise((r) => setTimeout(r, 400));
+      setParsed(json.result);
+      localStorage.setItem(CV_TRANSFORM_KEY, JSON.stringify(json.result));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not process this file. Please try again.");
+      setFile("");
+      setParsed(null);
+    } finally {
+      setScanning(false);
+      setScanStep(0);
+      e.target.value = "";
     }
-    setProcessing(false);
-  }, [updateItem]);
-
-  const handleLoad = (parsed: ParsedCv) => {
-    localStorage.setItem(CV_TRANSFORM_KEY, JSON.stringify(parsed));
-    router.push("/cv-builder?transform=1");
-  };
-
-  const removeItem = (id: string) => setItems((prev) => prev.filter((it) => it.id !== id));
-
-  const doneCount = items.filter((it) => it.status === "done").length;
-  const totalCount = items.length;
+  }, []);
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -524,175 +502,108 @@ export function CvTransformForm() {
               Transform Your CV to ATS
             </h1>
             <p className="text-sm text-text-secondary">
-              Upload one or multiple CVs and we&apos;ll scan each one with AI,
-              then load them into the ATS-friendly CV builder.
+              Upload your existing CV and we&apos;ll extract your details,
+              then format them into a professional ATS-friendly layout.
             </p>
           </div>
 
-          <div className="space-y-4">
-            {/* Upload area */}
-            <label className="flex flex-col items-center justify-center gap-4 p-8 border-2 border-dashed border-border rounded-2xl bg-card cursor-pointer hover:border-brand/40 hover:bg-brand-light/20 transition-all">
-              <div className="w-14 h-14 rounded-full bg-brand-light flex items-center justify-center">
-                <Upload className="w-6 h-6 text-brand" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold mb-1">
-                  {processing ? "Adding more files..." : "Upload CVs"}
-                </p>
-                <p className="text-xs text-text-muted">Select one or multiple PDFs, DOC, DOCX, or TXT files</p>
-              </div>
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.txt"
-                multiple
-                onChange={handleUpload}
-                className="hidden"
-              />
-            </label>
+          <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+            {!file && !scanning && (
+              <label className="flex flex-col items-center justify-center gap-4 p-10 border-2 border-dashed border-border rounded-xl bg-background cursor-pointer hover:border-brand/40 hover:bg-brand-light/20 transition-all">
+                <div className="w-14 h-14 rounded-full bg-brand-light flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-brand" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold mb-1">Upload your CV</p>
+                  <p className="text-xs text-text-muted">PDF, DOC, DOCX, or TXT</p>
+                </div>
+                <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleUpload} className="hidden" />
+              </label>
+            )}
 
-            {/* Progress summary */}
-            {items.length > 0 && (
-              <div className="flex items-center justify-between px-1">
-                <span className="text-sm font-semibold">
-                  {doneCount} of {totalCount} processed
-                </span>
-                {!processing && items.length > 0 && (
-                  <button
-                    onClick={() => setItems([])}
-                    className="text-xs text-text-muted hover:text-red-500 transition-colors"
-                  >
-                    Clear all
-                  </button>
-                )}
+            {scanning && (
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 text-brand animate-spin" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">Analysing {file}</p>
+                    <p className="text-xs text-text-muted">Please wait...</p>
+                  </div>
+                </div>
+                <div className="space-y-2.5">
+                  {scanSteps.map((s, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      {i < scanStep ? (
+                        <div className="w-5 h-5 rounded-full bg-brand flex items-center justify-center">
+                          <CheckCircle className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      ) : i === scanStep ? (
+                        <div className="w-5 h-5 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full border-2 border-border" />
+                      )}
+                      <span className={`text-sm ${i <= scanStep ? "text-foreground font-medium" : "text-text-muted"}`}>{s}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* File list */}
-            <div className="space-y-3">
-              {items.map((item) => (
-                <div key={item.id} className="bg-card border border-border rounded-2xl overflow-hidden">
-                  {/* File header */}
-                  <div className="flex items-center gap-3 p-4">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      item.status === "done" ? "bg-green-100" :
-                      item.status === "error" ? "bg-red-100" :
-                      "bg-brand-light"
-                    }`}>
-                      {item.status === "scanning" ? (
-                        <Loader2 className="w-4 h-4 text-brand animate-spin" />
-                      ) : item.status === "done" ? (
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                      ) : item.status === "error" ? (
-                        <X className="w-4 h-4 text-red-500" />
-                      ) : (
-                        <FileText className="w-4 h-4 text-brand" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.name}</p>
-                      <p className={`text-xs ${
-                        item.status === "done" ? "text-green-600" :
-                        item.status === "error" ? "text-red-500" :
-                        item.status === "scanning" ? "text-brand" :
-                        "text-text-muted"
-                      }`}>
-                        {item.status === "pending" ? "Waiting..." :
-                         item.status === "scanning" ? scanSteps[item.scanStep] :
-                         item.status === "done" ? `✓ Ready — ${item.parsed?.fullName || "CV"}` :
-                         item.error}
-                      </p>
-                    </div>
-                    {(item.status === "done" || item.status === "error") && (
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="text-text-muted hover:text-red-500 transition-colors p-1 flex-shrink-0"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
+            {parsed && !scanning && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-background">
+                  <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-brand" />
                   </div>
-
-                  {/* Scan progress */}
-                  {item.status === "scanning" && (
-                    <div className="px-4 pb-4 space-y-1.5">
-                      {scanSteps.map((s, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          {i < item.scanStep ? (
-                            <div className="w-4 h-4 rounded-full bg-brand flex items-center justify-center flex-shrink-0">
-                              <CheckCircle className="w-2.5 h-2.5 text-white" />
-                            </div>
-                          ) : i === item.scanStep ? (
-                            <div className="w-4 h-4 rounded-full border-2 border-brand border-t-transparent animate-spin flex-shrink-0" />
-                          ) : (
-                            <div className="w-4 h-4 rounded-full border-2 border-border flex-shrink-0" />
-                          )}
-                          <span className={`text-xs ${i <= item.scanStep ? "text-foreground font-medium" : "text-text-muted"}`}>
-                            {s}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Done — extracted info + load button */}
-                  {item.status === "done" && item.parsed && (
-                    <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
-                      <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div className="bg-background rounded-lg p-2">
-                          <p className="text-text-muted mb-0.5">Roles</p>
-                          <p className="font-semibold">{item.parsed.experience.length}</p>
-                        </div>
-                        <div className="bg-background rounded-lg p-2">
-                          <p className="text-text-muted mb-0.5">Education</p>
-                          <p className="font-semibold">{item.parsed.education.length}</p>
-                        </div>
-                        <div className="bg-background rounded-lg p-2">
-                          <p className="text-text-muted mb-0.5">Skill groups</p>
-                          <p className="font-semibold">{item.parsed.skillGroups.length}</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleLoad(item.parsed!)}
-                        className={cn(
-                          buttonVariants(),
-                          "bg-brand hover:bg-brand-mid text-white w-full gap-2 h-9 text-sm"
-                        )}
-                      >
-                        <Sparkles className="w-3.5 h-3.5" /> Load in CV Builder <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{file}</p>
+                    <p className="text-xs text-text-muted">Scanned successfully</p>
+                  </div>
+                  <button onClick={() => { setFile(""); setParsed(null); localStorage.removeItem(CV_TRANSFORM_KEY); }} className="text-text-muted hover:text-red-500 transition-colors p-1">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-              ))}
-            </div>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold">Extracted Information</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Name</span><p className="font-medium">{parsed.fullName || "—"}</p></div>
+                    <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Email</span><p className="font-medium truncate">{parsed.email || "—"}</p></div>
+                    <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Experience</span><p className="font-medium">{parsed.experience.length} role{parsed.experience.length !== 1 ? "s" : ""}</p></div>
+                    <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Education</span><p className="font-medium">{parsed.education.length} qualification{parsed.education.length !== 1 ? "s" : ""}</p></div>
+                    <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Skills</span><p className="font-medium">{parsed.skillGroups.length} group{parsed.skillGroups.length !== 1 ? "s" : ""}</p></div>
+                    <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Summary</span><p className="font-medium">{parsed.summary ? "Found" : "Not found"}</p></div>
+                  </div>
+                </div>
+                <button onClick={() => router.push("/cv-builder?transform=1")} className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white w-full gap-2")}>
+                  <Sparkles className="w-4 h-4" /> Transform to ATS Format <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
           </div>
         </div>
       </div>
 
-      {/* Right panel — How it works */}
+      {/* Right panel */}
       <div className="hidden lg:flex flex-1 flex-col bg-[#f0efe9] items-center justify-center p-8">
         <div className="max-w-[400px] text-center">
           <div className="w-20 h-20 rounded-2xl bg-brand-light flex items-center justify-center mx-auto mb-6">
             <Sparkles className="w-10 h-10 text-brand" />
           </div>
-          <h2 className="font-heading text-xl font-extrabold tracking-tight mb-3">
-            How it works
-          </h2>
+          <h2 className="font-heading text-xl font-extrabold tracking-tight mb-3">How it works</h2>
           <div className="space-y-4 text-left">
             {[
-              { step: "1", title: "Upload", desc: "Select one or multiple CVs at once — PDF, DOC, or TXT" },
-              { step: "2", title: "AI Scan", desc: "Each CV is analysed by AI to extract name, experience, skills and education" },
-              { step: "3", title: "Load", desc: "Click 'Load in CV Builder' on any CV to open it in the ATS builder" },
-              { step: "4", title: "Download", desc: "Choose a template, enhance with AI, and download your ATS-ready CV" },
+              { step: "1", title: "Upload", desc: "Upload your existing CV in any format" },
+              { step: "2", title: "AI Scan", desc: "AI extracts your name, experience, skills and education" },
+              { step: "3", title: "Transform", desc: "Your content is loaded into the ATS-friendly CV builder" },
+              { step: "4", title: "Download", desc: "Choose a template and download your new professional CV" },
             ].map((s) => (
               <div key={s.step} className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-brand text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
-                  {s.step}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{s.title}</p>
-                  <p className="text-xs text-text-secondary">{s.desc}</p>
-                </div>
+                <div className="w-8 h-8 rounded-full bg-brand text-white text-sm font-bold flex items-center justify-center flex-shrink-0">{s.step}</div>
+                <div><p className="text-sm font-semibold">{s.title}</p><p className="text-xs text-text-secondary">{s.desc}</p></div>
               </div>
             ))}
           </div>
