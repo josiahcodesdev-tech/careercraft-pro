@@ -109,17 +109,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="absolute -bottom-5 -right-5 bg-card border border-border rounded-xl px-4 py-3 shadow-md flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] text-brand" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-sm font-semibold">93% success rate</div>
-                <div className="text-[11px] text-text-muted">Clients land roles within 90 days</div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
