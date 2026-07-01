@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CvTransformForm } from "@/components/cv-transform-form";
+import { RequireService } from "@/components/require-service";
 
 export const metadata: Metadata = {
   title: "Transform Your CV to ATS — MyCareerCraft",
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function CvTransformPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
-      <CvTransformForm />
+      <RequireService serviceId="cv-transform">
+        <CvTransformForm />
+      </RequireService>
     </div>
   );
 }

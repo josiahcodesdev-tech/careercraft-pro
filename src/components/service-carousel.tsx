@@ -7,25 +7,23 @@ const services = [
     image: "/images/interview-coaching.jpg",
     badge: "Coaching",
     title: "Interview Coaching",
+    // Routes through RequireService — if not paid, lands on dashboard?unlock=interview-prep
     href: "/interview-prep",
-    description:
-      "Mock interviews, feedback sessions, and proven frameworks to help you communicate confidently and win the room.",
+    cta: "Get started",
   },
   {
     image: "/images/proposals-grants.jpg",
     badge: "Writing",
     title: "Proposal Writing & Grants",
     href: "/proposals",
-    description:
-      "Professional proposal and grant writing services for NGOs, businesses, and individuals. Crafting compelling, well-researched documents that win funding.",
+    cta: "Learn more",
   },
   {
     image: "/images/cv-writing.jpg",
     badge: "Career",
     title: "CV & Cover Letter Writing",
     href: "/cv-builder",
-    description:
-      "Expert CV and cover letter crafting tailored to industry and role. Optimized for ATS and designed to stand out to hiring managers.",
+    cta: "Get started",
   },
 ];
 
@@ -53,13 +51,17 @@ export function ServiceCarousel() {
               {service.title}
             </h3>
             <p className="text-[15px] text-text-secondary leading-[1.75] flex-1 mb-6">
-              {service.description}
+              {service.title === "Interview Coaching"
+                ? "Mock interviews, feedback sessions, and proven frameworks to help you communicate confidently and win the room."
+                : service.title === "Proposal Writing & Grants"
+                ? "Professional proposal and grant writing for NGOs, businesses, and individuals. Crafting documents that win funding."
+                : "Expert CV and cover letter crafting tailored to your industry and role. Optimized for ATS and designed to stand out."}
             </p>
             <Link
               href={service.href}
               className="inline-flex items-center gap-2 text-[15px] font-semibold text-gold hover:gap-3 transition-all duration-200"
             >
-              Explore <ArrowRight className="w-4 h-4" />
+              {service.cta} <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
