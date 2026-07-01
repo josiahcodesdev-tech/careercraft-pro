@@ -28,7 +28,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-type Template = "classic" | "modern" | "executive" | "minimal" | "bold" | "professional" | "creative" | "corporate";
+type Template = "classic" | "modern" | "executive" | "minimal" | "bold" | "professional" | "creative" | "corporate" | "florence";
 
 const TEMPLATES: { id: Template; name: string; description: string; accent: string; font: string; hasPhoto?: boolean }[] = [
   {
@@ -90,6 +90,13 @@ const TEMPLATES: { id: Template; name: string; description: string; accent: stri
     accent: "#1B3A5C",
     font: "Segoe UI",
     hasPhoto: true,
+  },
+  {
+    id: "florence",
+    name: "Florence",
+    description: "Centered navy banner with keyword bar and blue section headings. Formal and corporate.",
+    accent: "#1B3A5C",
+    font: "Calibri",
   },
 ];
 
@@ -194,6 +201,64 @@ const initial: CvData = {
   education: [{ ...emptyEducation }],
   skillGroups: [{ ...emptySkillGroup }],
   referees: [{ ...emptyReferee }],
+  referencesUponRequest: false,
+};
+
+const AVATAR_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23D1D5DB'/%3E%3Ccircle cx='50' cy='37' r='18' fill='%239CA3AF'/%3E%3Cellipse cx='50' cy='84' rx='31' ry='22' fill='%239CA3AF'/%3E%3C/svg%3E";
+
+const DUMMY_DATA: CvData = {
+  fullName: "Jane Doe",
+  tagline: "Marketing Manager | Brand Strategy | Digital Growth",
+  email: "jane.doe@email.com",
+  phone: "+254 700 000 000",
+  location: "Nairobi, Kenya",
+  linkedin: "linkedin.com/in/jane-doe",
+  photo: AVATAR_PLACEHOLDER,
+  photoZoom: 1,
+  photoOffsetX: 0,
+  photoOffsetY: 0,
+  summary: "Results-driven marketing professional with 6 years of experience leading brand strategy, digital campaigns, and cross-functional teams across East African markets. Proven track record of increasing brand awareness by 40% and delivering measurable ROI. Skilled in data analytics, stakeholder engagement, and go-to-market execution.",
+  experience: [
+    {
+      role: "Senior Marketing Manager",
+      company: "Acme Corporation",
+      startDate: "2022-03",
+      endDate: "",
+      current: true,
+      bullets: [
+        "Led rebranding initiative that increased brand recognition by 40% within 12 months.",
+        "Managed KES 15M marketing budget, delivering 25% cost savings through strategic vendor negotiations.",
+        "Built and mentored a 6-person team, improving department productivity by 30%.",
+      ],
+    },
+    {
+      role: "Marketing Specialist",
+      company: "Global Solutions Ltd",
+      startDate: "2019-06",
+      endDate: "2022-02",
+      current: false,
+      bullets: [
+        "Developed digital campaigns generating 3,500+ qualified leads per quarter.",
+        "Coordinated cross-departmental product launches across 5 regional markets.",
+        "Streamlined social media strategy, growing following from 10K to 45K in 18 months.",
+      ],
+    },
+  ],
+  education: [
+    {
+      institution: "University of Nairobi",
+      degree: "Bachelor of Commerce",
+      field: "Marketing",
+      startDate: "2015-09",
+      endDate: "2019-05",
+    },
+  ],
+  skillGroups: [
+    { category: "Marketing & Strategy", skills: "Brand Management · Digital Marketing · Go-to-Market Strategy · Campaign Planning" },
+    { category: "Tools & Platforms", skills: "HubSpot · Google Analytics · Salesforce · Meta Ads Manager" },
+    { category: "Professional Skills", skills: "Team Leadership · Stakeholder Engagement · Data Analysis · Budget Management" },
+  ],
+  referees: [{ name: "John Smith", title: "Director of Marketing", company: "Acme Corporation", email: "j.smith@acme.com", phone: "+254 711 000 000" }],
   referencesUponRequest: false,
 };
 
@@ -1269,27 +1334,27 @@ export function CvBuilderForm() {
             className="bg-white rounded-lg shadow-md mx-auto overflow-hidden"
             style={{ maxWidth: 680, minHeight: 900 }}
           >
-            {!hasContent ? (
-              <div className="flex flex-col items-center justify-center h-[600px] text-center text-text-muted p-12">
-                <FileText className="w-12 h-12 mb-4 opacity-30" />
-                <p className="text-sm">
-                  Start filling in the form on the left.
-                  <br />
-                  Your CV will appear here in real time.
-                </p>
-              </div>
-            ) : (
-              <>
-                {template === "classic" && <ClassicPreview data={data} />}
-                {template === "modern" && <ModernPreview data={data} />}
-                {template === "executive" && <ExecutivePreview data={data} />}
-                {template === "minimal" && <MinimalPreview data={data} />}
-                {template === "bold" && <BoldPreview data={data} />}
-                {template === "professional" && <ProfessionalPreview data={data} />}
-                {template === "creative" && <CreativePreview data={data} />}
-                {template === "corporate" && <CorporatePreview data={data} />}
-              </>
-            )}
+            {(() => {
+              const previewData = hasContent ? data : DUMMY_DATA;
+              return (
+                <div className="relative">
+                  {!hasContent && (
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-black/60 text-white text-[10px] font-semibold px-3 py-1 rounded-full whitespace-nowrap pointer-events-none">
+                      Sample preview · fill the form to see your CV
+                    </div>
+                  )}
+                  {template === "classic" && <ClassicPreview data={previewData} />}
+                  {template === "modern" && <ModernPreview data={previewData} />}
+                  {template === "executive" && <ExecutivePreview data={previewData} />}
+                  {template === "minimal" && <MinimalPreview data={previewData} />}
+                  {template === "bold" && <BoldPreview data={previewData} />}
+                  {template === "professional" && <ProfessionalPreview data={previewData} />}
+                  {template === "creative" && <CreativePreview data={previewData} />}
+                  {template === "corporate" && <CorporatePreview data={previewData} />}
+                  {template === "florence" && <FlorencePreview data={previewData} />}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -2057,6 +2122,26 @@ function TemplateThumbnail({ id, accent }: { id: Template; accent: string }) {
     );
   }
 
+  if (id === "florence") {
+    return (
+      <div style={{ height: "100%", background: "#fff" }}>
+        <div style={{ background: accent, padding: "8px 16px", textAlign: "center" as const }}>
+          <div style={{ height: 7, width: "55%", background: "rgba(255,255,255,0.9)", borderRadius: 2, margin: "0 auto" }} />
+        </div>
+        <div style={{ background: "#EBF0F7", padding: "4px 16px" }}>
+          <div style={{ height: 3, width: "90%", background: "rgba(27,58,92,0.3)", borderRadius: 2, margin: "0 auto" }} />
+        </div>
+        <div style={{ padding: "6px 16px" }}>
+          <div style={{ height: 4, width: "40%", background: accent, borderRadius: 2, margin: "0 auto 4px", opacity: 0.7 }} />
+          <div style={{ height: 1, width: "80%", background: accent, margin: "0 auto 5px", opacity: 0.4 }} />
+          {lineW.map((w, i) => (
+            <div key={i} style={{ height: 2.5, width: w, background: "#e5e5e5", borderRadius: 2, marginBottom: 2.5 }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   // classic
   return (
     <div style={{ height: "100%", padding: "14px 16px" }}>
@@ -2451,6 +2536,151 @@ function CorporatePreview({ data }: { data: CvData }) {
             </>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Florence template (navy banner + keyword bar) ────────── */
+
+function FlorenceSectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      style={{
+        fontSize: "10.5pt",
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: "1.5px",
+        color: "#1B3A5C",
+        borderBottom: "2px solid #1B3A5C",
+        paddingBottom: 3,
+        margin: "16px 0 10px",
+        textAlign: "center",
+      }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+function FlorencePreview({ data }: { data: CvData }) {
+  const navy = "#1B3A5C";
+  const allSkills = data.skillGroups.filter((g) => g.skills).map((g) => g.skills).join(" | ");
+
+  return (
+    <div style={{ fontFamily: "'Calibri', 'Segoe UI', Arial, sans-serif", color: "#1a1a1a", minHeight: 900 }}>
+      {/* Name banner */}
+      <div style={{ background: navy, padding: "16px 28px", textAlign: "center" as const }}>
+        <h1 style={{ fontSize: "22pt", fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: "2px", margin: 0 }}>
+          {data.fullName || "Your Name"}
+        </h1>
+      </div>
+
+      {/* Tagline */}
+      {data.tagline && (
+        <div style={{ textAlign: "center" as const, padding: "7px 28px 4px", fontWeight: 700, fontSize: "11pt", color: "#1a1a1a" }}>
+          {data.tagline}
+        </div>
+      )}
+
+      {/* Keywords bar */}
+      {allSkills && (
+        <div style={{ background: "#EBF0F7", padding: "5px 28px", textAlign: "center" as const, fontSize: "8.5pt", color: navy, lineHeight: 1.6 }}>
+          {allSkills}
+        </div>
+      )}
+
+      {/* Contact row */}
+      <div style={{ textAlign: "center" as const, padding: "7px 28px 10px", fontSize: "9pt", borderBottom: `1.5px solid ${navy}` }}>
+        {[
+          data.phone && `Tel: ${data.phone}`,
+          data.email && `Email: ${data.email}`,
+          data.linkedin && `LinkedIn: ${data.linkedin}`,
+          data.location,
+        ].filter(Boolean).map((item, i, arr) => (
+          <span key={i}>
+            <strong>{item}</strong>
+            {i < arr.length - 1 && <span style={{ margin: "0 8px", color: "#555" }}>|</span>}
+          </span>
+        ))}
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: "4px 28px 28px", textAlign: "justify" as const }}>
+        {/* Career Profile */}
+        {data.summary && (
+          <>
+            <FlorenceSectionHeading>Career Profile</FlorenceSectionHeading>
+            <p style={{ fontSize: "9.5pt", lineHeight: 1.65 }}>{data.summary}</p>
+          </>
+        )}
+
+        {/* Experience */}
+        {data.experience.some((e) => e.company || e.role) && (
+          <>
+            <FlorenceSectionHeading>Professional Experience</FlorenceSectionHeading>
+            {data.experience
+              .filter((e) => e.company || e.role)
+              .map((exp, i) => (
+                <div key={i} style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 1 }}>
+                    <span style={{ fontWeight: 700, fontSize: "10pt", color: navy }}>{exp.role}</span>
+                    <span style={{ fontSize: "8.5pt", color: navy, whiteSpace: "nowrap" }}>
+                      {formatDate(exp.startDate)}{(exp.startDate || exp.endDate || exp.current) ? " – " : ""}{exp.current ? "Present" : formatDate(exp.endDate)}
+                    </span>
+                  </div>
+                  {exp.company && (
+                    <div style={{ fontWeight: 600, fontSize: "9.5pt", color: "#333", marginBottom: 4 }}>{exp.company}</div>
+                  )}
+                  {exp.bullets.some((b) => b.trim()) && (
+                    <ul style={{ paddingLeft: 18, marginTop: 3 }}>
+                      {exp.bullets.filter((b) => b.trim()).map((b, j) => (
+                        <li key={j} style={{ fontSize: "9.5pt", marginBottom: 3, lineHeight: 1.5 }}>{b}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+          </>
+        )}
+
+        {/* Education */}
+        {data.education.some((e) => e.institution || e.degree) && (
+          <>
+            <FlorenceSectionHeading>Education</FlorenceSectionHeading>
+            {data.education
+              .filter((e) => e.institution || e.degree)
+              .map((edu, i) => (
+                <div key={i} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span style={{ fontWeight: 700, fontSize: "10pt", color: navy }}>
+                      {edu.degree}{edu.field && ` in ${edu.field}`}
+                    </span>
+                    <span style={{ fontSize: "8.5pt", color: "#777", whiteSpace: "nowrap" }}>
+                      {formatDate(edu.startDate)}{edu.endDate ? ` – ${formatDate(edu.endDate)}` : ""}
+                    </span>
+                  </div>
+                  {edu.institution && <div style={{ fontSize: "9.5pt", color: "#333" }}>{edu.institution}</div>}
+                </div>
+              ))}
+          </>
+        )}
+
+        {/* Core skills as rows (category → skills) */}
+        {data.skillGroups.some((g) => g.category && g.skills) && (
+          <>
+            <FlorenceSectionHeading>Core Skills</FlorenceSectionHeading>
+            <SkillRows data={data} />
+          </>
+        )}
+
+        {/* References */}
+        {hasRefs(data) && (
+          <>
+            <FlorenceSectionHeading>References</FlorenceSectionHeading>
+            <ReferencesBlock data={data} />
+          </>
+        )}
       </div>
     </div>
   );
