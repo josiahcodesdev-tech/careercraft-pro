@@ -389,10 +389,14 @@ export function InterviewPrepForm() {
   function handlePrint() {
     const el = previewRef.current;
     if (!el) return;
-    const win = window.open("", "_blank");
-    if (!win) return;
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (!doc) { document.body.removeChild(iframe); return; }
+    iframe.contentWindow?.addEventListener("afterprint", () => document.body.removeChild(iframe));
     const fileName = `Interview_Prep_${(data.candidateName || "Candidate").replace(/\s+/g, "_")}`;
-    win.document.write(`<!DOCTYPE html><html><head><title>${fileName}</title>
+    doc.write(`<!DOCTYPE html><html><head><title>${fileName}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:0.25in;line-height:1.6}
@@ -407,7 +411,7 @@ h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
 </style>
 <script>window.onload=function(){window.print()}<\/script>
 </head><body>${el.innerHTML}</body></html>`);
-    win.document.close();
+    doc.close();
   }
 
   return (

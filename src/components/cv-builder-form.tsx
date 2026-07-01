@@ -392,8 +392,12 @@ export function CvBuilderForm() {
       trackCvDownload({ name: data.fullName, template }, { ...data, template } as unknown as Record<string, unknown>);
     });
 
-    const win = window.open("", "_blank");
-    if (!win) return;
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (!doc) { document.body.removeChild(iframe); return; }
+    iframe.contentWindow?.addEventListener("afterprint", () => document.body.removeChild(iframe));
 
     const printStyles: Record<Template, string> = {
       classic: `
@@ -460,11 +464,11 @@ li{margin-bottom:2px;font-size:9.5pt}
     };
 
     const fileName = data.fullName ? `${data.fullName.replace(/\s+/g, "_")}_CV` : "CV";
-    win.document.write(`<!DOCTYPE html><html><head><title>${fileName}</title>
+    doc.write(`<!DOCTYPE html><html><head><title>${fileName}</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}${printStyles[template]}</style>
-<script>window.onafterprint=function(){};window.onload=function(){window.print()}<\/script>
+<script>window.onload=function(){window.print()}<\/script>
 </head><body>${el.innerHTML}</body></html>`);
-    win.document.close();
+    doc.close();
   }
 
   const canGoNext = () => {
