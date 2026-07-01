@@ -23,19 +23,12 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminSupabase();
   if (!admin) {
-    return NextResponse.json({ error: "Database not configured." }, { status: 503 });
+    return NextResponse.json({ error: "Database not configured." }, { status: 500 });
   }
 
-  // Create a pending payment row first so we have the ID for external_reference
   const { data: payment, error: dbError } = await admin
     .from("payments")
-    .insert({
-      user_id: userId ?? null,
-      provider: "mpesa",
-      amount,
-      tier,
-      status: "pending",
-    })
+    .insert({ user_id: userId ?? null, provider: "mpesa", amount, tier, status: "pending" })
     .select("id")
     .single();
 
@@ -44,12 +37,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create payment record." }, { status: 500 });
   }
 
-  // PayHero expects the number without the leading '+', e.g. 254712345678
-  const normalizedPhone = phone.replace(/^\+/, "");
+  // PayHero expects the number without '+', e.g. 254712345678
+  const normalizedPhone = phone.replace(/^\+/, "").replace(/\s/g, "");
+
+  const requestBody = {
+    amount: Number(amount),
+    phone_number: normalizedPhone,
+    channel_id: Number(channelId),
+    provider: "m-pesa",
+    external_reference: payment.id,
+    callback_url: callbackUrl,
+  };
+
+  console.log("[PayHero] Sending:", JSON.stringify(requestBody));
 
   const credentials = Buffer.from(`${username}:${password}`).toString("base64");
 
   let phData: unknown;
+  let phStatus: number;
   try {
     const phRes = await fetch("https://backend.payhero.co.ke/api/v2/payments", {
       method: "POST",
@@ -57,25 +62,30 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
         Authorization: `Basic ${credentials}`,
       },
-      body: JSON.stringify({
-        amount,
-        phone_number: normalizedPhone,
-        channel_id: Number(channelId),
-        provider: "m-pesa",
-        external_reference: payment.id,
-        callback_url: callbackUrl,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
-    phData = await phRes.json();
+    phStatus = phRes.status;
+
+    // PayHero sometimes returns non-JSON on errors
+    const raw = await phRes.text();
+    console.log(`[PayHero] Response ${phStatus}:`, raw);
+
+    try { phData = JSON.parse(raw); } catch { phData = { raw }; }
 
     if (!phRes.ok) {
-      console.error("PayHero error:", phData);
       await admin.from("payments").update({ status: "failed" }).eq("id", payment.id);
-      const msg = (phData as Record<string, string>)?.message
-        ?? (phData as Record<string, string>)?.error
-        ?? `PayHero rejected the request (HTTP ${phRes.status}).`;
-      return NextResponse.json({ error: msg, detail: phData }, { status: 502 });
+
+      const d = phData as Record<string, unknown>;
+      const msg =
+        (d?.message as string) ??
+        (d?.error as string) ??
+        (d?.detail as string) ??
+        (d?.errors ? JSON.stringify(d.errors) : null) ??
+        (d?.raw as string) ??
+        `PayHero error ${phStatus}`;
+
+      return NextResponse.json({ error: msg, detail: phData, sentBody: requestBody }, { status: 502 });
     }
   } catch (err) {
     console.error("PayHero fetch error:", err);

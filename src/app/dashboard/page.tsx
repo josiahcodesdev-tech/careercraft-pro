@@ -103,7 +103,8 @@ function ServiceHub({ userId }: { userId: string }) {
       });
       const d = await res.json();
       if (!res.ok) {
-        setPayError(d?.error ?? "Payment failed. Please try again.");
+        const detail = d?.detail ? ` (${JSON.stringify(d.detail)})` : "";
+        setPayError((d?.error ?? "Payment failed. Please try again.") + detail);
         setPayState("error");
         return;
       }
