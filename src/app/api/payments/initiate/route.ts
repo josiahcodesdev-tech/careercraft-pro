@@ -78,14 +78,14 @@ export async function POST(req: NextRequest) {
 
       const d = phData as Record<string, unknown>;
       const msg =
+        (d?.error_message as string) ??
         (d?.message as string) ??
         (d?.error as string) ??
         (d?.detail as string) ??
-        (d?.errors ? JSON.stringify(d.errors) : null) ??
         (d?.raw as string) ??
         `PayHero error ${phStatus}`;
 
-      return NextResponse.json({ error: msg, detail: phData, sentBody: requestBody }, { status: 502 });
+      return NextResponse.json({ error: msg }, { status: 502 });
     }
   } catch (err) {
     console.error("PayHero fetch error:", err);
