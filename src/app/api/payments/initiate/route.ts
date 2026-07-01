@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     amount: Number(amount),
     phone_number: normalizedPhone,
     channel_id: Number(channelId),
-    provider: "m-pesa",
+    provider: "mpesa",
     external_reference: payment.id,
     callback_url: callbackUrl,
   };
