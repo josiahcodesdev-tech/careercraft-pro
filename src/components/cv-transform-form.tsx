@@ -13,15 +13,18 @@ import {
   CheckCircle,
   Sparkles,
   X,
+  Briefcase,
 } from "lucide-react";
 
-const scanSteps = [
-  "Scanning document...",
-  "Extracting text content...",
-  "Analysing CV structure with AI...",
-  "Parsing experience & education...",
-  "Formatting for ATS compliance...",
-];
+function getScanSteps(hasJd: boolean) {
+  return [
+    "Scanning document...",
+    "Extracting text content...",
+    hasJd ? "Matching to job description..." : "Analysing CV structure with AI...",
+    "Parsing experience & education...",
+    "Formatting for ATS compliance...",
+  ];
+}
 
 interface ParsedCv {
   fullName: string;
@@ -421,28 +424,56 @@ function atsFormat(cv: ParsedCv): ParsedCv {
 const CV_TRANSFORM_KEY = "careercraft_cv_transform";
 
 export function CvTransformForm() {
-  const [file, setFile] = useState<string>("");
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [cvFileName, setCvFileName] = useState("");
+  const [jdText, setJdText] = useState("");
+  const [jdFileName, setJdFileName] = useState("");
   const [scanning, setScanning] = useState(false);
   const [scanStep, setScanStep] = useState(0);
   const [parsed, setParsed] = useState<ParsedCv | null>(null);
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCvSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    setCvFile(f);
+    setCvFileName(f.name);
     setError("");
-    setFile(f.name);
-    setScanning(true);
-    setScanStep(0);
+    setParsed(null);
+    e.target.value = "";
+  }, []);
 
+  const handleJdUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
     try {
-      setScanStep(0);
       let text: string;
       if (f.name.toLowerCase().endsWith(".pdf")) {
         text = await extractTextFromPdf(f);
       } else {
         text = await f.text();
+      }
+      setJdText(text.slice(0, 5000));
+      setJdFileName(f.name);
+    } catch {
+      setError("Could not read the job description file.");
+    }
+    e.target.value = "";
+  }, []);
+
+  const handleTransform = useCallback(async () => {
+    if (!cvFile) return;
+    setError("");
+    setScanning(true);
+    setScanStep(0);
+
+    try {
+      let text: string;
+      if (cvFile.name.toLowerCase().endsWith(".pdf")) {
+        text = await extractTextFromPdf(cvFile);
+      } else {
+        text = await cvFile.text();
       }
       if (!text || text.trim().length < 20) throw new Error("Could not extract readable text from this file.");
 
@@ -453,7 +484,7 @@ export function CvTransformForm() {
       const res = await fetch("/api/cv-transform", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, jobDescription: jdText || undefined }),
       });
 
       setScanStep(3);
@@ -480,14 +511,14 @@ export function CvTransformForm() {
       localStorage.setItem(CV_TRANSFORM_KEY, JSON.stringify(json.result));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not process this file. Please try again.");
-      setFile("");
       setParsed(null);
     } finally {
       setScanning(false);
       setScanStep(0);
-      e.target.value = "";
     }
-  }, []);
+  }, [cvFile, jdText]);
+
+  const scanSteps = getScanSteps(!!jdText.trim());
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -502,34 +533,21 @@ export function CvTransformForm() {
               Transform Your CV to ATS
             </h1>
             <p className="text-sm text-text-secondary">
-              Upload your existing CV and we&apos;ll extract your details,
-              then format them into a professional ATS-friendly layout.
+              Upload your existing CV and optionally a job description — we&apos;ll
+              tailor the output to match the role.
             </p>
           </div>
 
           <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-            {!file && !scanning && (
-              <label className="flex flex-col items-center justify-center gap-4 p-10 border-2 border-dashed border-border rounded-xl bg-background cursor-pointer hover:border-brand/40 hover:bg-brand-light/20 transition-all">
-                <div className="w-14 h-14 rounded-full bg-brand-light flex items-center justify-center">
-                  <Upload className="w-6 h-6 text-brand" />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-semibold mb-1">Upload your CV</p>
-                  <p className="text-xs text-text-muted">PDF, DOC, DOCX, or TXT</p>
-                </div>
-                <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleUpload} className="hidden" />
-              </label>
-            )}
-
-            {scanning && (
-              <div className="p-6 space-y-4">
+            {scanning ? (
+              <div className="p-2 space-y-4">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center">
                     <Loader2 className="w-5 h-5 text-brand animate-spin" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">Analysing {file}</p>
-                    <p className="text-xs text-text-muted">Please wait...</p>
+                    <p className="text-sm font-semibold">Analysing {cvFileName}</p>
+                    <p className="text-xs text-text-muted">Please wait…</p>
                   </div>
                 </div>
                 <div className="space-y-2.5">
@@ -549,19 +567,20 @@ export function CvTransformForm() {
                   ))}
                 </div>
               </div>
-            )}
-
-            {parsed && !scanning && (
+            ) : parsed ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-background">
                   <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
                     <FileText className="w-5 h-5 text-brand" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{file}</p>
-                    <p className="text-xs text-text-muted">Scanned successfully</p>
+                    <p className="text-sm font-medium truncate">{cvFileName}</p>
+                    <p className="text-xs text-text-muted">Scanned successfully{jdText ? " · Matched to JD" : ""}</p>
                   </div>
-                  <button onClick={() => { setFile(""); setParsed(null); localStorage.removeItem(CV_TRANSFORM_KEY); }} className="text-text-muted hover:text-red-500 transition-colors p-1">
+                  <button
+                    onClick={() => { setCvFile(null); setCvFileName(""); setParsed(null); setJdText(""); setJdFileName(""); localStorage.removeItem(CV_TRANSFORM_KEY); }}
+                    className="text-text-muted hover:text-red-500 transition-colors p-1"
+                  >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -577,9 +596,79 @@ export function CvTransformForm() {
                   </div>
                 </div>
                 <button onClick={() => router.push("/cv-builder?transform=1")} className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white w-full gap-2")}>
-                  <Sparkles className="w-4 h-4" /> Transform to ATS Format <ArrowRight className="w-4 h-4" />
+                  <Sparkles className="w-4 h-4" /> Open in CV Builder <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
+            ) : (
+              <>
+                {/* CV upload */}
+                <div>
+                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Your CV <span className="text-red-500">*</span></p>
+                  {cvFile ? (
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-background">
+                      <div className="w-9 h-9 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-4 h-4 text-brand" />
+                      </div>
+                      <p className="text-sm font-medium flex-1 truncate">{cvFileName}</p>
+                      <button onClick={() => { setCvFile(null); setCvFileName(""); }} className="text-text-muted hover:text-red-500 transition-colors p-1">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-border rounded-xl bg-background cursor-pointer hover:border-brand/40 hover:bg-brand-light/20 transition-all">
+                      <div className="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center">
+                        <Upload className="w-5 h-5 text-brand" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-semibold mb-0.5">Upload your CV</p>
+                        <p className="text-xs text-text-muted">PDF, DOC, DOCX, or TXT</p>
+                      </div>
+                      <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleCvSelect} className="hidden" />
+                    </label>
+                  )}
+                </div>
+
+                {/* JD upload */}
+                <div>
+                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Job Description <span className="text-text-muted font-normal normal-case tracking-normal">(optional — improves tailoring)</span></p>
+                  {jdFileName && (
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-background mb-3">
+                      <div className="w-9 h-9 rounded-lg bg-gold/10 flex items-center justify-center flex-shrink-0">
+                        <Briefcase className="w-4 h-4 text-gold" />
+                      </div>
+                      <p className="text-sm font-medium flex-1 truncate">{jdFileName}</p>
+                      <button onClick={() => { setJdText(""); setJdFileName(""); }} className="text-text-muted hover:text-red-500 transition-colors p-1">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <textarea
+                    value={jdText}
+                    onChange={(e) => { setJdText(e.target.value); if (!e.target.value) setJdFileName(""); }}
+                    placeholder="Paste the job description here…"
+                    rows={5}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-text-muted outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors resize-none"
+                  />
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-xs text-text-muted">or</span>
+                    <label className="text-xs font-medium text-brand cursor-pointer hover:underline">
+                      upload a file
+                      <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleJdUpload} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Transform button */}
+                <button
+                  onClick={handleTransform}
+                  disabled={!cvFile}
+                  className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white w-full gap-2 disabled:opacity-40 disabled:cursor-not-allowed")}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {jdText.trim() ? "Transform & Match to Job" : "Transform to ATS Format"}
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </>
             )}
 
             {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
@@ -596,9 +685,9 @@ export function CvTransformForm() {
           <h2 className="font-heading text-xl font-extrabold tracking-tight mb-3">How it works</h2>
           <div className="space-y-4 text-left">
             {[
-              { step: "1", title: "Upload", desc: "Upload your existing CV in any format" },
+              { step: "1", title: "Upload", desc: "Upload your existing CV and optionally the job description" },
               { step: "2", title: "AI Scan", desc: "AI extracts your name, experience, skills and education" },
-              { step: "3", title: "Transform", desc: "Your content is loaded into the ATS-friendly CV builder" },
+              { step: "3", title: "Match", desc: "CV content is tailored to align with the target role" },
               { step: "4", title: "Download", desc: "Choose a template and download your new professional CV" },
             ].map((s) => (
               <div key={s.step} className="flex gap-3">

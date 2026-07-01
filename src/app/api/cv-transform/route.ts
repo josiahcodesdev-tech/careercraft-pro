@@ -7,12 +7,21 @@ export async function POST(req: NextRequest) {
   }
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const body = await req.json() as { text: string };
+  const body = await req.json() as { text: string; jobDescription?: string };
   const cvText = (body.text || "").slice(0, 8000);
+  const jd = (body.jobDescription || "").slice(0, 3000);
 
   if (!cvText.trim()) {
     return NextResponse.json({ error: "No CV text provided." }, { status: 400 });
   }
+
+  const jdSection = jd.trim()
+    ? `\n\nJob Description (use this to tailor the summary and prioritise relevant skills/bullets):\n${jd}`
+    : "";
+
+  const jdInstructions = jd.trim()
+    ? `\n- Job Description Tailoring: Rewrite the professional summary to align with the target role's requirements. In skillGroups, list skills most relevant to the JD first. In experience bullets, emphasise accomplishments that match the JD's key requirements.`
+    : "";
 
   const systemPrompt = `You are an expert CV parser and ATS formatter. Parse the provided CV text and return a structured JSON object.
 
@@ -59,14 +68,14 @@ ATS formatting rules:
 - Dates: Convert all date formats to YYYY-MM. If only year known, use YYYY-01.
 - Skills: Group logically. Use · as separator between skills in each group.
 - LinkedIn: Extract only the path (e.g. linkedin.com/in/username), not full URL.
-- If a field is missing or unknown, use empty string "".`;
+- If a field is missing or unknown, use empty string "".${jdInstructions}`;
 
   try {
     const chat = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Parse this CV:\n\n${cvText}` },
+        { role: "user", content: `Parse this CV:\n\n${cvText}${jdSection}` },
       ],
       temperature: 0.2,
       max_tokens: 3000,
