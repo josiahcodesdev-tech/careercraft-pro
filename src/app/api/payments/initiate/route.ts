@@ -37,8 +37,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create payment record." }, { status: 500 });
   }
 
-  // PayHero expects the number without '+', e.g. 254712345678
-  const normalizedPhone = phone.replace(/^\+/, "").replace(/\s/g, "");
+  // Normalise to 07XXXXXXXX (local Kenyan format PayHero STK push expects)
+  // Input arrives as e.g. "254712345678" or "+254712345678" or "0712345678"
+  const digits = phone.replace(/^\+/, "").replace(/\s/g, "");
+  const normalizedPhone = digits.startsWith("254")
+    ? "0" + digits.slice(3)   // 254712345678 → 0712345678
+    : digits.startsWith("0")
+    ? digits                   // 0712345678 → 0712345678
+    : "0" + digits;            // 712345678   → 0712345678
 
   const requestBody = {
     amount: Number(amount),
