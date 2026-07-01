@@ -42,7 +42,7 @@ export default function AdminLoginPage() {
             </svg>
           </div>
           <h1 className="font-heading text-2xl font-black text-white mb-1">
-            CareerCraft Pro
+            MyCareerCraft
           </h1>
           <p className="text-sm text-white/40">Admin Panel</p>
         </div>

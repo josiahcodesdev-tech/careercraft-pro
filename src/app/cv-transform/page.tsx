@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CvTransformForm } from "@/components/cv-transform-form";
 
 export const metadata: Metadata = {
-  title: "Transform Your CV to ATS — CareerCraft Pro",
+  title: "Transform Your CV to ATS — MyCareerCraft",
   description:
     "Upload your existing CV and we'll scan, extract, and reformat it into a clean ATS-friendly layout using our professional templates.",
 };

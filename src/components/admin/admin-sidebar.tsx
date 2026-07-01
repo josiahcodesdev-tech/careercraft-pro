@@ -59,7 +59,7 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
             </svg>
           </div>
           <div>
-            <div className="font-heading text-sm font-bold">CareerCraft Pro</div>
+            <div className="font-heading text-sm font-bold">MyCareerCraft</div>
             <div className="text-[10px] text-white/40">Admin Panel</div>
           </div>
         </div>

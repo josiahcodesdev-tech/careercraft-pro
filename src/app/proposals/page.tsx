@@ -6,7 +6,7 @@ import { CheckCircle, ArrowRight, ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Proposal Writing & Grants — CareerCraft Pro",
+  title: "Proposal Writing & Grants — MyCareerCraft",
   description:
     "Compelling, data-backed proposals and grant applications that win funding. We craft grant proposals, project proposals, business pitches, and funding applications.",
 };

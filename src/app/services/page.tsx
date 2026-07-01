@@ -7,9 +7,9 @@ import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Our Services — CareerCraft Pro",
+  title: "Our Services — MyCareerCraft",
   description:
-    "Explore CareerCraft Pro's career development services — career assessment, CV writing, interview coaching, personal branding, career transition, and more.",
+    "Explore MyCareerCraft's career development services — career assessment, CV writing, interview coaching, personal branding, career transition, and more.",
 };
 
 const services = [

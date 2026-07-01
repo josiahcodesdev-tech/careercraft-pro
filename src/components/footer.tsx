@@ -53,7 +53,7 @@ export function Footer() {
         <div className="flex flex-wrap justify-between gap-8 mb-8">
           <div>
             <div className="font-heading text-lg font-extrabold text-white/70 mb-2">
-              CareerCraft Pro
+              MyCareerCraft
             </div>
             <p className="text-sm text-white/35 max-w-[280px] leading-relaxed">
               Helping professionals discover their potential, sharpen their
@@ -99,7 +99,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-white/8 pt-6 flex flex-wrap justify-between items-center gap-4">
-          <p className="text-xs">&copy; 2026 CareerCraft Pro. All rights reserved.</p>
+          <p className="text-xs">&copy; 2026 MyCareerCraft. All rights reserved.</p>
           <div className="flex gap-3">
             {socialLinks.map((social) => (
               <a

@@ -117,7 +117,7 @@ export default function ContactPage() {
     e.preventDefault();
     const serviceName = serviceOptions.find((o) => o.value === form.service)?.label || form.service;
     const text = [
-      `*New enquiry from CareerCraft Pro*`,
+      `*New enquiry from MyCareerCraft*`,
       ``,
       `*Name:* ${form.firstName} ${form.lastName}`,
       `*Email:* ${form.email}`,
@@ -286,16 +286,16 @@ export default function ContactPage() {
                 <div className="rounded-xl overflow-hidden border border-border">
                   <div className="bg-[#075E54] px-4 py-2.5 flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center overflow-hidden p-1.5">
-                      <img src="/favicon.svg" alt="CareerCraft Pro" className="w-full h-full" />
+                      <img src="/favicon.svg" alt="MyCareerCraft" className="w-full h-full" />
                     </div>
                     <div>
-                      <div className="text-white text-sm font-semibold">CareerCraft Pro</div>
+                      <div className="text-white text-sm font-semibold">MyCareerCraft</div>
                       <div className="text-white/60 text-[10px]">WhatsApp message preview</div>
                     </div>
                   </div>
                   <div className="bg-[#ECE5DD] px-4 py-4">
                     <div className="bg-white rounded-lg rounded-tl-none shadow-sm px-3.5 py-2.5 max-w-[85%] text-[13px] leading-relaxed text-[#303030]">
-                      <div className="font-bold text-[#075E54] mb-1.5">New enquiry from CareerCraft Pro</div>
+                      <div className="font-bold text-[#075E54] mb-1.5">New enquiry from MyCareerCraft</div>
                       {(form.firstName || form.lastName) && (
                         <div><span className="font-semibold">Name:</span> {form.firstName} {form.lastName}</div>
                       )}

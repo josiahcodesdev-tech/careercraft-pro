@@ -18,9 +18,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "CareerCraft Pro — Career Development & Professional Growth",
+  title: "MyCareerCraft — Career Development & Professional Growth",
   description:
-    "CareerCraft Pro helps professionals shape their careers through expert coaching, CV writing, interview preparation, and personal branding strategies.",
+    "MyCareerCraft helps professionals shape their careers through expert coaching, CV writing, interview preparation, and personal branding strategies.",
   icons: {
     icon: "/favicon.svg",
   },

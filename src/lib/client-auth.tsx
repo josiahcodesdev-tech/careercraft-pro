@@ -10,6 +10,7 @@ interface ClientAuthCtx {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<string | null>;
   register: (name: string, email: string, phone: string, password: string) => Promise<string | null>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -19,6 +20,7 @@ const Ctx = createContext<ClientAuthCtx>({
   isLoading: true,
   login: async () => "Not initialized",
   register: async () => "Not initialized",
+  loginWithGoogle: async () => {},
   logout: async () => {},
 });
 
@@ -55,12 +57,19 @@ export function ClientAuthProvider({ children }: { children: React.ReactNode }) 
     return null;
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  }, []);
+
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
 
   return (
-    <Ctx.Provider value={{ user: session?.user ?? null, session, isLoading, login, register, logout }}>
+    <Ctx.Provider value={{ user: session?.user ?? null, session, isLoading, login, register, loginWithGoogle, logout }}>
       {children}
     </Ctx.Provider>
   );
