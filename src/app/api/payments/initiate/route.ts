@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!callbackUrl) {
-    return NextResponse.json({ error: "PAYHERO_CALLBACK_URL is not set. Add it to your environment variables (e.g. https://your-domain.com/api/payments/callback)." }, { status: 503 });
+    return NextResponse.json({ error: "PAYHERO_CALLBACK_URL is not set." }, { status: 503 });
   }
 
   const admin = getAdminSupabase();
@@ -37,14 +37,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create payment record." }, { status: 500 });
   }
 
-  // Normalise to 07XXXXXXXX (local Kenyan format PayHero STK push expects)
-  // Input arrives as e.g. "254712345678" or "+254712345678" or "0712345678"
+  // Normalise phone: PayHero STK push expects 07XXXXXXXX (local Kenyan format)
   const digits = phone.replace(/^\+/, "").replace(/\s/g, "");
   const normalizedPhone = digits.startsWith("254")
-    ? "0" + digits.slice(3)   // 254712345678 → 0712345678
+    ? "0" + digits.slice(3)
     : digits.startsWith("0")
-    ? digits                   // 0712345678 → 0712345678
-    : "0" + digits;            // 712345678   → 0712345678
+    ? digits
+    : "0" + digits;
 
   const requestBody = {
     amount: Number(amount),
@@ -55,6 +54,7 @@ export async function POST(req: NextRequest) {
     callback_url: callbackUrl,
   };
 
+  console.log("[PayHero] channel_id used:", channelId, "→", Number(channelId));
   console.log("[PayHero] Sending:", JSON.stringify(requestBody));
 
   const credentials = Buffer.from(`${username}:${password}`).toString("base64");
@@ -72,8 +72,6 @@ export async function POST(req: NextRequest) {
     });
 
     phStatus = phRes.status;
-
-    // PayHero sometimes returns non-JSON on errors
     const raw = await phRes.text();
     console.log(`[PayHero] Response ${phStatus}:`, raw);
 
@@ -81,7 +79,6 @@ export async function POST(req: NextRequest) {
 
     if (!phRes.ok) {
       await admin.from("payments").update({ status: "failed" }).eq("id", payment.id);
-
       const d = phData as Record<string, unknown>;
       const msg =
         (d?.error_message as string) ??
@@ -90,14 +87,14 @@ export async function POST(req: NextRequest) {
         (d?.detail as string) ??
         (d?.raw as string) ??
         `PayHero error ${phStatus}`;
-
       return NextResponse.json({ error: msg }, { status: 502 });
     }
   } catch (err) {
     console.error("PayHero fetch error:", err);
     await admin.from("payments").update({ status: "failed" }).eq("id", payment.id);
-    return NextResponse.json({ error: "Could not reach PayHero. Check your internet connection." }, { status: 502 });
+    return NextResponse.json({ error: "Could not reach PayHero." }, { status: 502 });
   }
 
-  return NextResponse.json({ paymentId: payment.id, payhero: phData });
+  // Return full PayHero response so client can display debug info
+  return NextResponse.json({ paymentId: payment.id, payhero: phData, debug: { channelId: Number(channelId), phone: normalizedPhone } });
 }

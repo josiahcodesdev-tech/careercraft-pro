@@ -37,6 +37,7 @@ function ServiceHub({ userId }: { userId: string }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [payState, setPayState] = useState<"idle" | "waiting" | "success" | "error">("idle");
   const [payError, setPayError] = useState<string | null>(null);
+  const [payDebug, setPayDebug] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -108,6 +109,7 @@ function ServiceHub({ userId }: { userId: string }) {
         return;
       }
       setPendingId(d.paymentId);
+      setPayDebug(JSON.stringify(d.debug ?? d.payhero ?? {}));
       setPayState("waiting");
     } catch {
       setPayError("Network error. Please check your connection.");
@@ -215,6 +217,7 @@ function ServiceHub({ userId }: { userId: string }) {
                     setPhone={setPhone}
                     payState={payState}
                     payError={payError}
+                    payDebug={payDebug}
                     paying={paying}
                     onPay={pay}
                   />
@@ -281,6 +284,7 @@ function ServiceHub({ userId }: { userId: string }) {
                 setPhone={setPhone}
                 payState={payState}
                 payError={payError}
+                payDebug={payDebug}
                 paying={paying}
                 onPay={pay}
               />
@@ -295,13 +299,14 @@ function ServiceHub({ userId }: { userId: string }) {
 /* ─── reusable payment panel ─── */
 function PaymentPanel({
   label, price, tier, countryCode, setCountryCode,
-  phone, setPhone, payState, payError, paying, onPay,
+  phone, setPhone, payState, payError, payDebug, paying, onPay,
 }: {
   label: string; price: number; tier: string;
   countryCode: string; setCountryCode: (v: string) => void;
   phone: string; setPhone: (v: string) => void;
   payState: "idle" | "waiting" | "success" | "error";
   payError: string | null;
+  payDebug: string | null;
   paying: boolean;
   onPay: (tier: string, price: number) => void;
 }) {
@@ -315,9 +320,14 @@ function PaymentPanel({
 
   if (payState === "waiting") {
     return (
-      <div className="flex items-center gap-2 text-sm text-text-secondary">
-        <div className="w-4 h-4 rounded-full border-2 border-brand border-t-transparent animate-spin flex-shrink-0" />
-        Check your phone for the M-Pesa prompt…
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 text-sm text-text-secondary">
+          <div className="w-4 h-4 rounded-full border-2 border-brand border-t-transparent animate-spin flex-shrink-0" />
+          Check your phone for the M-Pesa prompt…
+        </div>
+        {payDebug && (
+          <p className="text-[10px] text-text-muted font-mono break-all">Debug: {payDebug}</p>
+        )}
       </div>
     );
   }
