@@ -8,8 +8,16 @@ export const TOOL_SERVICES = [
     description:
       "Build a professional CV from scratch with 9 premium templates optimised for ATS screening.",
     href: "/cv-builder",
-    price: 1500,
+    price: 40,
     icon: FileText,
+    features: [
+      "9 professional CV templates",
+      "AI-powered field suggestions",
+      "ATS-optimised formatting",
+      "Cover letter generation",
+      "Instant PDF download",
+      "Unlimited saves to your account",
+    ],
   },
   {
     id: "interview-prep",
@@ -18,8 +26,16 @@ export const TOOL_SERVICES = [
     description:
       "Paste a job description and get a personalised mock interview with model answers.",
     href: "/interview-prep",
-    price: 1000,
+    price: 60,
     icon: Users,
+    features: [
+      "Tailored to any job description",
+      "Anticipated interview questions",
+      "Model answers for each question",
+      "Multiple interview rounds",
+      "Downloadable prep sheet",
+      "Saved to your dashboard",
+    ],
   },
   {
     id: "cv-transform",
@@ -28,14 +44,22 @@ export const TOOL_SERVICES = [
     description:
       "Upload your existing CV and convert it to a clean ATS-ready format, matched to a job description.",
     href: "/cv-transform",
-    price: 800,
+    price: 100,
     icon: Sparkles,
+    features: [
+      "Upload PDF, DOCX, or TXT",
+      "Converts to ATS-ready format",
+      "Match CV to a job description",
+      "Keyword optimisation",
+      "Clean professional output",
+      "Instant PDF download",
+    ],
   },
 ] as const;
 
 export type ServiceId = (typeof TOOL_SERVICES)[number]["id"] | "bundle";
 
-export const BUNDLE_PRICE = 2500;
+export const BUNDLE_PRICE = 150;
 
 // Total individual price so the UI can show the saving
 export const INDIVIDUAL_TOTAL = TOOL_SERVICES.reduce((s, t) => s + t.price, 0);

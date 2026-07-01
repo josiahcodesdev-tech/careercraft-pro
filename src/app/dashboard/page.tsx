@@ -141,56 +141,62 @@ function ServiceHub({ userId }: { userId: string }) {
           return (
             <div
               key={svc.id}
-              className={`rounded-2xl border transition-all ${
-                active
-                  ? "bg-brand-light border-brand"
-                  : "bg-card border-border"
+              className={`rounded-2xl border flex flex-col transition-all ${
+                active ? "bg-brand-light border-brand" : "bg-card border-border"
               }`}
             >
-              {/* Card header */}
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? "bg-brand" : "bg-border"}`}>
-                    <Icon className={`w-5 h-5 ${active ? "text-white" : "text-text-muted"}`} />
-                  </div>
-                  {active ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-brand">
-                      <CheckCircle className="w-3.5 h-3.5" /> Active
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                      <Lock className="w-3.5 h-3.5" /> KES {svc.price.toLocaleString()}
+              <div className="p-5 flex-1">
+                {/* Name + status */}
+                <div className="flex items-start justify-between mb-1">
+                  <p className="font-heading font-extrabold text-[16px] leading-tight">{svc.name}</p>
+                  {active && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand bg-white/60 rounded-full px-2 py-0.5 ml-2 flex-shrink-0">
+                      <CheckCircle className="w-3 h-3" /> Active
                     </span>
                   )}
                 </div>
-                <p className="font-heading font-extrabold text-[15px] leading-tight mb-1">{svc.name}</p>
-                <p className="text-xs text-text-secondary leading-relaxed">{svc.description}</p>
-              </div>
+                <p className="text-xs text-text-secondary mb-4 leading-relaxed">{svc.description}</p>
 
-              {/* CTA */}
-              <div className="px-5 pb-5">
+                {/* Price */}
+                <div className="mb-4">
+                  <span className="text-2xl font-black">{svc.price.toLocaleString()}</span>
+                  <span className="text-sm font-semibold text-text-muted ml-1">KES</span>
+                  <span className="text-xs text-text-muted ml-1">/ one-time</span>
+                </div>
+
+                {/* CTA button */}
                 {active ? (
                   <Link
                     href={svc.href}
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline"
+                    className="flex items-center justify-center gap-1.5 h-9 w-full rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-mid transition-colors mb-4"
                   >
                     Open <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 ) : (
                   <button
                     onClick={() => resetPanel(svc.id)}
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-brand transition-colors"
+                    className="flex items-center justify-center gap-1.5 h-9 w-full rounded-lg bg-foreground text-background text-sm font-semibold hover:bg-brand hover:text-white transition-colors mb-4"
                   >
-                    <Lock className="w-3.5 h-3.5" /> Unlock this service
+                    <Lock className="w-3.5 h-3.5" /> Get Access
                   </button>
                 )}
+
+                {/* Features list */}
+                <ul className="flex flex-col gap-2">
+                  {svc.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-xs text-text-secondary">
+                      <CheckCircle className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${active ? "text-brand" : "text-brand/60"}`} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               {/* Inline payment panel */}
               {!active && isOpen && (
                 <div className="border-t border-border mx-4 mb-4 pt-4">
                   <PaymentPanel
-                    label={`Unlock ${svc.name}`}
+                    label={`Pay KES ${svc.price.toLocaleString()} — Get Access`}
                     price={svc.price}
                     tier={svc.id}
                     countryCode={countryCode}
@@ -210,32 +216,52 @@ function ServiceHub({ userId }: { userId: string }) {
 
       {/* Bundle card */}
       {!allActive && (
-        <div className="rounded-2xl border border-gold/30 bg-gold/5 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gold flex items-center justify-center">
-                <Package className="w-5 h-5 text-white" />
+        <div className="rounded-2xl border-2 border-gold bg-gold/5 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            {/* Left: info */}
+            <div className="flex-1 min-w-[220px]">
+              <div className="flex items-center gap-2 mb-1">
+                <Package className="w-4 h-4 text-gold" />
+                <p className="font-heading font-extrabold text-[16px]">Full Package</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-gold text-white rounded-full px-2 py-0.5">Best Value</span>
               </div>
-              <div>
-                <p className="font-heading font-extrabold text-[15px]">Full Package</p>
-                <p className="text-xs text-text-secondary">All 3 services · Save KES {(INDIVIDUAL_TOTAL - BUNDLE_PRICE).toLocaleString()}</p>
+              <p className="text-xs text-text-secondary mb-3">All 3 services — CV Builder, Interview Prep & CV Transform</p>
+              <div className="mb-4">
+                <span className="text-2xl font-black">{BUNDLE_PRICE.toLocaleString()}</span>
+                <span className="text-sm font-semibold text-text-muted ml-1">KES</span>
+                <span className="text-xs text-text-muted line-through ml-2">KES {INDIVIDUAL_TOTAL.toLocaleString()}</span>
+                <span className="text-xs font-semibold text-gold ml-2">Save KES {(INDIVIDUAL_TOTAL - BUNDLE_PRICE).toLocaleString()}</span>
               </div>
+              <button
+                onClick={() => resetPanel("bundle")}
+                className="h-9 px-6 rounded-lg bg-gold hover:bg-gold/90 text-white text-sm font-semibold transition-colors"
+              >
+                Get Full Package
+              </button>
             </div>
-            <div className="text-right">
-              <p className="text-lg font-black text-gold">KES {BUNDLE_PRICE.toLocaleString()}</p>
-              <p className="text-xs text-text-muted line-through">KES {INDIVIDUAL_TOTAL.toLocaleString()}</p>
-            </div>
+
+            {/* Right: features */}
+            <ul className="flex flex-col gap-2 min-w-[200px]">
+              {[
+                "Everything in all 3 services",
+                "9 professional CV templates",
+                "AI-powered mock interviews",
+                "ATS CV conversion & matching",
+                "Unlimited PDF downloads",
+                "Saved to your dashboard",
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2 text-xs text-text-secondary">
+                  <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-gold" />
+                  {f}
+                </li>
+              ))}
+            </ul>
           </div>
-          <button
-            onClick={() => resetPanel("bundle")}
-            className="text-sm font-semibold text-gold hover:underline inline-flex items-center gap-1"
-          >
-            <Package className="w-3.5 h-3.5" /> Get the full package
-          </button>
+
           {openPanel === "bundle" && (
             <div className="border-t border-gold/20 mt-4 pt-4">
               <PaymentPanel
-                label="Pay for Full Package"
+                label={`Pay KES ${BUNDLE_PRICE.toLocaleString()} — Get Full Package`}
                 price={BUNDLE_PRICE}
                 tier="bundle"
                 countryCode={countryCode}
