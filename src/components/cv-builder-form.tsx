@@ -384,7 +384,7 @@ export function CvBuilderForm() {
     }
   }
 
-  function handlePrint() {
+  async function handlePrint() {
     const el = previewRef.current;
     if (!el) return;
 
@@ -392,83 +392,20 @@ export function CvBuilderForm() {
       trackCvDownload({ name: data.fullName, template }, { ...data, template } as unknown as Record<string, unknown>);
     });
 
-    const iframe = document.createElement("iframe");
-    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none";
-    document.body.appendChild(iframe);
-    const doc = iframe.contentWindow?.document;
-    if (!doc) { document.body.removeChild(iframe); return; }
-    iframe.contentWindow?.addEventListener("afterprint", () => document.body.removeChild(iframe));
-
-    const printStyles: Record<Template, string> = {
-      classic: `
-body{font-family:'Palatino Linotype','Times New Roman',serif;font-size:10pt;color:#1a1a1a;padding:0.25in;line-height:1.5;text-align:justify}
-h1{font-size:22pt;font-weight:700;margin-bottom:2px;text-align:left;color:#1B3A5C}
-h2{font-size:10.5pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5px solid #1a1a1a;padding-bottom:3px;margin:16px 0 10px;text-align:left}
-ul{list-style:disc;padding-left:18px;margin-top:3px}
-li{margin-bottom:2px;font-size:9.5pt}
-@media print{body{padding:0.25in}@page{margin:0.25in}}`,
-      modern: `
-body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#2d2d2d;padding:0;line-height:1.5;text-align:justify}
-.modern-header{background:#1A5C3A;color:#fff;padding:0.25in}
-.modern-header h1{color:#fff;text-align:left}
-.modern-body{padding:0.25in}
-h2{font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#1A5C3A;border-bottom:2px solid #1A5C3A;padding-bottom:4px;margin:20px 0 10px;text-align:left}
-ul{list-style:none;padding-left:0;margin-top:3px}
-li{margin-bottom:3px;font-size:9.5pt;padding-left:14px;position:relative}
-li::before{content:'';position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:#1A5C3A}
-@media print{.modern-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{padding:0}@page{margin:0}}`,
-      executive: `
-body{font-family:Georgia,'Times New Roman',serif;font-size:10pt;color:#1a1a1a;padding:0;line-height:1.5;text-align:justify}
-.exec-stripe{position:absolute;left:0;top:0;bottom:0;width:6px;background:#1B3A5C}
-.exec-wrap{position:relative;padding:0.25in 0.25in 0.25in calc(0.25in + 6px)}
-h1{font-size:22pt;font-weight:700;color:#1B3A5C;margin-bottom:2px;text-align:left}
-h2{font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#1B3A5C;border-bottom:2px solid #1B3A5C;padding-bottom:3px;margin:18px 0 10px;text-align:left}
-ul{list-style:disc;padding-left:18px;margin-top:3px}
-li{margin-bottom:2px;font-size:9.5pt}
-@media print{.exec-stripe{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{padding:0}@page{margin:0}}`,
-      minimal: `
-body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#333;padding:0.25in;line-height:1.6;text-align:justify}
-h1{font-size:20pt;font-weight:400;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;text-align:left}
-h2{font-size:9pt;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#888;border-bottom:1px solid #ddd;padding-bottom:4px;margin:20px 0 10px;text-align:left}
-ul{list-style:none;padding-left:0;margin-top:3px}
-li{margin-bottom:3px;font-size:9.5pt;padding-left:12px;position:relative}
-li::before{content:'–';position:absolute;left:0;color:#aaa}
-@media print{body{padding:0.25in}@page{margin:0.25in}}`,
-      bold: `
-body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#fff;padding:0;margin:0;line-height:1.5;background:#2D2D2D;text-align:justify}
-img{border-radius:50%}
-h2{color:#E8840C;text-align:left}
-ul{list-style:disc;padding-left:18px;margin-top:3px}
-li{margin-bottom:2px;font-size:9.5pt}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0}}`,
-      professional: `
-body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:0;margin:0;line-height:1.5;text-align:justify}
-img{border-radius:50%}
-h2{color:#D4A017;text-align:left}
-ul{list-style:disc;padding-left:18px;margin-top:3px}
-li{margin-bottom:2px;font-size:9.5pt}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0}}`,
-      creative: `
-body{font-family:Georgia,serif;font-size:10pt;color:#1a1a1a;padding:0;margin:0;line-height:1.5;text-align:justify}
-img{border-radius:50%}
-ul{list-style:disc;padding-left:18px;margin-top:3px}
-li{margin-bottom:2px;font-size:9.5pt}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0}}`,
-      corporate: `
-body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:0;margin:0;line-height:1.5;text-align:justify}
-img{border-radius:50%}
-h2{color:#1B3A5C;text-align:left}
-ul{list-style:disc;padding-left:18px;margin-top:3px}
-li{margin-bottom:2px;font-size:9.5pt}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0}}`,
-    };
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const html2pdf = ((await import("html2pdf.js")) as any).default;
     const fileName = data.fullName ? `${data.fullName.replace(/\s+/g, "_")}_CV` : "CV";
-    doc.write(`<!DOCTYPE html><html><head><title>${fileName}</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}${printStyles[template]}</style>
-<script>window.onload=function(){window.print()}<\/script>
-</head><body>${el.innerHTML}</body></html>`);
-    doc.close();
+
+    await html2pdf()
+      .set({
+        margin: 0,
+        filename: `${fileName}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 3, useCORS: true, logging: false },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(el)
+      .save();
   }
 
   const canGoNext = () => {

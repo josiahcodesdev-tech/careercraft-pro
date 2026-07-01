@@ -386,32 +386,22 @@ export function InterviewPrepForm() {
     }
   }, [canGenerate, data]);
 
-  function handlePrint() {
+  async function handlePrint() {
     const el = previewRef.current;
     if (!el) return;
-    const iframe = document.createElement("iframe");
-    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none";
-    document.body.appendChild(iframe);
-    const doc = iframe.contentWindow?.document;
-    if (!doc) { document.body.removeChild(iframe); return; }
-    iframe.contentWindow?.addEventListener("afterprint", () => document.body.removeChild(iframe));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const html2pdf = ((await import("html2pdf.js")) as any).default;
     const fileName = `Interview_Prep_${(data.candidateName || "Candidate").replace(/\s+/g, "_")}`;
-    doc.write(`<!DOCTYPE html><html><head><title>${fileName}</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:0.25in;line-height:1.6}
-h1{font-size:16pt;font-weight:700;color:#1B3A5C;margin-bottom:4px}
-.subtitle{font-size:9pt;color:#777;margin-bottom:18px}
-.qa{margin-bottom:16px;page-break-inside:avoid}
-.speaker{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px}
-.interviewer{color:#1B3A5C}
-.candidate{color:#1A5C3A}
-.text{font-size:9.5pt;text-align:justify;line-height:1.6}
-@media print{body{padding:0.25in}@page{margin:0.25in}}
-</style>
-<script>window.onload=function(){window.print()}<\/script>
-</head><body>${el.innerHTML}</body></html>`);
-    doc.close();
+    await html2pdf()
+      .set({
+        margin: 0,
+        filename: `${fileName}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 3, useCORS: true, logging: false },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(el)
+      .save();
   }
 
   return (
