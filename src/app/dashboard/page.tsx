@@ -36,6 +36,7 @@ function ServiceHub({ userId }: { userId: string }) {
   const [paying, setPaying] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [payState, setPayState] = useState<"idle" | "waiting" | "success" | "error">("idle");
+  const [payError, setPayError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -88,6 +89,7 @@ function ServiceHub({ userId }: { userId: string }) {
     if (!phone.trim()) return;
     setPaying(true);
     setPayState("idle");
+    setPayError(null);
     try {
       const res = await fetch("/api/payments/initiate", {
         method: "POST",
@@ -100,9 +102,16 @@ function ServiceHub({ userId }: { userId: string }) {
         }),
       });
       const d = await res.json();
-      if (!res.ok) { setPayState("error"); return; }
+      if (!res.ok) {
+        setPayError(d?.error ?? "Payment failed. Please try again.");
+        setPayState("error");
+        return;
+      }
       setPendingId(d.paymentId);
       setPayState("waiting");
+    } catch {
+      setPayError("Network error. Please check your connection.");
+      setPayState("error");
     } finally {
       setPaying(false);
     }
@@ -114,6 +123,7 @@ function ServiceHub({ userId }: { userId: string }) {
     } else {
       setOpenPanel(id);
       setPayState("idle");
+      setPayError(null);
       setPendingId(null);
     }
   }
@@ -204,6 +214,7 @@ function ServiceHub({ userId }: { userId: string }) {
                     phone={phone}
                     setPhone={setPhone}
                     payState={payState}
+                    payError={payError}
                     paying={paying}
                     onPay={pay}
                   />
@@ -269,6 +280,7 @@ function ServiceHub({ userId }: { userId: string }) {
                 phone={phone}
                 setPhone={setPhone}
                 payState={payState}
+                payError={payError}
                 paying={paying}
                 onPay={pay}
               />
@@ -283,12 +295,13 @@ function ServiceHub({ userId }: { userId: string }) {
 /* ─── reusable payment panel ─── */
 function PaymentPanel({
   label, price, tier, countryCode, setCountryCode,
-  phone, setPhone, payState, paying, onPay,
+  phone, setPhone, payState, payError, paying, onPay,
 }: {
   label: string; price: number; tier: string;
   countryCode: string; setCountryCode: (v: string) => void;
   phone: string; setPhone: (v: string) => void;
   payState: "idle" | "waiting" | "success" | "error";
+  payError: string | null;
   paying: boolean;
   onPay: (tier: string, price: number) => void;
 }) {
@@ -312,7 +325,9 @@ function PaymentPanel({
   return (
     <div className="flex flex-col gap-3">
       {payState === "error" && (
-        <p className="text-xs text-red-500 font-medium">Payment failed or timed out. Please try again.</p>
+        <p className="text-xs text-red-500 font-medium">
+          {payError ?? "Payment failed or timed out. Please try again."}
+        </p>
       )}
       <p className="text-xs text-text-muted">Enter your M-Pesa number to pay <span className="font-semibold text-foreground">KES {price.toLocaleString()}</span></p>
       <div className="flex gap-2">
