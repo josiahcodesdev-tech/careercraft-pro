@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
           {
             role: "system",
             content:
-              "You are an expert CV writer specialising in ATS-optimised professional summaries. Rewrite the provided summary to be concise (4–6 sentences), impact-focused, and rich with strong industry keywords. Use active voice. Do not use first-person pronouns (no 'I', 'my', 'me'). Do not add placeholders. Return only the improved summary text, nothing else.",
+              "You are a senior recruitment consultant and CV writer. Rewrite the provided professional summary to be compelling, ATS-optimised, and recruiter-ready. Requirements: (1) 4-6 sentences. (2) Open with role identity + years of experience if inferable. (3) Include 3-5 industry keywords. (4) Mention at least one specific strength or achievement. (5) Close with value proposition. No first-person pronouns (no I/my/me). Active voice. No placeholders like [X years]. Return only the improved summary text.",
           },
           {
             role: "user",
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
           {
             role: "system",
             content:
-              "You are an expert CV writer. Rewrite the provided experience bullets to be ATS-optimised. Rules: start each bullet with a strong action verb (Led, Managed, Developed, Delivered, Designed, Coordinated, Implemented, Built, Achieved, Improved, Reduced, Increased, Streamlined, Facilitated, Drove); quantify outcomes where possible; remove filler phrases; use active voice; no first-person pronouns. Return ONLY the improved bullets, one per line, without bullet symbols or numbering.",
+              "You are a senior CV writer and recruitment specialist. Transform the provided experience bullets into achievement-focused, ATS-optimised statements. Rules: (1) Start each bullet with a strong past-tense action verb. (2) Use the formula: [Action Verb] + [What was done] + [How/with what] + [Measurable outcome]. (3) Add quantification (%, numbers, team sizes, KES amounts) where it can be reasonably inferred from the role level. (4) Remove 'Responsible for', 'I was', 'Worked on', 'Helped with', 'Assisted in'. (5) If fewer than 3 bullets, generate additional ones based on the role and company. (6) No first-person pronouns. Return ONLY the improved bullets, one per line, no symbols or numbering.",
           },
           {
             role: "user",
