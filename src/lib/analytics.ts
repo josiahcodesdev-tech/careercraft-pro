@@ -5,7 +5,7 @@ export interface CvEvent {
   date: string;
 }
 
-export interface PrepEvent {
+export interface InterviewEvent {
   id?: string;
   name: string;
   role: string;
@@ -24,6 +24,13 @@ export interface EnquiryEvent {
 export interface ProposalEvent {
   name: string;
   date: string;
+}
+
+export interface Analytics {
+  cvDownloads: CvEvent[];
+  interviewPreps: InterviewEvent[];
+  enquiries: EnquiryEvent[];
+  proposals: ProposalEvent[];
 }
 
 export async function trackCvDownload(_event: { name: string; template: string }, _fullData?: Record<string, unknown>) {}
