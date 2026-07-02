@@ -426,6 +426,65 @@ function atsFormat(cv: ParsedCv): ParsedCv {
 }
 
 const CV_TRANSFORM_KEY = "careercraft_cv_transform";
+const CV_BUILDER_DRAFT_KEY = "careercraft_cv_builder_draft";
+
+interface CvBuilderDraft {
+  fullName?: string; tagline?: string; email?: string; phone?: string;
+  location?: string; linkedin?: string; summary?: string;
+  experience?: { role?: string; company?: string; startDate?: string; endDate?: string; current?: boolean; bullets?: string[] }[];
+  education?: { institution?: string; degree?: string; field?: string; startDate?: string; endDate?: string }[];
+  skillGroups?: { category?: string; skills?: string }[];
+  referees?: { name?: string; title?: string; company?: string; email?: string; phone?: string }[];
+  referencesUponRequest?: boolean;
+}
+
+function cvBuilderDraftToText(d: CvBuilderDraft): string {
+  const lines: string[] = [];
+  if (d.fullName) lines.push(d.fullName);
+  if (d.tagline) lines.push(d.tagline);
+  const contact = [d.email, d.phone, d.location, d.linkedin].filter(Boolean).join(" | ");
+  if (contact) lines.push(contact);
+  lines.push("");
+  if (d.summary) { lines.push("PROFESSIONAL SUMMARY"); lines.push(d.summary); lines.push(""); }
+  if (d.experience?.some((e) => e.role || e.company)) {
+    lines.push("PROFESSIONAL EXPERIENCE");
+    for (const exp of d.experience ?? []) {
+      if (!exp.role && !exp.company) continue;
+      const dates = [exp.startDate, exp.current ? "Present" : exp.endDate].filter(Boolean).join(" – ");
+      lines.push(`${exp.role || ""} | ${exp.company || ""} | ${dates}`);
+      for (const b of (exp.bullets ?? []).filter((b) => b?.trim())) lines.push(`• ${b}`);
+      lines.push("");
+    }
+  }
+  if (d.education?.some((e) => e.institution || e.degree)) {
+    lines.push("EDUCATION");
+    for (const edu of d.education ?? []) {
+      if (!edu.institution && !edu.degree) continue;
+      lines.push([edu.degree, edu.field ? `in ${edu.field}` : ""].filter(Boolean).join(" "));
+      if (edu.institution) lines.push(edu.institution);
+      const dates = [edu.startDate, edu.endDate].filter(Boolean).join(" – ");
+      if (dates) lines.push(dates);
+      lines.push("");
+    }
+  }
+  if (d.skillGroups?.some((g) => g.category && g.skills)) {
+    lines.push("SKILLS");
+    for (const g of d.skillGroups ?? []) {
+      if (g.category && g.skills) lines.push(`${g.category}: ${g.skills}`);
+    }
+    lines.push("");
+  }
+  if (d.referees?.some((r) => r.name)) {
+    lines.push("REFERENCES");
+    for (const r of d.referees ?? []) {
+      if (!r.name) continue;
+      lines.push(r.name);
+      if (r.title || r.company) lines.push([r.title, r.company].filter(Boolean).join(", "));
+      if (r.email || r.phone) lines.push([r.email, r.phone].filter(Boolean).join(" | "));
+    }
+  }
+  return lines.join("\n");
+}
 
 export function CvTransformForm() {
   const [cvFile, setCvFile] = useState<File | null>(null);
@@ -436,6 +495,7 @@ export function CvTransformForm() {
   const [scanStep, setScanStep] = useState(0);
   const [parsed, setParsed] = useState<ParsedCv | null>(null);
   const [error, setError] = useState("");
+  const [usedBuilderDraft, setUsedBuilderDraft] = useState(false);
   const router = useRouter();
 
   const handleCvSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -471,6 +531,7 @@ export function CvTransformForm() {
     setError("");
     setScanning(true);
     setScanStep(0);
+    setUsedBuilderDraft(false);
 
     try {
       let text: string;
@@ -479,11 +540,26 @@ export function CvTransformForm() {
       } else {
         text = await cvFile.text();
       }
-      if (!text || text.trim().length < 20) throw new Error(
-        cvFile.name.toLowerCase().endsWith(".pdf")
-          ? "This PDF appears to be image-based and cannot be scanned. If you created it in the CV Builder, please use the \"Download Word\" button instead — Word files are fully scannable."
-          : "Could not extract readable text from this file."
-      );
+
+      // Image-based PDF (html2pdf.js output) — try to recover from CV Builder draft in localStorage
+      if (!text || text.trim().length < 20) {
+        const raw = localStorage.getItem(CV_BUILDER_DRAFT_KEY);
+        if (raw) {
+          const draft = JSON.parse(raw) as CvBuilderDraft;
+          const recovered = cvBuilderDraftToText(draft);
+          if (recovered.trim().length > 20) {
+            text = recovered;
+            setUsedBuilderDraft(true);
+          }
+        }
+        if (!text || text.trim().length < 20) {
+          throw new Error(
+            cvFile.name.toLowerCase().endsWith(".pdf")
+              ? "This PDF is image-based and cannot be scanned. Please use the \"Download Word\" button in the CV Builder instead — Word files are fully scannable."
+              : "Could not extract readable text from this file."
+          );
+        }
+      }
 
       setScanStep(1);
       await new Promise((r) => setTimeout(r, 500));
@@ -589,12 +665,20 @@ export function CvTransformForm() {
                     </p>
                   </div>
                   <button
-                    onClick={() => { setCvFile(null); setCvFileName(""); setParsed(null); setJdText(""); setJdFileName(""); localStorage.removeItem(CV_TRANSFORM_KEY); }}
+                    onClick={() => { setCvFile(null); setCvFileName(""); setParsed(null); setJdText(""); setJdFileName(""); setUsedBuilderDraft(false); localStorage.removeItem(CV_TRANSFORM_KEY); }}
                     className="text-text-muted hover:text-red-500 transition-colors p-1"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* Builder draft recovery notice */}
+                {usedBuilderDraft && (
+                  <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800">
+                    <CheckCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <span>PDF was image-based so your saved CV Builder data was used for scanning instead — all content is preserved.</span>
+                  </div>
+                )}
 
                 {/* Job match card — shown only when JD was provided */}
                 {parsed.matchedRole && (

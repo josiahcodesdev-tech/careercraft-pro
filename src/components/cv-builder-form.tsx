@@ -338,6 +338,24 @@ export function CvBuilderForm() {
     }
   }, [searchParams]);
 
+  // Persist CV builder data so cv-transform can recover it from image-based PDFs
+  useEffect(() => {
+    const hasAnyContent =
+      data.fullName ||
+      data.summary ||
+      data.experience.some((e) => e.company || e.role) ||
+      data.education.some((e) => e.institution || e.degree);
+    if (hasAnyContent) {
+      try {
+        // Strip photo (base64) to keep localStorage size small
+        const { photo: _photo, ...rest } = data;
+        localStorage.setItem("careercraft_cv_builder_draft", JSON.stringify(rest));
+      } catch {
+        // localStorage full — silently ignore
+      }
+    }
+  }, [data]);
+
   function update<K extends keyof CvData>(key: K, value: CvData[K]) {
     setData((prev) => ({ ...prev, [key]: value }));
   }
