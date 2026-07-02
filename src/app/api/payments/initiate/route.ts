@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminSupabase } from "@/lib/supabase/server";
+import { randomUUID } from "crypto";
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\s/g, "").replace(/^\+/, "");
@@ -12,9 +12,9 @@ function normalizePhone(raw: string): string {
 export async function POST(req: NextRequest) {
   const { phone, amount, tier, userId } = await req.json();
 
-  if (!phone || !amount || !tier) {
+  if (!phone || !amount || !tier || !userId) {
     return NextResponse.json(
-      { error: "phone, amount, and tier are required." },
+      { error: "phone, amount, tier, and userId are required." },
       { status: 400 }
     );
   }
@@ -32,41 +32,14 @@ export async function POST(req: NextRequest) {
   }
   if (!callbackUrl) {
     return NextResponse.json(
-      { error: "PAYHERO_CALLBACK_URL is not set. Add it to your environment variables." },
+      { error: "PAYHERO_CALLBACK_URL is not set." },
       { status: 503 }
     );
   }
 
-  const admin = getAdminSupabase();
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Database not configured. Check SUPABASE_SERVICE_ROLE_KEY." },
-      { status: 500 }
-    );
-  }
-
-  // Create a pending payment row
-  const { data: rows, error: dbError } = await admin
-    .from("payments")
-    .insert({
-      user_id: userId ?? null,
-      provider: "mpesa",
-      amount: Number(amount),
-      tier,
-      status: "pending",
-    })
-    .select("id");
-
-  if (dbError || !rows?.length) {
-    console.error("[Payments] DB insert error:", dbError);
-    const msg =
-      dbError?.code === "42P01"
-        ? "The payments table does not exist. Run the schema SQL in Supabase."
-        : (dbError?.message ?? "Failed to create payment record.");
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
-
-  const paymentId = rows[0].id as string;
+  // Encode tier and userId in the reference so the callback can write to profiles
+  // Format: tier::userId::uuid  (uuid is just for uniqueness)
+  const externalRef = `${tier}::${userId}::${randomUUID()}`;
   const normalizedPhone = normalizePhone(phone);
 
   const body = {
@@ -74,11 +47,11 @@ export async function POST(req: NextRequest) {
     phone_number: normalizedPhone,
     channel_id: Number(channelId),
     provider: "mpesa",
-    external_reference: paymentId,
+    external_reference: externalRef,
     callback_url: callbackUrl,
   };
 
-  console.log("[PayHero] Initiating STK push:", JSON.stringify(body));
+  console.log("[PayHero] Initiating:", JSON.stringify({ ...body, phone_number: "***" }));
 
   const credentials = Buffer.from(`${username}:${password}`).toString("base64");
 
@@ -101,7 +74,6 @@ export async function POST(req: NextRequest) {
     try { phData = JSON.parse(raw); } catch { phData = { raw }; }
 
     if (!phRes.ok) {
-      await admin.from("payments").update({ status: "failed" }).eq("id", paymentId);
       const d = phData as Record<string, unknown>;
       const errMsg =
         (d?.error_message as string) ??
@@ -113,9 +85,9 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     console.error("[PayHero] Fetch error:", err);
-    await admin.from("payments").update({ status: "failed" }).eq("id", paymentId);
     return NextResponse.json({ error: "Could not reach PayHero." }, { status: 502 });
   }
 
-  return NextResponse.json({ paymentId });
+  // Return the ref so the client can poll /api/payments/status
+  return NextResponse.json({ ref: externalRef });
 }

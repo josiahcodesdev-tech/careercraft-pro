@@ -9,12 +9,9 @@ import {
 } from "lucide-react";
 import { useClientAuth } from "@/lib/client-auth";
 import { supabase } from "@/lib/supabase/client";
-import {
-  BUNDLE_PRICE, INDIVIDUAL_TOTAL, TOOL_SERVICES, hasServiceAccess,
-} from "@/lib/services";
+import { BUNDLE_PRICE, INDIVIDUAL_TOTAL, TOOL_SERVICES, hasServiceAccess } from "@/lib/services";
 
 /* ─── types ─── */
-interface Payment { tier: string; status: string; }
 interface Item {
   id: string; type: "cv" | "prep";
   title: string; subtitle: string; date: string;
@@ -33,56 +30,56 @@ function ServiceHub({ userId }: { userId: string }) {
   const searchParams = useSearchParams();
   const unlockParam = searchParams.get("unlock");
 
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loadingPayments, setLoadingPayments] = useState(true);
+  const [services, setServices] = useState<string[]>([]);
+  const [loadingServices, setLoadingServices] = useState(true);
 
-  // Payment panel state
+  // Payment panel state (shared; resets when panel switches)
   const [openPanel, setOpenPanel] = useState<string | null>(unlockParam);
   const [countryCode, setCountryCode] = useState("+254");
   const [phone, setPhone] = useState("");
   const [paying, setPaying] = useState(false);
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [pendingRef, setPendingRef] = useState<string | null>(null);
+  const [pendingTier, setPendingTier] = useState<string | null>(null);
   const [payState, setPayState] = useState<"idle" | "waiting" | "success" | "error">("idle");
   const [payError, setPayError] = useState<string | null>(null);
 
   const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const refreshPayments = useCallback(async () => {
+  const refreshServices = useCallback(async () => {
     const { data } = await supabase
-      .from("payments")
-      .select("tier, status")
-      .eq("user_id", userId)
-      .eq("status", "active");
-    setPayments(data ?? []);
-    setLoadingPayments(false);
+      .from("profiles")
+      .select("services")
+      .eq("id", userId)
+      .single();
+    setServices(data?.services ?? []);
+    setLoadingServices(false);
   }, [userId]);
 
-  useEffect(() => { refreshPayments(); }, [refreshPayments]);
+  useEffect(() => { refreshServices(); }, [refreshServices]);
 
   /* Poll for payment confirmation */
   useEffect(() => {
-    if (!pendingId || payState !== "waiting") return;
+    if (!pendingTier || payState !== "waiting") return;
     let alive = true;
 
     pollInterval.current = setInterval(async () => {
-      const res = await fetch(`/api/payments/status?id=${pendingId}`);
+      const res = await fetch(`/api/payments/status?userId=${userId}&tier=${pendingTier}`);
       if (!res.ok || !alive) return;
       const d = await res.json();
-      if (d.status === "active") {
+      if (d.active) {
         clearInterval(pollInterval.current!);
         clearTimeout(pollTimeout.current!);
-        if (alive) { setPayState("success"); refreshPayments(); }
-      } else if (d.status === "failed") {
-        clearInterval(pollInterval.current!);
-        clearTimeout(pollTimeout.current!);
-        if (alive) { setPayState("error"); setPayError("Payment was declined by M-Pesa."); }
+        if (alive) { setPayState("success"); refreshServices(); }
       }
     }, 3000);
 
     pollTimeout.current = setTimeout(() => {
       clearInterval(pollInterval.current!);
-      if (alive) { setPayState("error"); setPayError("No response received. Please try again."); }
+      if (alive) {
+        setPayState("error");
+        setPayError("No response received. Please check your M-Pesa and try again.");
+      }
     }, 120_000);
 
     return () => {
@@ -90,17 +87,17 @@ function ServiceHub({ userId }: { userId: string }) {
       clearInterval(pollInterval.current!);
       clearTimeout(pollTimeout.current!);
     };
-  }, [pendingId, payState, refreshPayments]);
+  }, [pendingTier, payState, userId, refreshServices]);
 
   function openPayPanel(id: string) {
     if (openPanel === id) { setOpenPanel(null); return; }
-    // Cancel any ongoing poll before switching
     clearInterval(pollInterval.current!);
     clearTimeout(pollTimeout.current!);
     setOpenPanel(id);
     setPayState("idle");
     setPayError(null);
-    setPendingId(null);
+    setPendingRef(null);
+    setPendingTier(null);
   }
 
   async function initiatePayment(tier: string, price: number) {
@@ -121,7 +118,8 @@ function ServiceHub({ userId }: { userId: string }) {
         setPayState("error");
         return;
       }
-      setPendingId(d.paymentId);
+      setPendingRef(d.ref);
+      setPendingTier(tier);
       setPayState("waiting");
     } catch {
       setPayError("Network error. Check your connection and try again.");
@@ -131,9 +129,9 @@ function ServiceHub({ userId }: { userId: string }) {
     }
   }
 
-  const allActive = TOOL_SERVICES.every((s) => hasServiceAccess(payments, s.id));
+  const allActive = TOOL_SERVICES.every((s) => hasServiceAccess(services, s.id));
 
-  if (loadingPayments) {
+  if (loadingServices) {
     return (
       <div className="flex items-center justify-center py-10">
         <div className="w-6 h-6 rounded-full border-2 border-brand border-t-transparent animate-spin" />
@@ -147,7 +145,7 @@ function ServiceHub({ userId }: { userId: string }) {
 
       <div className="grid sm:grid-cols-3 gap-4 mb-4">
         {TOOL_SERVICES.map((svc) => {
-          const active = hasServiceAccess(payments, svc.id);
+          const active = hasServiceAccess(services, svc.id);
           const isOpen = openPanel === svc.id;
           const Icon = svc.icon;
 
@@ -241,7 +239,7 @@ function ServiceHub({ userId }: { userId: string }) {
                 </span>
               </div>
               <p className="text-xs text-text-secondary mb-3">
-                All 3 services — CV Builder, Interview Prep & CV Transform
+                All 3 services — CV Builder, Interview Prep &amp; CV Transform
               </p>
               <div className="mb-4">
                 <span className="text-2xl font-black">{BUNDLE_PRICE.toLocaleString()}</span>
@@ -353,9 +351,7 @@ function PaymentPanel({
           className="h-9 rounded-lg border border-border bg-background px-2 text-sm outline-none focus-visible:border-ring w-[90px] flex-shrink-0"
         >
           {COUNTRY_CODES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.flag} {c.code}
-            </option>
+            <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
           ))}
         </select>
         <input
@@ -380,9 +376,8 @@ function PaymentPanel({
       </button>
 
       <p className="text-[11px] text-text-muted leading-relaxed">
-        Payments processed securely by{" "}
-        <span className="font-medium">PayHero</span>. Your M-Pesa number and
-        transaction details are held by PayHero and are not stored by MyCareerCraft.
+        Payments processed securely by <span className="font-medium">PayHero</span>. Your M-Pesa
+        number and transaction details are held by PayHero and are not stored by MyCareerCraft.
       </p>
     </div>
   );
@@ -482,9 +477,7 @@ export default function DashboardPage() {
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
-        (i) =>
-          i.title.toLowerCase().includes(q) ||
-          i.subtitle.toLowerCase().includes(q)
+        (i) => i.title.toLowerCase().includes(q) || i.subtitle.toLowerCase().includes(q)
       );
     }
     return sortOrder === "oldest"
@@ -519,13 +512,7 @@ export default function DashboardPage() {
                   : <Camera className="w-4 h-4 text-white" />}
               </div>
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
             <div>
               <h1 className="font-heading text-xl font-black tracking-tight">{displayName}</h1>
               <p className="text-xs text-text-muted">{user.email}</p>
@@ -570,11 +557,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-text-muted font-medium">Type</label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className={selectClass}
-              >
+              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={selectClass}>
                 <option value="all">All</option>
                 <option value="cv">CVs</option>
                 <option value="prep">Interview Preps</option>
@@ -582,11 +565,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-text-muted font-medium">Sort</label>
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className={selectClass}
-              >
+              <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className={selectClass}>
                 <option value="newest">Newest</option>
                 <option value="oldest">Oldest</option>
               </select>
@@ -617,10 +596,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-2">
               {filtered.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-3.5"
-                >
+                <div key={item.id} className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-3.5">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
                       {item.type === "cv"
@@ -652,24 +628,13 @@ export default function DashboardPage() {
 
       {/* View modal */}
       {viewing && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setViewing(null)}
-        >
-          <div
-            className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-[700px] max-h-[85vh] mx-4 overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setViewing(null)}>
+          <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-[700px] max-h-[85vh] mx-4 overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <h2 className="font-heading text-lg font-extrabold tracking-tight">
                 {(viewing.fullName as string) || (viewing.candidateName as string) || "Preview"}
               </h2>
-              <button
-                onClick={() => setViewing(null)}
-                className="text-text-muted hover:text-foreground text-xl px-2"
-              >
-                ×
-              </button>
+              <button onClick={() => setViewing(null)} className="text-text-muted hover:text-foreground text-xl px-2">×</button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
               <pre className="text-xs whitespace-pre-wrap text-text-secondary">

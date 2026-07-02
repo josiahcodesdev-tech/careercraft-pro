@@ -26,14 +26,15 @@ export function RequireService({
     }
 
     supabase
-      .from("payments")
-      .select("id")
-      .eq("user_id", user.id)
-      .in("tier", [serviceId, "bundle"])
-      .eq("status", "active")
-      .limit(1)
+      .from("profiles")
+      .select("services")
+      .eq("id", user.id)
+      .single()
       .then(({ data }) => {
-        if (data && data.length > 0) {
+        const services: string[] = data?.services ?? [];
+        const hasAccess =
+          services.includes(serviceId) || services.includes("bundle");
+        if (hasAccess) {
           setReady(true);
         } else {
           router.replace(`/dashboard?unlock=${serviceId}`);
