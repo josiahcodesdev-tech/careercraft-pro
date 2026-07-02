@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PayToDownload } from "@/components/pay-to-download";
 import {
   Plus,
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Download,
   User,
   FileText,
   Briefcase,
@@ -1218,15 +1218,12 @@ export function CvBuilderForm() {
                 Next <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <button
-                onClick={handlePrint}
-                className={cn(
-                  buttonVariants(),
-                  "bg-brand hover:bg-brand-mid text-white gap-2"
-                )}
-              >
-                <Download className="w-4 h-4" /> Download PDF
-              </button>
+              <PayToDownload
+                price={40}
+                tier="cv-builder"
+                onSuccess={handlePrint}
+                className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2")}
+              />
             )}
           </div>
         </div>
@@ -1315,16 +1312,12 @@ export function CvBuilderForm() {
             >
               <LayoutTemplate className="w-3.5 h-3.5" /> Choose Template
             </button>
-            <button
-              onClick={handlePrint}
-              disabled={!hasContent}
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "h-8 text-xs gap-1.5 disabled:opacity-40"
-              )}
-            >
-              <Download className="w-3.5 h-3.5" /> Download PDF
-            </button>
+            <PayToDownload
+              price={40}
+              tier="cv-builder"
+              onSuccess={handlePrint}
+              className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5", !hasContent && "opacity-40 pointer-events-none")}
+            />
           </div>
         </div>
 

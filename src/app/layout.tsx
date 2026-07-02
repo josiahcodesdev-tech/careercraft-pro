@@ -3,7 +3,6 @@ import { DM_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { PublicLayoutWrapper } from "@/components/public-layout-wrapper";
-import { ClientAuthProvider } from "@/lib/client-auth";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -35,9 +34,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${dmSans.variable}`}>
       <body className="min-h-screen flex flex-col">
         <ScrollToTop />
-        <ClientAuthProvider>
-          <PublicLayoutWrapper>{children}</PublicLayoutWrapper>
-        </ClientAuthProvider>
+        <PublicLayoutWrapper>{children}</PublicLayoutWrapper>
       </body>
     </html>
   );

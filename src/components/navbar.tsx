@@ -4,9 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Menu, User } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState } from "react";
-import { useClientAuth } from "@/lib/client-auth";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -16,12 +15,14 @@ const navLinks = [
 export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, isLoading } = useClientAuth();
 
   return (
     <nav className="sticky top-0 z-50 bg-background/92 backdrop-blur-md border-b border-border">
       <div className="max-w-[1100px] mx-auto px-8 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-heading text-xl font-extrabold text-brand tracking-tight">
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-heading text-xl font-extrabold text-brand tracking-tight"
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
             <path d="M12 2L2 7l10 5 10-5-10-5z" />
             <path d="M2 17l10 5 10-5" />
@@ -46,16 +47,6 @@ export function Navbar() {
               </Link>
             </li>
           ))}
-          {!isLoading && (
-            <li>
-              <Link
-                href={user ? "/dashboard" : "/login"}
-                className="flex items-center gap-1.5 text-sm font-medium text-text-secondary hover:text-foreground transition-colors"
-              >
-                <User className="w-4 h-4" /> {user ? "Dashboard" : "Login"}
-              </Link>
-            </li>
-          )}
           <li>
             <Link
               href="/contact"
@@ -90,15 +81,6 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
-          {!isLoading && (
-            <Link
-              href={user ? "/dashboard" : "/login"}
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-1.5 text-sm font-medium py-2 text-text-secondary"
-            >
-              <User className="w-4 h-4" /> {user ? "Dashboard" : "Login"}
-            </Link>
-          )}
           <Link
             href="/contact"
             onClick={() => setMobileOpen(false)}

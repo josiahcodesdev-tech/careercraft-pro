@@ -6,16 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  Download,
-  FileText,
-  Sparkles,
-  Loader2,
-  User,
-  MessageSquare,
-  Upload,
-  X,
-} from "lucide-react";
+import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X } from "lucide-react";
+import { PayToDownload } from "@/components/pay-to-download";
 
 interface QA {
   section?: string;
@@ -653,15 +645,12 @@ export function InterviewPrepForm() {
             Interview Dialogue
           </span>
           {dialogue.length > 0 && (
-            <button
-              onClick={handlePrint}
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "h-8 text-xs gap-1.5"
-              )}
-            >
-              <Download className="w-3.5 h-3.5" /> Download PDF
-            </button>
+            <PayToDownload
+              price={60}
+              tier="interview-prep"
+              onSuccess={handlePrint}
+              className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5")}
+            />
           )}
         </div>
 
