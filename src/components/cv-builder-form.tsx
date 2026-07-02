@@ -1370,13 +1370,15 @@ function ExperienceEntries({ data }: { data: CvData }) {
       {data.experience
         .filter((e) => e.company || e.role)
         .map((exp, i) => (
-          <div key={i} style={{ marginBottom: 12 }}>
+          <div key={i} style={{ marginBottom: 12, pageBreakInside: "avoid", breakInside: "avoid" }}>
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "baseline",
                 marginBottom: 3,
+                pageBreakAfter: "avoid",
+                breakAfter: "avoid",
               }}
             >
               <div>
@@ -1427,7 +1429,7 @@ function EducationEntries({ data }: { data: CvData }) {
       {data.education
         .filter((e) => e.institution || e.degree)
         .map((edu, i) => (
-          <div key={i} style={{ marginBottom: 12 }}>
+          <div key={i} style={{ marginBottom: 12, pageBreakInside: "avoid", breakInside: "avoid" }}>
             <div
               style={{
                 display: "flex",
@@ -1554,6 +1556,8 @@ function ClassicSectionHeading({ children }: { children: React.ReactNode }) {
         borderBottom: "1.5px solid #1a1a1a",
         paddingBottom: 3,
         margin: "16px 0 10px",
+        pageBreakAfter: "avoid",
+        breakAfter: "avoid",
       }}
     >
       {children}
@@ -1642,6 +1646,8 @@ function ModernSectionHeading({ children }: { children: React.ReactNode }) {
         borderBottom: "2px solid #1A5C3A",
         paddingBottom: 4,
         margin: "20px 0 10px",
+        pageBreakAfter: "avoid",
+        breakAfter: "avoid",
       }}
     >
       {children}
@@ -1772,6 +1778,8 @@ function ExecSectionHeading({ children }: { children: React.ReactNode }) {
         borderBottom: "2px solid #1B3A5C",
         paddingBottom: 3,
         margin: "18px 0 10px",
+        pageBreakAfter: "avoid",
+        breakAfter: "avoid",
       }}
     >
       {children}
@@ -1868,6 +1876,8 @@ function MinimalSectionHeading({ children }: { children: React.ReactNode }) {
         borderBottom: "1px solid #ddd",
         paddingBottom: 4,
         margin: "20px 0 10px",
+        pageBreakAfter: "avoid",
+        breakAfter: "avoid",
       }}
     >
       {children}
@@ -2547,6 +2557,8 @@ function FlorenceSectionHeading({ children }: { children: React.ReactNode }) {
         paddingBottom: 3,
         margin: "16px 0 10px",
         textAlign: "center",
+        pageBreakAfter: "avoid",
+        breakAfter: "avoid",
       }}
     >
       {children}
