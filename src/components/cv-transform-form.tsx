@@ -14,15 +14,17 @@ import {
   Sparkles,
   X,
   Briefcase,
+  Target,
+  BadgeCheck,
 } from "lucide-react";
 
 function getScanSteps(hasJd: boolean) {
   return [
     "Scanning document...",
     "Extracting text content...",
-    hasJd ? "Matching to job description..." : "Analysing CV structure with AI...",
-    "Parsing experience & education...",
-    "Formatting for ATS compliance...",
+    hasJd ? "Extracting job requirements from JD..." : "Analysing CV structure with AI...",
+    hasJd ? "Rewriting CV to target this role..." : "Parsing experience & education...",
+    hasJd ? "Aligning skills & keywords to JD..." : "Formatting for ATS compliance...",
   ];
 }
 
@@ -37,6 +39,8 @@ interface ParsedCv {
   experience: { company: string; role: string; startDate: string; endDate: string; current: boolean; bullets: string[] }[];
   education: { institution: string; degree: string; field: string; startDate: string; endDate: string }[];
   skillGroups: { category: string; skills: string }[];
+  matchedRole?: string;
+  jdKeywords?: string[];
 }
 
 function isSectionHeader(l: string): boolean {
@@ -573,13 +577,16 @@ export function CvTransformForm() {
               </div>
             ) : parsed ? (
               <div className="space-y-4">
+                {/* File badge */}
                 <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-background">
                   <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center flex-shrink-0">
                     <FileText className="w-5 h-5 text-brand" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{cvFileName}</p>
-                    <p className="text-xs text-text-muted">Scanned successfully{jdText ? " · Matched to JD" : ""}</p>
+                    <p className="text-xs text-text-muted">
+                      Scanned successfully{parsed.matchedRole ? " · Tailored to role" : ""}
+                    </p>
                   </div>
                   <button
                     onClick={() => { setCvFile(null); setCvFileName(""); setParsed(null); setJdText(""); setJdFileName(""); localStorage.removeItem(CV_TRANSFORM_KEY); }}
@@ -588,7 +595,32 @@ export function CvTransformForm() {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="space-y-3">
+
+                {/* Job match card — shown only when JD was provided */}
+                {parsed.matchedRole && (
+                  <div className="rounded-xl border border-brand/25 bg-brand-light/40 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-brand flex-shrink-0" />
+                      <p className="text-xs font-semibold uppercase tracking-wider text-brand">Job Match Applied</p>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground leading-snug">{parsed.matchedRole}</p>
+                    {parsed.jdKeywords && parsed.jdKeywords.length > 0 && (
+                      <div>
+                        <p className="text-[11px] text-text-muted font-medium mb-2">Keywords incorporated into your CV:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {parsed.jdKeywords.map((kw) => (
+                            <span key={kw} className="inline-flex items-center gap-1 bg-brand/10 text-brand text-[11px] font-medium px-2 py-0.5 rounded-full">
+                              <BadgeCheck className="w-3 h-3" />{kw}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Stats grid */}
+                <div className="space-y-2">
                   <h3 className="text-sm font-semibold">Extracted Information</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Name</span><p className="font-medium">{parsed.fullName || "—"}</p></div>
@@ -596,9 +628,10 @@ export function CvTransformForm() {
                     <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Experience</span><p className="font-medium">{parsed.experience.length} role{parsed.experience.length !== 1 ? "s" : ""}</p></div>
                     <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Education</span><p className="font-medium">{parsed.education.length} qualification{parsed.education.length !== 1 ? "s" : ""}</p></div>
                     <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Skills</span><p className="font-medium">{parsed.skillGroups.length} group{parsed.skillGroups.length !== 1 ? "s" : ""}</p></div>
-                    <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Summary</span><p className="font-medium">{parsed.summary ? "Found" : "Not found"}</p></div>
+                    <div className="bg-background rounded-lg p-2.5"><span className="text-text-muted">Summary</span><p className="font-medium">{parsed.summary ? "Rewritten" : "Not found"}</p></div>
                   </div>
                 </div>
+
                 <button onClick={() => router.push("/cv-builder?transform=1")} className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white w-full gap-2")}>
                   <Sparkles className="w-4 h-4" /> Open in CV Builder <ArrowRight className="w-4 h-4" />
                 </button>
@@ -689,10 +722,10 @@ export function CvTransformForm() {
           <h2 className="font-heading text-xl font-extrabold tracking-tight mb-3">How it works</h2>
           <div className="space-y-4 text-left">
             {[
-              { step: "1", title: "Upload", desc: "Upload your existing CV and optionally the job description" },
-              { step: "2", title: "AI Scan", desc: "AI extracts your name, experience, skills and education" },
-              { step: "3", title: "Match", desc: "CV content is tailored to align with the target role" },
-              { step: "4", title: "Download", desc: "Choose a template and download your new professional CV" },
+              { step: "1", title: "Upload CV + JD", desc: "Upload your existing CV and paste or upload the job description" },
+              { step: "2", title: "AI Extracts JD", desc: "AI reads the job requirements, keywords, and skills from the JD" },
+              { step: "3", title: "CV is Rewritten", desc: "Summary, bullets, tagline and skills are rewritten to match the role" },
+              { step: "4", title: "Download", desc: "Choose a template and download your tailored, ATS-ready CV" },
             ].map((s) => (
               <div key={s.step} className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-brand text-white text-sm font-bold flex items-center justify-center flex-shrink-0">{s.step}</div>
