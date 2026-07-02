@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { CvBuilderForm } from "@/components/cv-builder-form";
+import { RequireService } from "@/components/require-service";
 
 export const metadata: Metadata = {
   title: "ATS-Friendly CV Builder — MyCareerCraft",
@@ -11,9 +12,11 @@ export const metadata: Metadata = {
 export default function CvBuilderPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
-      <Suspense>
-        <CvBuilderForm />
-      </Suspense>
+      <RequireService serviceId="cv-builder">
+        <Suspense>
+          <CvBuilderForm />
+        </Suspense>
+      </RequireService>
     </div>
   );
 }
