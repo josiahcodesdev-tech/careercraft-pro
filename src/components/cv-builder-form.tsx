@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PayToDownload } from "@/components/pay-to-download";
 import {
   Plus,
   Trash2,
@@ -26,6 +25,7 @@ import {
   Move,
   Sparkles,
   Loader2,
+  Download,
 } from "lucide-react";
 
 type Template = "classic" | "modern" | "executive" | "minimal" | "bold" | "professional" | "creative" | "corporate" | "florence";
@@ -452,10 +452,6 @@ export function CvBuilderForm() {
   async function handlePrint() {
     const el = previewRef.current;
     if (!el) return;
-
-    import("@/lib/analytics").then(({ trackCvDownload }) => {
-      trackCvDownload({ name: data.fullName, template }, { ...data, template } as unknown as Record<string, unknown>);
-    });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const html2pdf = ((await import("html2pdf.js")) as any).default;
@@ -1218,12 +1214,12 @@ export function CvBuilderForm() {
                 Next <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <PayToDownload
-                price={40}
-                tier="cv-builder"
-                onSuccess={handlePrint}
+              <button
+                onClick={handlePrint}
                 className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2")}
-              />
+              >
+                <Download className="w-4 h-4" /> Download PDF
+              </button>
             )}
           </div>
         </div>
@@ -1312,12 +1308,13 @@ export function CvBuilderForm() {
             >
               <LayoutTemplate className="w-3.5 h-3.5" /> Choose Template
             </button>
-            <PayToDownload
-              price={40}
-              tier="cv-builder"
-              onSuccess={handlePrint}
-              className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5", !hasContent && "opacity-40 pointer-events-none")}
-            />
+            <button
+              onClick={handlePrint}
+              disabled={!hasContent}
+              className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5 disabled:opacity-40")}
+            >
+              <Download className="w-3.5 h-3.5" /> Download PDF
+            </button>
           </div>
         </div>
 

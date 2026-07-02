@@ -6,8 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X } from "lucide-react";
-import { PayToDownload } from "@/components/pay-to-download";
+import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download } from "lucide-react";
 
 interface QA {
   section?: string;
@@ -350,24 +349,12 @@ export function InterviewPrepForm() {
         if (res.status === 503) {
           const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
           setDialogue(result);
-          import("@/lib/analytics").then(({ trackInterviewPrep }) => {
-            trackInterviewPrep(
-              { name: data.candidateName.trim(), role: data.roleTitle },
-              { ...data, dialogue: result } as unknown as Record<string, unknown>,
-            );
-          });
           return;
         }
         throw new Error(json.error ?? "Generation failed");
       }
       const result = json.qa ?? [];
       setDialogue(result);
-      import("@/lib/analytics").then(({ trackInterviewPrep }) => {
-        trackInterviewPrep(
-          { name: data.candidateName.trim(), role: data.roleTitle },
-          { ...data, dialogue: result } as unknown as Record<string, unknown>,
-        );
-      });
     } catch (e) {
       setGenerateError(e instanceof Error ? e.message : "Generation failed. Please try again.");
       // Fallback to local generation
@@ -645,12 +632,12 @@ export function InterviewPrepForm() {
             Interview Dialogue
           </span>
           {dialogue.length > 0 && (
-            <PayToDownload
-              price={60}
-              tier="interview-prep"
-              onSuccess={handlePrint}
+            <button
+              onClick={handlePrint}
               className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5")}
-            />
+            >
+              <Download className="w-3.5 h-3.5" /> Download PDF
+            </button>
           )}
         </div>
 
