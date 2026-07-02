@@ -9,7 +9,8 @@ import {
 } from "lucide-react";
 import { useClientAuth } from "@/lib/client-auth";
 import { supabase } from "@/lib/supabase/client";
-import { BUNDLE_PRICE, INDIVIDUAL_TOTAL, TOOL_SERVICES, hasServiceAccess } from "@/lib/services";
+import { BUNDLE_PRICE, INDIVIDUAL_TOTAL, TOOL_SERVICES } from "@/lib/services";
+import { getUnlockedServices, unlockService, hasAccess } from "@/lib/access";
 
 /* ─── types ─── */
 interface Item {
@@ -31,7 +32,6 @@ function ServiceHub({ userId }: { userId: string }) {
   const unlockParam = searchParams.get("unlock");
 
   const [services, setServices] = useState<string[]>([]);
-  const [loadingServices, setLoadingServices] = useState(true);
 
   // Payment panel state (shared; resets when panel switches)
   const [openPanel, setOpenPanel] = useState<string | null>(unlockParam);
@@ -46,15 +46,9 @@ function ServiceHub({ userId }: { userId: string }) {
   const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const refreshServices = useCallback(async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("services")
-      .eq("id", userId)
-      .single();
-    setServices(data?.services ?? []);
-    setLoadingServices(false);
-  }, [userId]);
+  const refreshServices = useCallback(() => {
+    setServices(getUnlockedServices());
+  }, []);
 
   useEffect(() => { refreshServices(); }, [refreshServices]);
 
@@ -64,13 +58,25 @@ function ServiceHub({ userId }: { userId: string }) {
     let alive = true;
 
     pollInterval.current = setInterval(async () => {
-      const res = await fetch(`/api/payments/status?userId=${userId}&tier=${pendingTier}`);
+      const res = await fetch(`/api/payments/status?ref=${pendingRef}`);
       if (!res.ok || !alive) return;
       const d = await res.json();
-      if (d.active) {
+      if (d.status === "success") {
         clearInterval(pollInterval.current!);
         clearTimeout(pollTimeout.current!);
-        if (alive) { setPayState("success"); refreshServices(); }
+        if (alive && d.tier) {
+          unlockService(d.tier);
+          // if bundle, also unlock each individual service
+          if (d.tier === "bundle") {
+            TOOL_SERVICES.forEach((s) => unlockService(s.id));
+          }
+          setPayState("success");
+          refreshServices();
+        }
+      } else if (d.status === "failed") {
+        clearInterval(pollInterval.current!);
+        clearTimeout(pollTimeout.current!);
+        if (alive) { setPayState("error"); setPayError("Payment was declined. Please try again."); }
       }
     }, 3000);
 
@@ -129,15 +135,7 @@ function ServiceHub({ userId }: { userId: string }) {
     }
   }
 
-  const allActive = TOOL_SERVICES.every((s) => hasServiceAccess(services, s.id));
-
-  if (loadingServices) {
-    return (
-      <div className="flex items-center justify-center py-10">
-        <div className="w-6 h-6 rounded-full border-2 border-brand border-t-transparent animate-spin" />
-      </div>
-    );
-  }
+  const allActive = TOOL_SERVICES.every((s) => hasAccess(s.id));
 
   return (
     <div className="mb-10">
@@ -145,7 +143,7 @@ function ServiceHub({ userId }: { userId: string }) {
 
       <div className="grid sm:grid-cols-3 gap-4 mb-4">
         {TOOL_SERVICES.map((svc) => {
-          const active = hasServiceAccess(services, svc.id);
+          const active = hasAccess(svc.id);
           const isOpen = openPanel === svc.id;
           const Icon = svc.icon;
 

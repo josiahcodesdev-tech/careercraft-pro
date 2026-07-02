@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useClientAuth } from "@/lib/client-auth";
-import { supabase } from "@/lib/supabase/client";
+import { hasAccess } from "@/lib/access";
 
 export function RequireService({
   serviceId,
@@ -19,27 +19,15 @@ export function RequireService({
 
   useEffect(() => {
     if (isLoading) return;
-
     if (!user) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
-
-    supabase
-      .from("profiles")
-      .select("services")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        const services: string[] = data?.services ?? [];
-        const hasAccess =
-          services.includes(serviceId) || services.includes("bundle");
-        if (hasAccess) {
-          setReady(true);
-        } else {
-          router.replace(`/dashboard?unlock=${serviceId}`);
-        }
-      });
+    if (hasAccess(serviceId)) {
+      setReady(true);
+    } else {
+      router.replace(`/dashboard?unlock=${serviceId}`);
+    }
   }, [isLoading, user, router, pathname, serviceId]);
 
   if (!ready) {

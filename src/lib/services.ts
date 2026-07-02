@@ -62,7 +62,3 @@ export type ServiceId = (typeof TOOL_SERVICES)[number]["id"] | "bundle";
 export const BUNDLE_PRICE = 150;
 export const INDIVIDUAL_TOTAL = TOOL_SERVICES.reduce((s, t) => s + t.price, 0);
 
-/** services is the array stored on profiles.services */
-export function hasServiceAccess(services: string[], serviceId: string): boolean {
-  return services.includes(serviceId) || services.includes("bundle");
-}
