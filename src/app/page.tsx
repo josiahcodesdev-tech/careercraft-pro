@@ -3,9 +3,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ServiceCarousel } from "@/components/service-carousel";
 import { CtaSection } from "@/components/cta-section";
-import { Search, FileText, Users, Activity } from "lucide-react";
-
-const trustAvatars = ["JK", "AM", "PO", "LN", "SK"];
+import { Search, FileText, Users, Activity, Zap } from "lucide-react";
 
 const careerPath = [
   { icon: Search, label: "Career assessment", status: "Done", active: false },
@@ -49,20 +47,19 @@ export default function HomePage() {
                 Interview Preparation
               </Link>
             </div>
-            <div className="flex items-center gap-3 text-sm text-text-muted">
-              <div className="flex">
-                {trustAvatars.map((initials, i) => (
-                  <div
-                    key={initials}
-                    className="w-8 h-8 rounded-full bg-brand-light border-2 border-background flex items-center justify-center text-[11px] font-semibold text-brand"
-                    style={{ marginLeft: i > 0 ? "-8px" : 0 }}
-                  >
-                    {initials}
-                  </div>
-                ))}
+            <Link
+              href="/cv-transform"
+              className="inline-flex items-center gap-3 bg-brand-light border border-brand/20 hover:border-brand/50 hover:bg-brand/10 rounded-xl px-4 py-3 transition-all group"
+            >
+              <div className="w-9 h-9 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
+                <Zap className="w-4 h-4 text-white" />
               </div>
-              <span>Trusted by 500+ professionals across East Africa</span>
-            </div>
+              <div>
+                <p className="text-sm font-semibold text-brand leading-tight">Transform your CV to ATS friendly</p>
+                <p className="text-xs text-text-muted leading-tight mt-0.5">Upload your CV · AI rewrites it · Download instantly</p>
+              </div>
+              <span className="text-brand text-sm font-bold ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
+            </Link>
           </div>
 
           {/* Hero visual */}
