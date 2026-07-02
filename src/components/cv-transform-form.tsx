@@ -475,7 +475,11 @@ export function CvTransformForm() {
       } else {
         text = await cvFile.text();
       }
-      if (!text || text.trim().length < 20) throw new Error("Could not extract readable text from this file.");
+      if (!text || text.trim().length < 20) throw new Error(
+        cvFile.name.toLowerCase().endsWith(".pdf")
+          ? "This PDF appears to be image-based and cannot be scanned. If you created it in the CV Builder, please use the \"Download Word\" button instead — Word files are fully scannable."
+          : "Could not extract readable text from this file."
+      );
 
       setScanStep(1);
       await new Promise((r) => setTimeout(r, 500));

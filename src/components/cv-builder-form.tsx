@@ -469,6 +469,11 @@ export function CvBuilderForm() {
       .save();
   }
 
+  async function handleDownloadDocx() {
+    const { downloadCvDocx } = await import("@/lib/cv-docx-export");
+    await downloadCvDocx(data);
+  }
+
   const canGoNext = () => {
     if (step === 0) return data.fullName.trim() && data.email.trim();
     if (step === 1) return data.summary.trim();
@@ -1214,12 +1219,20 @@ export function CvBuilderForm() {
                 Next <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <button
-                onClick={handlePrint}
-                className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2")}
-              >
-                <Download className="w-4 h-4" /> Download PDF
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownloadDocx}
+                  className={cn(buttonVariants({ variant: "outline" }), "gap-2 border-brand text-brand hover:bg-brand/5")}
+                >
+                  <Download className="w-4 h-4" /> Download Word
+                </button>
+                <button
+                  onClick={handlePrint}
+                  className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2")}
+                >
+                  <Download className="w-4 h-4" /> Download PDF
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -1309,11 +1322,18 @@ export function CvBuilderForm() {
               <LayoutTemplate className="w-3.5 h-3.5" /> Choose Template
             </button>
             <button
+              onClick={handleDownloadDocx}
+              disabled={!hasContent}
+              className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5 disabled:opacity-40 border-brand text-brand hover:bg-brand/5")}
+            >
+              <Download className="w-3.5 h-3.5" /> Word
+            </button>
+            <button
               onClick={handlePrint}
               disabled={!hasContent}
               className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5 disabled:opacity-40")}
             >
-              <Download className="w-3.5 h-3.5" /> Download PDF
+              <Download className="w-3.5 h-3.5" /> PDF
             </button>
           </div>
         </div>
