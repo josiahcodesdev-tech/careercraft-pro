@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolve } from "@/lib/payment-store";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  console.log("[PayHero] Callback:", JSON.stringify(body));
-
-  const { status, external_reference: ref } = body;
-  if (!ref) return NextResponse.json({ error: "Missing external_reference." }, { status: 400 });
-
-  resolve(ref, status === "SUCCESS" ? "success" : "failed");
-
+  console.log("[PayHero] Callback received:", JSON.stringify(body));
+  // Status is polled directly from PayHero's API — no local state needed.
   return NextResponse.json({ received: true });
 }

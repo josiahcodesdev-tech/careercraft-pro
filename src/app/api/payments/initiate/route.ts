@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { setPending } from "@/lib/payment-store";
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\s/g, "").replace(/^\+/, "");
@@ -29,8 +28,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "PAYHERO_CALLBACK_URL is not set." }, { status: 503 });
   }
 
-  const ref = randomUUID();
-  setPending(ref, tier);
+  // Encode tier in the ref so status polls can retrieve it without shared state
+  const ref = `${randomUUID()}::${tier}`;
 
   const normalizedPhone = normalizePhone(phone);
   const body = {
