@@ -52,7 +52,7 @@ const socialLinks = [
   { href: "#", label: "LinkedIn", icon: LinkedinIcon },
   { href: "#", label: "X", icon: XIcon },
   { href: "#", label: "Instagram", icon: InstagramIcon },
-  { href: "https://wa.me/254700000000", label: "WhatsApp", icon: WhatsAppIcon },
+  { href: "https://wa.me/254110242289", label: "WhatsApp", icon: WhatsAppIcon },
 ];
 
 export function Footer() {
