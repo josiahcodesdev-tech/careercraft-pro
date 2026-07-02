@@ -19,31 +19,10 @@ export async function POST(req: NextRequest) {
 
   const succeeded = status === "SUCCESS";
 
-  // For time-based access tiers, calculate expiry from the tier on the payment record
-  let expiresAt: string | null = null;
-  if (succeeded) {
-    const { data: existing } = await admin
-      .from("payments")
-      .select("tier")
-      .eq("id", paymentId)
-      .single();
-
-    if (existing?.tier) {
-      const hours: Record<string, number> = { "1hr": 1, "2hr": 2, "24hr": 24, "7day": 168, "30day": 720 };
-      const h = hours[existing.tier];
-      if (h) {
-        const exp = new Date();
-        exp.setHours(exp.getHours() + h);
-        expiresAt = exp.toISOString();
-      }
-    }
-  }
-
   const { error } = await admin
     .from("payments")
     .update({
       status: succeeded ? "active" : "failed",
-      ...(expiresAt ? { expires_at: expiresAt } : {}),
       ...(response?.MpesaReceiptNumber ? { provider: `mpesa:${response.MpesaReceiptNumber}` } : {}),
     })
     .eq("id", paymentId);

@@ -26,15 +26,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Database not configured." }, { status: 500 });
   }
 
-  const { data: payment, error: dbError } = await admin
+  const { data: rows, error: dbError } = await admin
     .from("payments")
     .insert({ user_id: userId ?? null, provider: "mpesa", amount, tier, status: "pending" })
-    .select("id")
-    .single();
+    .select("id");
+
+  const payment = rows?.[0];
 
   if (dbError || !payment) {
     console.error("Payment DB insert error:", dbError);
-    return NextResponse.json({ error: "Failed to create payment record." }, { status: 500 });
+    // Expose a useful message — "42P01" means the table doesn't exist
+    const hint =
+      dbError?.code === "42P01"
+        ? "The 'payments' table does not exist. Run the schema SQL in your Supabase SQL Editor."
+        : dbError?.message ?? "Failed to create payment record.";
+    return NextResponse.json({ error: hint }, { status: 500 });
   }
 
   // Normalise phone: PayHero STK push expects 07XXXXXXXX (local Kenyan format)
