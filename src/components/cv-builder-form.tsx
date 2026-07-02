@@ -1401,18 +1401,19 @@ function ExperienceEntries({ data }: { data: CvData }) {
               </span>
             </div>
             {exp.bullets.some((b) => b.trim()) && (
-              <ul style={{ marginTop: 3 }}>
+              <div style={{ marginTop: 4 }}>
                 {exp.bullets
                   .filter((b) => b.trim())
                   .map((b, j) => (
-                    <li
+                    <div
                       key={j}
-                      style={{ marginBottom: 2, fontSize: "9.5pt" }}
+                      style={{ display: "flex", gap: 6, marginBottom: 3, alignItems: "flex-start" }}
                     >
-                      {b}
-                    </li>
+                      <span style={{ flexShrink: 0, fontSize: "9.5pt", lineHeight: 1.5, color: "#333" }}>•</span>
+                      <span style={{ fontSize: "9.5pt", lineHeight: 1.5 }}>{b}</span>
+                    </div>
                   ))}
-              </ul>
+              </div>
             )}
           </div>
         ))}
@@ -2623,11 +2624,14 @@ function FlorencePreview({ data }: { data: CvData }) {
                     <div style={{ fontWeight: 600, fontSize: "9.5pt", color: "#333", marginBottom: 4 }}>{exp.company}</div>
                   )}
                   {exp.bullets.some((b) => b.trim()) && (
-                    <ul style={{ paddingLeft: 18, marginTop: 3 }}>
+                    <div style={{ marginTop: 4 }}>
                       {exp.bullets.filter((b) => b.trim()).map((b, j) => (
-                        <li key={j} style={{ fontSize: "9.5pt", marginBottom: 3, lineHeight: 1.5 }}>{b}</li>
+                        <div key={j} style={{ display: "flex", gap: 6, marginBottom: 3, alignItems: "flex-start" }}>
+                          <span style={{ flexShrink: 0, fontSize: "9.5pt", lineHeight: 1.5, color: "#333" }}>•</span>
+                          <span style={{ fontSize: "9.5pt", lineHeight: 1.5 }}>{b}</span>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   )}
                 </div>
               ))}
