@@ -10,7 +10,8 @@ function getAuth(): string {
 }
 
 function extractStatus(data: Record<string, unknown>): string {
-  // Try every known shape PayHero uses
+  // Only trust explicit status strings — never infer from response_code
+  // (PayHero uses response_code "0" to mean "API call OK", not "payment succeeded")
   const raw =
     data.status ??
     data.Status ??
@@ -21,18 +22,13 @@ function extractStatus(data: Record<string, unknown>): string {
 
   let status = String(raw).toUpperCase().trim();
 
-  // Map response-code based success ("0" = success on M-Pesa gateway)
-  const code = String(data.response_code ?? data.ResponseCode ?? data.ResultCode ?? "").trim();
-  if ((code === "0" || code === "00") && (!status || status === "PENDING")) status = "SUCCESS";
-
-  // Explicit failure signals
-  if (data.success === false && (!status || status === "PENDING")) status = "FAILED";
-
-  // Aliases PayHero may use
-  if (status === "COMPLETE") status = "SUCCESS";
-  if (status === "COMPLETED") status = "SUCCESS";
-  if (status === "SUCCESSFUL") status = "SUCCESS";
+  // Normalise aliases PayHero may use
+  if (status === "COMPLETE" || status === "COMPLETED" || status === "SUCCESSFUL") status = "SUCCESS";
   if (status === "CANCELLED" || status === "CANCELED") status = "FAILED";
+
+  // If the API call itself failed (network/auth error), treat as still pending
+  // so we keep polling rather than silently failing
+  if (!status && data.success === false) status = "FAILED";
 
   return status || "PENDING";
 }

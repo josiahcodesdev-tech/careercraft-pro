@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Smartphone,
   Receipt,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -35,14 +36,15 @@ function formatTime(d: Date) {
   });
 }
 
-const MAX_POLLS = 40; // 40 × 3 s = 2 min
+const POLL_INTERVAL_MS = 2000;
+const MAX_POLLS = 60; // 60 × 2 s = 2 min
 
 export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentModalProps) {
   const [phone, setPhone] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState("");
-  const [externalRef, setExternalRef] = useState("");   // our reference — used for receipt
-  const [pollRef, setPollRef] = useState("");            // what we poll PayHero with
+  const [externalRef, setExternalRef] = useState("");
+  const [pollRef, setPollRef] = useState("");
   const [pollCount, setPollCount] = useState(0);
   const [lastRawStatus, setLastRawStatus] = useState<string>("");
   const paidAt = useRef(new Date());
@@ -71,8 +73,6 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
         return;
       }
 
-      // Poll with checkoutRequestId if available (PayHero's native lookup);
-      // fall back to our external_reference
       setPollRef(data.checkoutRequestId || reference);
       setPollCount(0);
       setStage("polling");
@@ -88,7 +88,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
     if (pollCount > MAX_POLLS) {
       setStage("failed");
       setError(
-        `Payment confirmation timed out after 2 minutes.${lastRawStatus ? ` Last status received: "${lastRawStatus}".` : ""} If M-Pesa deducted funds, use the reference ${externalRef} to contact support.`
+        `No confirmation received after 2 minutes.${lastRawStatus ? ` Last status: "${lastRawStatus}".` : ""} If M-Pesa deducted funds, quote reference ${externalRef} when contacting support.`
       );
       return;
     }
@@ -101,8 +101,9 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
         if (s !== "PENDING") setLastRawStatus(s);
 
         if (s === "SUCCESS") {
+          paidAt.current = new Date();
           setStage("success");
-          setTimeout(onSuccess, 1800); // let user read receipt first
+          setTimeout(onSuccess, 1800);
         } else if (s === "FAILED") {
           setStage("failed");
           setError("Payment was cancelled or declined. Please try again.");
@@ -112,7 +113,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
       } catch {
         setPollCount((c) => c + 1);
       }
-    }, 3000);
+    }, POLL_INTERVAL_MS);
 
     return () => clearTimeout(timer);
   }, [stage, pollRef, pollCount, onSuccess, lastRawStatus, externalRef]);
@@ -125,9 +126,17 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
     setLastRawStatus("");
   };
 
-  const secondsWaited = pollCount * 3;
-  // Show manual confirm after 30 s — user who entered PIN is never stuck
-  const showManualConfirm = stage === "polling" && secondsWaited >= 30;
+  const handleCancel = () => {
+    setPollRef("");
+    setPollCount(0);
+    setLastRawStatus("");
+    setStage("failed");
+    setError(
+      `Transaction cancelled. If M-Pesa already deducted KES ${amount}, quote reference ${externalRef} when contacting support.`
+    );
+  };
+
+  const secondsWaited = pollCount * (POLL_INTERVAL_MS / 1000);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -204,6 +213,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
             <div className="flex flex-col items-center py-5 gap-3">
               <Loader2 className="w-10 h-10 text-brand animate-spin" />
               <p className="text-sm font-medium">Sending M-Pesa prompt…</p>
+              <p className="text-xs text-text-muted">This usually takes a few seconds</p>
             </div>
           )}
 
@@ -216,34 +226,33 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
               <div>
                 <p className="text-sm font-semibold">Check your phone</p>
                 <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  Enter your M-Pesa PIN to pay <strong>KES {amount}</strong>
+                  Enter your M-Pesa PIN to confirm payment of{" "}
+                  <strong>KES {amount}</strong>
                 </p>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-text-muted">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Waiting for confirmation… ({secondsWaited}s)
+                Waiting for M-Pesa confirmation… ({secondsWaited}s)
               </div>
               {lastRawStatus && (
                 <span className="text-[10px] bg-background border border-border rounded px-2 py-0.5 font-mono text-text-muted">
-                  PayHero status: {lastRawStatus}
+                  Status: {lastRawStatus}
                 </span>
               )}
-              {showManualConfirm && (
-                <button
-                  onClick={() => { setStage("success"); setTimeout(onSuccess, 1800); }}
-                  className={cn(
-                    buttonVariants({ variant: "outline" }),
-                    "text-xs w-full border-green-500 text-green-700 hover:bg-green-50 gap-1.5"
-                  )}
-                >
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  M-Pesa confirmed — proceed to download
-                </button>
-              )}
+              <button
+                onClick={handleCancel}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "text-xs w-full border-red-300 text-red-600 hover:bg-red-50 gap-1.5 mt-1"
+                )}
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                Cancel transaction
+              </button>
             </div>
           )}
 
-          {/* ── SUCCESS — proof of payment receipt ── */}
+          {/* ── SUCCESS ── */}
           {stage === "success" && (
             <div className="space-y-3">
               <div className="flex flex-col items-center gap-2 text-center">
