@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { PaymentModal } from "@/components/payment-modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -274,6 +274,16 @@ export function CvBuilderForm() {
   const [payTarget, setPayTarget] = useState<"pdf" | "word" | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Detect bfcache restoration (browser Back button) and force a clean reload
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) window.location.href = window.location.pathname;
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   useEffect(() => {
     if (searchParams.get("transform") === "1") {
@@ -333,12 +343,14 @@ export function CvBuilderForm() {
           }));
 
           localStorage.removeItem("careercraft_cv_transform");
+          // Strip ?transform=1 from URL so a refresh loads a clean form
+          router.replace("/cv-builder");
         }
       } catch (err) {
         console.error("Failed to load transform data:", err);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   // Persist CV builder data so cv-transform can recover it from image-based PDFs
   useEffect(() => {

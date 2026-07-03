@@ -329,6 +329,15 @@ export function InterviewPrepForm() {
   const [scanStep, setScanStep] = useState(0);
   const previewRef = useRef<HTMLDivElement>(null);
 
+  // Detect bfcache restoration and force a clean reload
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) window.location.href = window.location.pathname;
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   const canGenerate = data.candidateName.trim() && data.roleTitle.trim() && data.jobDescription.trim();
 
   const handleGenerate = useCallback(async () => {
