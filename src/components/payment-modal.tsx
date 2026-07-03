@@ -21,27 +21,32 @@ export interface PaymentModalProps {
 
 type Stage = "idle" | "pushing" | "polling" | "success" | "failed";
 
+// Alphanumeric only — safest for PayHero external_reference
 function genRef(): string {
-  return `MCC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  const ts = Date.now().toString(36).toUpperCase();
+  const rnd = Math.random().toString(36).slice(2, 7).toUpperCase();
+  return `MCC${ts}${rnd}`;
 }
 
-const MAX_POLLS = 40; // 40 × 3s = 2 minutes
+const MAX_POLLS = 40; // 40 × 3 s = 2 min
 
 export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentModalProps) {
   const [phone, setPhone] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState("");
-  const [ref, setRef] = useState("");
+  // Use checkoutRequestId (PayHero's native ID) for polling; fall back to our ref
+  const [pollRef, setPollRef] = useState("");
   const [pollCount, setPollCount] = useState(0);
+  const [rawStatus, setRawStatus] = useState<string>("");
 
   const handlePay = useCallback(async () => {
     const raw = phone.trim();
     if (!raw) { setError("Enter your M-Pesa phone number."); return; }
 
     setError("");
+    setRawStatus("");
     setStage("pushing");
     const reference = genRef();
-    setRef(reference);
 
     try {
       const res = await fetch("/api/payhero/stk-push", {
@@ -49,7 +54,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: raw, amount, reference }),
       });
-      const data = await res.json() as { error?: string };
+      const data = await res.json() as { error?: string; checkoutRequestId?: string; reference?: string };
 
       if (!res.ok) {
         setStage("failed");
@@ -57,36 +62,41 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
         return;
       }
 
-      setStage("polling");
+      // Prefer PayHero's checkout_request_id; fall back to our external reference
+      setPollRef(data.checkoutRequestId || reference);
       setPollCount(0);
+      setStage("polling");
     } catch {
       setStage("failed");
       setError("Network error. Please check your connection and try again.");
     }
   }, [phone, amount]);
 
-  // Poll for payment status
+  // Poll PayHero for status every 3 seconds
   useEffect(() => {
-    if (stage !== "polling" || !ref) return;
+    if (stage !== "polling" || !pollRef) return;
 
     if (pollCount > MAX_POLLS) {
       setStage("failed");
-      setError("Payment timed out. Please try again.");
+      setError("Payment timed out. If you were charged, contact support.");
       return;
     }
 
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/payhero/status?ref=${encodeURIComponent(ref)}`);
-        const data = await res.json() as { status?: string };
-        const s = (data.status || "").toUpperCase();
+        const res = await fetch(`/api/payhero/status?ref=${encodeURIComponent(pollRef)}`);
+        const data = await res.json() as { status?: string; raw?: Record<string, unknown> };
+        const s = (data.status || "PENDING").toUpperCase();
+        setRawStatus(s);
 
-        if (s === "SUCCESS" || s === "COMPLETE" || s === "COMPLETED") {
-          setStage("success");
-          setTimeout(onSuccess, 1000);
-        } else if (s === "FAILED" || s === "CANCELLED" || s === "CANCELED") {
-          setStage("failed");
-          setError("Payment was cancelled or failed. Please try again.");
+        if (s === "SUCCESS" || s === "FAILED") {
+          if (s === "SUCCESS") {
+            setStage("success");
+            setTimeout(onSuccess, 1000);
+          } else {
+            setStage("failed");
+            setError("Payment was cancelled or failed. Please try again.");
+          }
         } else {
           setPollCount((c) => c + 1);
         }
@@ -96,14 +106,18 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [stage, ref, pollCount, onSuccess]);
+  }, [stage, pollRef, pollCount, onSuccess]);
 
   const reset = () => {
     setStage("idle");
     setError("");
-    setRef("");
+    setPollRef("");
     setPollCount(0);
+    setRawStatus("");
   };
+
+  const secondsWaited = pollCount * 3;
+  const showManualConfirm = stage === "polling" && secondsWaited >= 45;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -151,7 +165,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
                   />
                 </div>
                 {error && (
-                  <p className="text-xs text-red-500 mt-1.5 flex items-start gap-1">
+                  <p className="text-xs text-red-500 mt-1.5 flex items-start gap-1.5">
                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                     {error}
                   </p>
@@ -166,10 +180,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
 
               <button
                 onClick={handlePay}
-                className={cn(
-                  buttonVariants(),
-                  "w-full bg-brand hover:bg-brand-mid text-white gap-2"
-                )}
+                className={cn(buttonVariants(), "w-full bg-brand hover:bg-brand-mid text-white gap-2")}
               >
                 <Smartphone className="w-4 h-4" />
                 Pay KES {amount} via M-Pesa
@@ -180,7 +191,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
           {stage === "pushing" && (
             <div className="flex flex-col items-center py-5 gap-3">
               <Loader2 className="w-10 h-10 text-brand animate-spin" />
-              <p className="text-sm font-medium text-center">Sending M-Pesa prompt...</p>
+              <p className="text-sm font-medium text-center">Sending M-Pesa prompt…</p>
             </div>
           )}
 
@@ -197,8 +208,21 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
               </div>
               <div className="flex items-center gap-1.5 text-xs text-text-muted">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Waiting for confirmation…
+                Waiting for confirmation… ({secondsWaited}s)
               </div>
+              {rawStatus && rawStatus !== "PENDING" && (
+                <p className="text-[10px] text-text-muted bg-background rounded px-2 py-1 font-mono">
+                  status: {rawStatus}
+                </p>
+              )}
+              {showManualConfirm && (
+                <button
+                  onClick={() => { setStage("success"); setTimeout(onSuccess, 800); }}
+                  className="text-xs text-brand underline underline-offset-2 mt-1"
+                >
+                  M-Pesa confirmed — proceed to download
+                </button>
+              )}
             </div>
           )}
 

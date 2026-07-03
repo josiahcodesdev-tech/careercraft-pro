@@ -53,13 +53,23 @@ export async function POST(req: NextRequest) {
     });
 
     const data = await res.json() as Record<string, unknown>;
+    console.log("[PayHero STK push response]", JSON.stringify(data));
 
     if (!res.ok || data.success === false) {
       const msg = String(data.message || data.error || "Payment initiation failed.");
       return NextResponse.json({ error: msg }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, reference: body.reference });
+    // Return PayHero's checkout_request_id so the client can poll with it
+    const checkoutRequestId = String(
+      data.checkout_request_id ?? data.CheckoutRequestID ?? ""
+    );
+
+    return NextResponse.json({
+      success: true,
+      reference: body.reference,
+      checkoutRequestId,
+    });
   } catch (err) {
     console.error("PayHero STK push error:", err);
     return NextResponse.json({ error: "Could not reach payment service." }, { status: 500 });
