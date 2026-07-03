@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
+import { PaymentModal } from "@/components/payment-modal";
 import {
   Upload,
   FileText,
@@ -496,6 +497,7 @@ export function CvTransformForm() {
   const [parsed, setParsed] = useState<ParsedCv | null>(null);
   const [error, setError] = useState("");
   const [usedBuilderDraft, setUsedBuilderDraft] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const router = useRouter();
 
   const handleCvSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -716,9 +718,21 @@ export function CvTransformForm() {
                   </div>
                 </div>
 
-                <button onClick={() => router.push("/cv-builder?transform=1")} className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white w-full gap-2")}>
+                <button
+                  onClick={() => setShowPayment(true)}
+                  className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white w-full gap-2")}
+                >
                   <Sparkles className="w-4 h-4" /> Open in CV Builder <ArrowRight className="w-4 h-4" />
                 </button>
+
+                {showPayment && (
+                  <PaymentModal
+                    service={parsed?.matchedRole ? `CV Match — ${parsed.matchedRole}` : "CV Transform"}
+                    amount={50}
+                    onSuccess={() => { setShowPayment(false); router.push("/cv-builder?transform=1"); }}
+                    onClose={() => setShowPayment(false)}
+                  />
+                )}
               </div>
             ) : (
               <>

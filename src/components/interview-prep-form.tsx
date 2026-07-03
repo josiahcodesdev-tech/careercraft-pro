@@ -7,6 +7,7 @@ import { extractTextFromPdf } from "@/lib/pdf-extract";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download } from "lucide-react";
+import { PaymentModal } from "@/components/payment-modal";
 
 interface QA {
   section?: string;
@@ -320,6 +321,7 @@ export function InterviewPrepForm() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
   const [uploadedFile, setUploadedFile] = useState<string>("");
+  const [showPayment, setShowPayment] = useState(false);
   const [uploadedCv, setUploadedCv] = useState<string>("");
   const [scanningJd, setScanningJd] = useState(false);
   const [scanningCv, setScanningCv] = useState(false);
@@ -633,11 +635,19 @@ export function InterviewPrepForm() {
           </span>
           {dialogue.length > 0 && (
             <button
-              onClick={handlePrint}
+              onClick={() => setShowPayment(true)}
               className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5")}
             >
               <Download className="w-3.5 h-3.5" /> Download PDF
             </button>
+          )}
+          {showPayment && (
+            <PaymentModal
+              service="Interview Prep Download"
+              amount={100}
+              onSuccess={async () => { setShowPayment(false); await handlePrint(); }}
+              onClose={() => setShowPayment(false)}
+            />
           )}
         </div>
 

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { PaymentModal } from "@/components/payment-modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { buttonVariants } from "@/components/ui/button";
@@ -270,6 +271,7 @@ export function CvBuilderForm() {
   const [enhancingSummary, setEnhancingSummary] = useState(false);
   const [enhancingBullets, setEnhancingBullets] = useState<number | null>(null);
   const [aiError, setAiError] = useState("");
+  const [payTarget, setPayTarget] = useState<"pdf" | "word" | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
@@ -1239,13 +1241,13 @@ export function CvBuilderForm() {
             ) : (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={handleDownloadDocx}
+                  onClick={() => setPayTarget("word")}
                   className={cn(buttonVariants({ variant: "outline" }), "gap-2 border-brand text-brand hover:bg-brand/5")}
                 >
                   <Download className="w-4 h-4" /> Download Word
                 </button>
                 <button
-                  onClick={handlePrint}
+                  onClick={() => setPayTarget("pdf")}
                   className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2")}
                 >
                   <Download className="w-4 h-4" /> Download PDF
@@ -1255,6 +1257,20 @@ export function CvBuilderForm() {
           </div>
         </div>
       </div>
+
+      {/* Payment modal */}
+      {payTarget && (
+        <PaymentModal
+          service="CV Builder Download"
+          amount={40}
+          onSuccess={async () => {
+            setPayTarget(null);
+            if (payTarget === "pdf") await handlePrint();
+            else await handleDownloadDocx();
+          }}
+          onClose={() => setPayTarget(null)}
+        />
+      )}
 
       {/* Template picker modal */}
       {showTemplates && (
@@ -1340,14 +1356,14 @@ export function CvBuilderForm() {
               <LayoutTemplate className="w-3.5 h-3.5" /> Choose Template
             </button>
             <button
-              onClick={handleDownloadDocx}
+              onClick={() => setPayTarget("word")}
               disabled={!hasContent}
               className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5 disabled:opacity-40 border-brand text-brand hover:bg-brand/5")}
             >
               <Download className="w-3.5 h-3.5" /> Word
             </button>
             <button
-              onClick={handlePrint}
+              onClick={() => setPayTarget("pdf")}
               disabled={!hasContent}
               className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5 disabled:opacity-40")}
             >
