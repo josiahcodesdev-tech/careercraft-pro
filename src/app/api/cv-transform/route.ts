@@ -75,11 +75,10 @@ export async function POST(req: NextRequest) {
     ? `
 TARGET ROLE: ${jdReqs.targetRole}${jdReqs.targetCompany ? ` at ${jdReqs.targetCompany}` : ""}
 
-REQUIRED SKILLS (incorporate ALL of these that the candidate can credibly claim): ${jdReqs.requiredSkills.join(", ")}
-
-CORE RESPONSIBILITIES (reframe bullets to show the candidate doing these): ${jdReqs.coreResponsibilities.join(" | ")}
-
-ATS KEYWORDS (weave these naturally into summary, bullets, and skills): ${jdReqs.atsKeywords.join(", ")}`
+JD REQUIREMENTS (use only to guide reframing of what is ALREADY in the CV):
+- Required skills: ${jdReqs.requiredSkills.join(", ")}
+- Core responsibilities: ${jdReqs.coreResponsibilities.join(" | ")}
+- ATS keywords: ${jdReqs.atsKeywords.join(", ")}`
     : "";
 
   const jdOutputSchema = jdReqs
@@ -91,11 +90,12 @@ ATS KEYWORDS (weave these naturally into summary, bullets, and skills): ${jdReqs
   const jdRewriteRules = jdReqs
     ? `
 
-JD-TARGETED REWRITING RULES (mandatory — these override general rules when in conflict):
-• TAGLINE: Must start with "${jdReqs.targetRole}" followed by 2-3 of the required skills.
-• SUMMARY: Must open with "${jdReqs.targetRole}" and mention at least 4 of the required skills/ATS keywords within the first 2 sentences. Frame the candidate's strongest achievements as directly relevant to the core responsibilities listed above.
-• BULLETS: Prioritise bullets that demonstrate the listed core responsibilities. Where a bullet can naturally incorporate an ATS keyword, do it. Every role must have minimum 3 bullets.
-• SKILLS: Every required skill that the candidate can credibly claim must appear in a skill group. Put required skills first in each group.`
+JD-TARGETED REWRITING RULES (mandatory):
+• HONEST MATCH ONLY: Work strictly from what is already in the CV. Do NOT add skills, tools, roles, qualifications, or achievements the candidate has not demonstrated. Do NOT upgrade job titles. Do NOT invent responsibilities. A senior hiring manager will interview this person — anything fabricated will be exposed.
+• TAGLINE: Lead with the target role title, then 2-3 skills that are genuinely evidenced in the CV and also appear in the JD requirements.
+• SUMMARY: Open with the target role title. Mention JD keywords only where the candidate's actual experience supports them. Do not claim skills or seniority beyond what the experience shows.
+• BULLETS: Reframe existing bullets to emphasise aspects most relevant to the JD. If a bullet already covers a core responsibility, make that clearer. Do not add invented accomplishments. Minimum 3 bullets per role.
+• SKILLS: Surface skills from the JD that genuinely appear in the candidate's experience or skill section. Do NOT add JD skills the candidate has not demonstrated anywhere in the CV.`
     : "";
 
   const systemPrompt = `You are a senior recruitment consultant and professional CV writer. Your task is to TRANSFORM this CV${jdReqs ? ` to target the role of ${jdReqs.targetRole}` : ""} — not just parse it. Produce a version that impresses recruiters and passes ATS screening.
@@ -137,11 +137,12 @@ Return ONLY raw JSON (no markdown, no code fences):
 }
 
 GENERAL RULES:
-1. Rewrite summary from scratch — compelling, keyword-rich, no I/my/me/we.
-2. Transform bullets: [Action Verb] + [What] + [How/Tool] + [Outcome]. Infer numbers where reasonable.
-3. Every role needs minimum 3 bullets. Generate from role context if missing.
-4. Output 4-6 skill groups. Infer skills from experience where section is thin.
-5. Standardise all dates to YYYY-MM.${jdRewriteRules}`;
+1. NEVER fabricate: do not add roles, companies, qualifications, tools, or achievements not evidenced in the original CV. Rewrite and reframe — do not invent.
+2. Rewrite summary from scratch — compelling, keyword-rich, no I/my/me/we. Match seniority level to what the experience actually shows.
+3. Transform bullets: [Action Verb] + [What] + [How/Tool] + [Outcome]. Use quantification only where it can be reasonably inferred from the role context (team size, scope, industry norms). Do not fabricate specific numbers.
+4. Every role needs minimum 3 bullets — generate from the role title and company context if truly empty, but keep them plausible and conservative.
+5. Output 4-6 skill groups. Only include skills evidenced in the experience or explicitly listed by the candidate.
+6. Standardise all dates to YYYY-MM.${jdRewriteRules}`;
 
   const userMessage = jdReqs
     ? `Transform this CV. The job requirements have already been extracted below — your ONLY job now is to rewrite the CV to match them.\n${jdInjection}\n\n--- CV TO TRANSFORM ---\n${cvText}`
