@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download } from "lucide-react";
+import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download, Lock } from "lucide-react";
 import { PaymentModal } from "@/components/payment-modal";
 
 interface QA {
@@ -322,6 +322,7 @@ export function InterviewPrepForm() {
   const [generateError, setGenerateError] = useState("");
   const [uploadedFile, setUploadedFile] = useState<string>("");
   const [showPayment, setShowPayment] = useState(false);
+  const [paid, setPaid] = useState(false);
   const [uploadedCv, setUploadedCv] = useState<string>("");
   const [scanningJd, setScanningJd] = useState(false);
   const [scanningCv, setScanningCv] = useState(false);
@@ -351,17 +352,20 @@ export function InterviewPrepForm() {
         if (res.status === 503) {
           const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
           setDialogue(result);
+          setPaid(false);
           return;
         }
         throw new Error(json.error ?? "Generation failed");
       }
       const result = json.qa ?? [];
       setDialogue(result);
+      setPaid(false);
     } catch (e) {
       setGenerateError(e instanceof Error ? e.message : "Generation failed. Please try again.");
       // Fallback to local generation
       const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
       setDialogue(result);
+      setPaid(false);
     } finally {
       setGenerating(false);
     }
@@ -645,13 +649,56 @@ export function InterviewPrepForm() {
             <PaymentModal
               service="Interview Prep Download"
               amount={100}
-              onSuccess={async () => { setShowPayment(false); await handlePrint(); }}
+              onSuccess={async () => {
+              setPaid(true);
+              setShowPayment(false);
+              await new Promise(r => setTimeout(r, 150));
+              await handlePrint();
+            }}
               onClose={() => setShowPayment(false)}
             />
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 relative">
+          {/* Lock overlay — sits above previewRef so it doesn't appear in PDF */}
+          {dialogue.length > 1 && !paid && (
+            <div
+              className="absolute left-0 right-0 bottom-0 z-10 pointer-events-none"
+              style={{ top: "38%" }}
+            >
+              <div
+                className="h-full flex flex-col items-center pt-16"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, transparent, rgba(240,239,233,0.97) 28%)",
+                }}
+              >
+                <div className="pointer-events-auto bg-background rounded-2xl border border-border shadow-xl p-6 text-center w-72 mx-auto mt-4">
+                  <div className="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center mx-auto mb-3">
+                    <Lock className="w-5 h-5 text-brand" />
+                  </div>
+                  <p className="font-semibold text-sm mb-1">Full Interview Guide</p>
+                  <p className="text-xs text-text-muted mb-4 leading-relaxed">
+                    Preview the first question above. Unlock all{" "}
+                    <strong>{dialogue.length - 1} more Q&amp;As</strong> and download the full PDF for{" "}
+                    <strong className="text-brand">KES 100</strong>.
+                  </p>
+                  <button
+                    onClick={() => setShowPayment(true)}
+                    className={cn(
+                      buttonVariants(),
+                      "bg-brand hover:bg-brand-mid text-white w-full gap-2 text-sm"
+                    )}
+                  >
+                    <Lock className="w-4 h-4" />
+                    Unlock &amp; Download · KES 100
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div
             ref={previewRef}
             className="bg-white rounded-lg shadow-md mx-auto p-10 sm:p-12"
@@ -699,7 +746,14 @@ export function InterviewPrepForm() {
                 </div>
 
                 {dialogue.map((qa, i) => (
-                  <div key={i}>
+                  <div
+                    key={i}
+                    style={
+                      i >= 1 && !paid
+                        ? { filter: "blur(5px)", userSelect: "none", pointerEvents: "none" }
+                        : {}
+                    }
+                  >
                     {qa.section && (
                       <div
                         style={{
