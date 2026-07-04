@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download, Lock } from "lucide-react";
+import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download, Lock, ArrowLeft } from "lucide-react";
 import { PaymentModal } from "@/components/payment-modal";
 
 interface QA {
@@ -323,6 +323,7 @@ export function InterviewPrepForm() {
   const [uploadedFile, setUploadedFile] = useState<string>("");
   const [showPayment, setShowPayment] = useState(false);
   const [paid, setPaid] = useState(false);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [uploadedCv, setUploadedCv] = useState<string>("");
   const [scanningJd, setScanningJd] = useState(false);
   const [scanningCv, setScanningCv] = useState(false);
@@ -362,6 +363,7 @@ export function InterviewPrepForm() {
           const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
           setDialogue(result);
           setPaid(false);
+          setMobilePreviewOpen(true);
           return;
         }
         throw new Error(json.error ?? "Generation failed");
@@ -369,12 +371,14 @@ export function InterviewPrepForm() {
       const result = json.qa ?? [];
       setDialogue(result);
       setPaid(false);
+      setMobilePreviewOpen(true);
     } catch (e) {
       setGenerateError(e instanceof Error ? e.message : "Generation failed. Please try again.");
       // Fallback to local generation
       const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
       setDialogue(result);
       setPaid(false);
+      setMobilePreviewOpen(true);
     } finally {
       setGenerating(false);
     }
@@ -636,16 +640,43 @@ export function InterviewPrepForm() {
             {generateError && (
               <p className="text-xs text-amber-600 mt-2">{generateError} (used local fallback)</p>
             )}
+            {dialogue.length > 0 && (
+              <button
+                onClick={() => setMobilePreviewOpen(true)}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "w-full gap-2 mt-3 lg:hidden"
+                )}
+              >
+                <Download className="w-4 h-4" /> View &amp; Download PDF
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Right panel — Preview */}
-      <div className="hidden lg:flex flex-1 flex-col bg-[#f0efe9] overflow-hidden">
+      <div
+        className={cn(
+          "flex-col bg-[#f0efe9] overflow-hidden",
+          mobilePreviewOpen
+            ? "fixed inset-0 z-50 flex bg-white lg:static lg:z-auto lg:flex-1 lg:bg-[#f0efe9]"
+            : "hidden lg:flex lg:flex-1"
+        )}
+      >
         <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card">
-          <span className="text-sm font-semibold text-text-secondary">
-            Interview Dialogue
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMobilePreviewOpen(false)}
+              className="lg:hidden -ml-2 p-1.5 rounded-lg hover:bg-background text-text-secondary"
+              aria-label="Back to form"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <span className="text-sm font-semibold text-text-secondary">
+              Interview Dialogue
+            </span>
+          </div>
           {dialogue.length > 0 && (
             <button
               onClick={() => setShowPayment(true)}

@@ -27,6 +27,8 @@ import {
   Sparkles,
   Loader2,
   Download,
+  Eye,
+  ArrowLeft,
 } from "lucide-react";
 
 type Template = "classic" | "modern" | "executive" | "minimal" | "bold" | "professional" | "creative" | "corporate" | "florence";
@@ -272,6 +274,8 @@ export function CvBuilderForm() {
   const [enhancingBullets, setEnhancingBullets] = useState<number | null>(null);
   const [aiError, setAiError] = useState("");
   const [payTarget, setPayTarget] = useState<"pdf" | "word" | null>(null);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+  const [showMobileDownloadMenu, setShowMobileDownloadMenu] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -525,16 +529,27 @@ export function CvBuilderForm() {
       <div className="w-full lg:w-1/2 overflow-y-auto border-r border-border bg-background">
         <div className="p-8">
           {/* Header */}
-          <div className="mb-8">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-brand mb-2">
-              CV Builder
-            </p>
-            <h1 className="font-heading text-2xl font-black tracking-tight leading-tight mb-2">
-              Build your ATS-friendly CV
-            </h1>
-            <p className="text-sm text-text-secondary">
-              Fill in each section your CV updates live on the right.
-            </p>
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-brand mb-2">
+                CV Builder
+              </p>
+              <h1 className="font-heading text-2xl font-black tracking-tight leading-tight mb-2">
+                Build your ATS-friendly CV
+              </h1>
+              <p className="text-sm text-text-secondary">
+                Fill in each section your CV updates live on the right.
+              </p>
+            </div>
+            <button
+              onClick={() => setMobilePreviewOpen(true)}
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "h-9 text-xs gap-1.5 flex-shrink-0 lg:hidden"
+              )}
+            >
+              <Eye className="w-3.5 h-3.5" /> Preview
+            </button>
           </div>
 
           {/* Step indicator */}
@@ -1259,7 +1274,10 @@ export function CvBuilderForm() {
                   <Download className="w-4 h-4" /> Download Word
                 </button>
                 <button
-                  onClick={() => setPayTarget("pdf")}
+                  onClick={() => {
+                    setMobilePreviewOpen(true);
+                    setPayTarget("pdf");
+                  }}
                   className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2")}
                 >
                   <Download className="w-4 h-4" /> Download PDF
@@ -1352,12 +1370,29 @@ export function CvBuilderForm() {
       )}
 
       {/* Right panel — Live preview */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col bg-[#f0efe9] overflow-hidden">
+      <div
+        className={cn(
+          "flex-col bg-[#f0efe9] overflow-hidden",
+          mobilePreviewOpen
+            ? "fixed inset-0 z-40 flex bg-white lg:static lg:z-auto lg:w-1/2 lg:bg-[#f0efe9]"
+            : "hidden lg:flex lg:w-1/2"
+        )}
+      >
         <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card gap-3">
-          <span className="text-sm font-semibold text-text-secondary flex-shrink-0">
-            Live Preview
-          </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setMobilePreviewOpen(false)}
+              className="lg:hidden -ml-2 p-1.5 rounded-lg hover:bg-background text-text-secondary"
+              aria-label="Back to form"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <span className="text-sm font-semibold text-text-secondary">
+              Live Preview
+            </span>
+          </div>
+          {/* Desktop: full button row */}
+          <div className="hidden lg:flex items-center gap-2">
             <button
               onClick={() => setShowTemplates(true)}
               className={cn(
@@ -1381,6 +1416,52 @@ export function CvBuilderForm() {
             >
               <Download className="w-3.5 h-3.5" /> PDF
             </button>
+          </div>
+
+          {/* Mobile: icon-only template + single Download button with a menu */}
+          <div className="flex lg:hidden items-center gap-2 relative">
+            <button
+              onClick={() => setShowTemplates(true)}
+              className={cn(buttonVariants({ variant: "outline" }), "h-8 w-8 p-0")}
+              aria-label="Choose template"
+            >
+              <LayoutTemplate className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setShowMobileDownloadMenu((v) => !v)}
+              disabled={!hasContent}
+              className={cn(buttonVariants(), "h-8 text-xs gap-1.5 bg-brand hover:bg-brand-mid text-white disabled:opacity-40")}
+            >
+              <Download className="w-3.5 h-3.5" /> Download
+            </button>
+            {showMobileDownloadMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowMobileDownloadMenu(false)}
+                />
+                <div className="absolute right-0 top-full mt-1.5 z-20 w-40 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+                  <button
+                    onClick={() => {
+                      setShowMobileDownloadMenu(false);
+                      setPayTarget("pdf");
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium hover:bg-background transition-colors text-left"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download PDF
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMobileDownloadMenu(false);
+                      setPayTarget("word");
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium hover:bg-background transition-colors text-left border-t border-border"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download Word
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
