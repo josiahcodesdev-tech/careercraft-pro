@@ -8,8 +8,8 @@ import { Search, FileText, Users, Activity, Zap } from "lucide-react";
 const careerPath = [
   { icon: Search, label: "Career assessment", status: "Done", active: false },
   { icon: FileText, label: "CV & personal brand", status: "Done", active: false },
-  { icon: Users, label: "Interview coaching", status: "In progress", active: true },
-  { icon: Activity, label: "Career growth plan", status: "Upcoming", active: false },
+  { icon: Users, label: "Interview coaching", status: "Done", active: true },
+  { icon: Activity, label: "Career transition", status: "Done", active: false },
 ];
 
 export default function HomePage() {
@@ -154,10 +154,10 @@ export default function HomePage() {
             {[
               {
                 quote:
-                  "Josiah built our website in record time. Beautiful design, clean code, zero issues.",
-                initials: "SK",
-                name: "Sarah K.",
-                role: "Startup Founder, Nairobi",
+                  "I'd been applying for months with zero callbacks. After CareerCraft rewrote my CV, I had three interview calls within two weeks. The ATS formatting made all the difference.",
+                initials: "JK",
+                name: "James K.",
+                role: "Software Engineer, Nairobi",
               },
               {
                 quote:
