@@ -31,7 +31,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-type Template = "classic" | "modern" | "executive" | "minimal" | "bold" | "professional" | "creative" | "corporate" | "florence";
+export type Template = "classic" | "modern" | "executive" | "minimal" | "bold" | "professional" | "creative" | "corporate" | "florence";
 
 const TEMPLATES: { id: Template; name: string; description: string; accent: string; font: string; hasPhoto?: boolean }[] = [
   {
@@ -103,7 +103,7 @@ const TEMPLATES: { id: Template; name: string; description: string; accent: stri
   },
 ];
 
-interface WorkEntry {
+export interface WorkEntry {
   company: string;
   role: string;
   startDate: string;
@@ -112,7 +112,7 @@ interface WorkEntry {
   bullets: string[];
 }
 
-interface EducationEntry {
+export interface EducationEntry {
   institution: string;
   degree: string;
   field: string;
@@ -120,12 +120,12 @@ interface EducationEntry {
   endDate: string;
 }
 
-interface SkillGroup {
+export interface SkillGroup {
   category: string;
   skills: string;
 }
 
-interface RefereeEntry {
+export interface RefereeEntry {
   name: string;
   title: string;
   company: string;
@@ -133,7 +133,7 @@ interface RefereeEntry {
   phone: string;
 }
 
-interface CvData {
+export interface CvData {
   fullName: string;
   tagline: string;
   email: string;
@@ -1297,6 +1297,11 @@ export function CvBuilderForm() {
             setPayTarget(null);
             if (payTarget === "pdf") await handlePrint();
             else await handleDownloadDocx();
+            fetch("/api/cv-events", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: data.fullName || "Candidate", template, data }),
+            }).catch(() => {});
           }}
           onClose={() => setPayTarget(null)}
         />
@@ -1712,7 +1717,7 @@ function ClassicSectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ClassicPreview({ data }: { data: CvData }) {
+export function ClassicPreview({ data }: { data: CvData }) {
   return (
     <div
       style={{
@@ -1802,7 +1807,7 @@ function ModernSectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ModernPreview({ data }: { data: CvData }) {
+export function ModernPreview({ data }: { data: CvData }) {
   return (
     <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>
       {/* Colored header */}
@@ -1934,7 +1939,7 @@ function ExecSectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ExecutivePreview({ data }: { data: CvData }) {
+export function ExecutivePreview({ data }: { data: CvData }) {
   return (
     <div
       className="exec-wrap"
@@ -2032,7 +2037,7 @@ function MinimalSectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function MinimalPreview({ data }: { data: CvData }) {
+export function MinimalPreview({ data }: { data: CvData }) {
   return (
     <div
       style={{
@@ -2363,7 +2368,7 @@ function SidebarContact({ data, color = "#fff", muted = "rgba(255,255,255,0.7)" 
 
 /* ── Bold template (dark bg + orange) ────────────────────── */
 
-function BoldPreview({ data }: { data: CvData }) {
+export function BoldPreview({ data }: { data: CvData }) {
   const accent = "#E8840C";
   return (
     <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", background: "#2D2D2D", color: "#fff", minHeight: 900 }}>
@@ -2442,7 +2447,7 @@ function BoldPreview({ data }: { data: CvData }) {
 
 /* ── Professional template (navy sidebar + gold) ─────────── */
 
-function ProfessionalPreview({ data }: { data: CvData }) {
+export function ProfessionalPreview({ data }: { data: CvData }) {
   const navy = "#1B2838";
   const gold = "#D4A017";
   return (
@@ -2527,7 +2532,7 @@ function ProfessionalPreview({ data }: { data: CvData }) {
 
 /* ── Creative template (beige sidebar + black headings) ──── */
 
-function CreativePreview({ data }: { data: CvData }) {
+export function CreativePreview({ data }: { data: CvData }) {
   const beige = "#F5F0E8";
   const dark = "#1a1a1a";
   const accent = "#C8A84E";
@@ -2602,7 +2607,7 @@ function CreativePreview({ data }: { data: CvData }) {
 
 /* ── Corporate template (navy header + sidebar) ──────────── */
 
-function CorporatePreview({ data }: { data: CvData }) {
+export function CorporatePreview({ data }: { data: CvData }) {
   const navy = "#1B3A5C";
   return (
     <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", minHeight: 900 }}>
@@ -2713,7 +2718,7 @@ function FlorenceSectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FlorencePreview({ data }: { data: CvData }) {
+export function FlorencePreview({ data }: { data: CvData }) {
   const navy = "#1B3A5C";
   const allSkills = data.skillGroups.filter((g) => g.skills).map((g) => g.skills).join(" | ");
 

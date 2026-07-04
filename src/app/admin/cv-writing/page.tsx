@@ -1,14 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type CvEvent } from "@/lib/analytics";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
-import { FileText, Eye, X } from "lucide-react";
+import { FileText, Eye, Download, Loader2 } from "lucide-react";
+import {
+  type CvData,
+  type Template,
+  ClassicPreview,
+  ModernPreview,
+  ExecutivePreview,
+  MinimalPreview,
+  BoldPreview,
+  ProfessionalPreview,
+  CreativePreview,
+  CorporatePreview,
+  FlorencePreview,
+} from "@/components/cv-builder-form";
+
+const PREVIEW_BY_TEMPLATE: Record<Template, React.ComponentType<{ data: CvData }>> = {
+  classic: ClassicPreview,
+  modern: ModernPreview,
+  executive: ExecutivePreview,
+  minimal: MinimalPreview,
+  bold: BoldPreview,
+  professional: ProfessionalPreview,
+  creative: CreativePreview,
+  corporate: CorporatePreview,
+  florence: FlorencePreview,
+};
+
+type StoredCv = CvData & { template: Template };
 
 export default function CvWritingPage() {
   const [items, setItems] = useState<CvEvent[]>([]);
-  const [viewing, setViewing] = useState<Record<string, unknown> | null>(null);
+  const [viewing, setViewing] = useState<StoredCv | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [pdfTarget, setPdfTarget] = useState<{ cv: StoredCv; fileName: string } | null>(null);
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/admin/analytics")
@@ -16,6 +46,74 @@ export default function CvWritingPage() {
       .then((json) => setItems(json.cvDownloads ?? []))
       .catch(() => setItems([]));
   }, []);
+
+  useEffect(() => {
+    if (!pdfTarget) return;
+    let cancelled = false;
+    (async () => {
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (cancelled || !pdfRef.current) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const html2pdf = ((await import("html2pdf.js")) as any).default;
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename: `${pdfTarget.fileName}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 3, useCORS: true, logging: false },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(pdfRef.current)
+        .save();
+      if (!cancelled) {
+        setPdfTarget(null);
+        setBusyId(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pdfTarget]);
+
+  async function fetchCv(id: string): Promise<StoredCv> {
+    const res = await fetch(`/api/admin/cv/${id}`);
+    const json = await res.json();
+    if (!json.data) throw new Error("CV data not found.");
+    return json.data as StoredCv;
+  }
+
+  async function handleView(id: string) {
+    try {
+      setViewing(await fetchCv(id));
+    } catch {
+      alert("Failed to load CV data.");
+    }
+  }
+
+  async function handleDownloadPdf(id: string, name: string) {
+    setBusyId(id);
+    try {
+      const cv = await fetchCv(id);
+      setPdfTarget({ cv, fileName: `${(name || "Candidate").replace(/\s+/g, "_")}_CV` });
+    } catch {
+      alert("Failed to download CV.");
+      setBusyId(null);
+    }
+  }
+
+  async function handleDownloadWord(id: string) {
+    setBusyId(id);
+    try {
+      const cv = await fetchCv(id);
+      const { downloadCvDocx } = await import("@/lib/cv-docx-export");
+      await downloadCvDocx(cv);
+    } catch {
+      alert("Failed to download CV.");
+    }
+    setBusyId(null);
+  }
+
+  const PdfPreviewComponent = pdfTarget ? PREVIEW_BY_TEMPLATE[pdfTarget.cv.template] : null;
 
   return (
     <div className="space-y-6">
@@ -60,21 +158,30 @@ export default function CvWritingPage() {
             header: "Actions",
             render: (item: CvEvent) => {
               if (!item.id) return <span className="text-text-muted text-xs">—</span>;
+              const isBusy = busyId === item.id;
               return (
-                <button
-                  onClick={() => {
-                    fetch(`/api/admin/cv/${item.id}`)
-                      .then((res) => res.json())
-                      .then((json) => {
-                        if (json.data) setViewing(json.data);
-                        else alert("CV data not found.");
-                      })
-                      .catch(() => alert("Failed to load CV data."));
-                  }}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
-                >
-                  <Eye className="w-3.5 h-3.5" /> View
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleView(item.id!)}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View
+                  </button>
+                  <button
+                    onClick={() => handleDownloadPdf(item.id!, item.name)}
+                    disabled={isBusy}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline disabled:opacity-40"
+                  >
+                    {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} PDF
+                  </button>
+                  <button
+                    onClick={() => handleDownloadWord(item.id!)}
+                    disabled={isBusy}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline disabled:opacity-40"
+                  >
+                    {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} Word
+                  </button>
+                </div>
               );
             },
           },
@@ -89,35 +196,35 @@ export default function CvWritingPage() {
           <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-[700px] max-h-[85vh] mx-4 overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <h2 className="font-heading text-lg font-extrabold tracking-tight">
-                {(viewing.fullName as string) || "CV Preview"}
+                {viewing.fullName || "CV Preview"}
               </h2>
               <button onClick={() => setViewing(null)} className="text-text-muted hover:text-foreground text-xl px-2">×</button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-4 text-sm">
-                {viewing.tagline ? <p className="text-text-secondary italic">{viewing.tagline as string}</p> : null}
+                {viewing.tagline ? <p className="text-text-secondary italic">{viewing.tagline}</p> : null}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-muted">
-                  {viewing.email ? <span>{viewing.email as string}</span> : null}
-                  {viewing.phone ? <span>{viewing.phone as string}</span> : null}
-                  {viewing.location ? <span>{viewing.location as string}</span> : null}
+                  {viewing.email ? <span>{viewing.email}</span> : null}
+                  {viewing.phone ? <span>{viewing.phone}</span> : null}
+                  {viewing.location ? <span>{viewing.location}</span> : null}
                 </div>
 
                 {viewing.summary ? (
                   <div>
                     <h3 className="font-semibold text-xs uppercase tracking-wider text-brand mb-1">Summary</h3>
-                    <p className="text-text-secondary">{viewing.summary as string}</p>
+                    <p className="text-text-secondary">{viewing.summary}</p>
                   </div>
                 ) : null}
 
-                {Array.isArray(viewing.experience) && viewing.experience.length > 0 && (
+                {viewing.experience.length > 0 && (
                   <div>
                     <h3 className="font-semibold text-xs uppercase tracking-wider text-brand mb-2">Experience</h3>
-                    {(viewing.experience as Array<Record<string, unknown>>).map((exp, i) => (
+                    {viewing.experience.map((exp, i) => (
                       <div key={i} className="mb-3">
-                        <div className="font-medium">{exp.role as string} {exp.company ? <span className="text-text-muted">— {exp.company as string}</span> : null}</div>
-                        {Array.isArray(exp.bullets) && (
+                        <div className="font-medium">{exp.role} {exp.company ? <span className="text-text-muted">— {exp.company}</span> : null}</div>
+                        {exp.bullets.length > 0 && (
                           <ul className="list-disc pl-4 text-text-secondary text-xs mt-1 space-y-0.5">
-                            {(exp.bullets as string[]).filter(Boolean).map((b, j) => <li key={j}>{b}</li>)}
+                            {exp.bullets.filter(Boolean).map((b, j) => <li key={j}>{b}</li>)}
                           </ul>
                         )}
                       </div>
@@ -125,33 +232,46 @@ export default function CvWritingPage() {
                   </div>
                 )}
 
-                {Array.isArray(viewing.education) && viewing.education.length > 0 && (
+                {viewing.education.length > 0 && (
                   <div>
                     <h3 className="font-semibold text-xs uppercase tracking-wider text-brand mb-2">Education</h3>
-                    {(viewing.education as Array<Record<string, unknown>>).map((edu, i) => (
+                    {viewing.education.map((edu, i) => (
                       <div key={i} className="mb-1">
-                        <span className="font-medium">{edu.degree as string}{edu.field ? ` in ${edu.field as string}` : ""}</span>
-                        {edu.institution ? <span className="text-text-muted"> — {edu.institution as string}</span> : null}
+                        <span className="font-medium">{edu.degree}{edu.field ? ` in ${edu.field}` : ""}</span>
+                        {edu.institution ? <span className="text-text-muted"> — {edu.institution}</span> : null}
                       </div>
                     ))}
                   </div>
                 )}
 
-                {Array.isArray(viewing.skillGroups) && viewing.skillGroups.length > 0 && (
+                {viewing.skillGroups.length > 0 && (
                   <div>
                     <h3 className="font-semibold text-xs uppercase tracking-wider text-brand mb-2">Skills</h3>
-                    {(viewing.skillGroups as Array<Record<string, unknown>>).filter((g) => g.category && g.skills).map((g, i) => (
+                    {viewing.skillGroups.filter((g) => g.category && g.skills).map((g, i) => (
                       <div key={i} className="mb-1">
-                        <span className="font-medium">{g.category as string}: </span>
-                        <span className="text-text-secondary">{g.skills as string}</span>
+                        <span className="font-medium">{g.category}: </span>
+                        <span className="text-text-secondary">{g.skills}</span>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <p className="text-xs text-text-muted pt-2">Template: <span className="capitalize font-medium">{viewing.template as string}</span></p>
+                <p className="text-xs text-text-muted pt-2">Template: <span className="capitalize font-medium">{viewing.template}</span></p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Off-screen render target used to generate the PDF for redownload */}
+      {pdfTarget && PdfPreviewComponent && (
+        <div style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none" }} aria-hidden>
+          <div
+            ref={pdfRef}
+            className="bg-white rounded-lg shadow-md mx-auto overflow-hidden"
+            style={{ maxWidth: 680, minHeight: 900 }}
+          >
+            <PdfPreviewComponent data={pdfTarget.cv} />
           </div>
         </div>
       )}

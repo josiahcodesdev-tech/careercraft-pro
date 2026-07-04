@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download, Lock, ArrowLeft } from "lucide-react";
 import { PaymentModal } from "@/components/payment-modal";
 
-interface QA {
+export interface QA {
   section?: string;
   question: string;
   answer: string;
@@ -44,7 +44,7 @@ function extractKeywords(jd: string): string[] {
   return keywords.slice(0, 8);
 }
 
-function extractJobTitle(jd: string): string {
+export function extractJobTitle(jd: string): string {
   const lines = jd.trim().split("\n").filter((l) => l.trim());
   if (lines.length > 0) {
     const first = lines[0].trim();
@@ -694,6 +694,19 @@ export function InterviewPrepForm() {
               setShowPayment(false);
               await new Promise(r => setTimeout(r, 150));
               await handlePrint();
+              fetch("/api/interview-events", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  name: data.candidateName || "Candidate",
+                  role: data.roleTitle || extractJobTitle(data.jobDescription),
+                  data: {
+                    candidateName: data.candidateName,
+                    roleTitle: data.roleTitle || extractJobTitle(data.jobDescription),
+                    dialogue,
+                  },
+                }),
+              }).catch(() => {});
             }}
               onClose={() => setShowPayment(false)}
             />
@@ -753,189 +766,210 @@ export function InterviewPrepForm() {
               minHeight: 900,
             }}
           >
-            {dialogue.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-[600px] text-center text-text-muted">
-                <MessageSquare className="w-12 h-12 mb-4 opacity-30" />
-                <p className="text-sm">
-                  Enter your name and paste a job description,
-                  <br />
-                  then click &ldquo;Generate&rdquo; to create your
-                  <br />
-                  personalised interview dialogue.
-                </p>
-              </div>
-            ) : (
-              <>
-                <h1
-                  style={{
-                    fontSize: "16pt",
-                    fontWeight: 700,
-                    color: "#1B3A5C",
-                    marginBottom: 4,
-                  }}
-                >
-                  Interview Preparation
-                </h1>
-                <div
-                  className="subtitle"
-                  style={{
-                    fontSize: "9pt",
-                    color: "#777",
-                    marginBottom: 18,
-                    borderBottom: "2px solid #1B3A5C",
-                    paddingBottom: 10,
-                  }}
-                >
-                  Candidate: {data.candidateName} &nbsp;|&nbsp; Role:{" "}
-                  {data.roleTitle || extractJobTitle(data.jobDescription)}
-                </div>
-
-                {(() => {
-                  const secondSection = dialogue.findIndex((qa, i) => i > 0 && !!qa.section);
-                  const blurFrom = secondSection > 0 ? secondSection : 3;
-                  return dialogue.map((qa, i) => (
-                  <div
-                    key={i}
-                    style={
-                      i >= blurFrom && !paid
-                        ? { filter: "blur(5px)", userSelect: "none", pointerEvents: "none" }
-                        : {}
-                    }
-                  >
-                    {qa.section && (
-                      <div
-                        style={{
-                          fontSize: "9pt",
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "1.5px",
-                          color: "#1B3A5C",
-                          borderBottom: "2px solid #1B3A5C",
-                          paddingBottom: 4,
-                          marginTop: i === 0 ? 0 : 22,
-                          marginBottom: 14,
-                        }}
-                      >
-                        {qa.section}
-                      </div>
-                    )}
-                    <div
-                      className="qa"
-                      style={{ marginBottom: 18, pageBreakInside: "avoid" }}
-                    >
-                    {/* Interviewer */}
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 10,
-                        marginBottom: 8,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
-                          background: "#EDF1F5",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          marginTop: 2,
-                        }}
-                      >
-                        <User
-                          style={{ width: 14, height: 14, color: "#1B3A5C" }}
-                        />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          className="speaker interviewer"
-                          style={{
-                            fontSize: "8pt",
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                            color: "#1B3A5C",
-                            marginBottom: 3,
-                          }}
-                        >
-                          Interviewer
-                        </div>
-                        <div
-                          className="text"
-                          style={{
-                            fontSize: "9.5pt",
-                            lineHeight: 1.6,
-                            textAlign: "justify",
-                          }}
-                        >
-                          {qa.question}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Candidate */}
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 10,
-                        paddingLeft: 16,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
-                          background: "#EAF3EE",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          marginTop: 2,
-                        }}
-                      >
-                        <FileText
-                          style={{ width: 14, height: 14, color: "#1A5C3A" }}
-                        />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          className="speaker candidate"
-                          style={{
-                            fontSize: "8pt",
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                            color: "#1A5C3A",
-                            marginBottom: 3,
-                          }}
-                        >
-                          {data.candidateName}
-                        </div>
-                        <div
-                          className="text"
-                          style={{
-                            fontSize: "9.5pt",
-                            lineHeight: 1.6,
-                            textAlign: "justify",
-                          }}
-                        >
-                          {qa.answer}
-                        </div>
-                      </div>
-                    </div>
-                    </div>
-                  </div>
-                  ));
-                })()}
-              </>
-            )}
+            <InterviewDialogueContent
+              candidateName={data.candidateName}
+              roleTitle={data.roleTitle || extractJobTitle(data.jobDescription)}
+              dialogue={dialogue}
+              paid={paid}
+            />
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export function InterviewDialogueContent({
+  candidateName,
+  roleTitle,
+  dialogue,
+  paid,
+}: {
+  candidateName: string;
+  roleTitle: string;
+  dialogue: QA[];
+  paid: boolean;
+}) {
+  if (dialogue.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[600px] text-center text-text-muted">
+        <MessageSquare className="w-12 h-12 mb-4 opacity-30" />
+        <p className="text-sm">
+          Enter your name and paste a job description,
+          <br />
+          then click &ldquo;Generate&rdquo; to create your
+          <br />
+          personalised interview dialogue.
+        </p>
+      </div>
+    );
+  }
+
+  const secondSection = dialogue.findIndex((qa, i) => i > 0 && !!qa.section);
+  const blurFrom = secondSection > 0 ? secondSection : 3;
+
+  return (
+    <>
+      <h1
+        style={{
+          fontSize: "16pt",
+          fontWeight: 700,
+          color: "#1B3A5C",
+          marginBottom: 4,
+        }}
+      >
+        Interview Preparation
+      </h1>
+      <div
+        className="subtitle"
+        style={{
+          fontSize: "9pt",
+          color: "#777",
+          marginBottom: 18,
+          borderBottom: "2px solid #1B3A5C",
+          paddingBottom: 10,
+        }}
+      >
+        Candidate: {candidateName} &nbsp;|&nbsp; Role: {roleTitle}
+      </div>
+
+      {dialogue.map((qa, i) => (
+        <div
+          key={i}
+          style={
+            i >= blurFrom && !paid
+              ? { filter: "blur(5px)", userSelect: "none", pointerEvents: "none" }
+              : {}
+          }
+        >
+          {qa.section && (
+            <div
+              style={{
+                fontSize: "9pt",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "1.5px",
+                color: "#1B3A5C",
+                borderBottom: "2px solid #1B3A5C",
+                paddingBottom: 4,
+                marginTop: i === 0 ? 0 : 22,
+                marginBottom: 14,
+              }}
+            >
+              {qa.section}
+            </div>
+          )}
+          <div
+            className="qa"
+            style={{ marginBottom: 18, pageBreakInside: "avoid" }}
+          >
+          {/* Interviewer */}
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              marginBottom: 8,
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: "#EDF1F5",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                marginTop: 2,
+              }}
+            >
+              <User
+                style={{ width: 14, height: 14, color: "#1B3A5C" }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div
+                className="speaker interviewer"
+                style={{
+                  fontSize: "8pt",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  color: "#1B3A5C",
+                  marginBottom: 3,
+                }}
+              >
+                Interviewer
+              </div>
+              <div
+                className="text"
+                style={{
+                  fontSize: "9.5pt",
+                  lineHeight: 1.6,
+                  textAlign: "justify",
+                }}
+              >
+                {qa.question}
+              </div>
+            </div>
+          </div>
+
+          {/* Candidate */}
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              paddingLeft: 16,
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: "#EAF3EE",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                marginTop: 2,
+              }}
+            >
+              <FileText
+                style={{ width: 14, height: 14, color: "#1A5C3A" }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div
+                className="speaker candidate"
+                style={{
+                  fontSize: "8pt",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  color: "#1A5C3A",
+                  marginBottom: 3,
+                }}
+              >
+                {candidateName}
+              </div>
+              <div
+                className="text"
+                style={{
+                  fontSize: "9.5pt",
+                  lineHeight: 1.6,
+                  textAlign: "justify",
+                }}
+              >
+                {qa.answer}
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
 
