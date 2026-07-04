@@ -670,43 +670,48 @@ export function InterviewPrepForm() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 relative">
-          {/* Lock overlay — sits above previewRef so it doesn't appear in PDF */}
-          {dialogue.length > 1 && !paid && (
-            <div
-              className="absolute left-0 right-0 bottom-0 z-10 pointer-events-none"
-              style={{ top: "38%" }}
-            >
+          {/* Blur starts at the second section (page 2 equivalent) */}
+          {(() => {
+            const secondSection = dialogue.findIndex((qa, i) => i > 0 && !!qa.section);
+            const blurFrom = secondSection > 0 ? secondSection : 3;
+            const lockedCount = dialogue.length - blurFrom;
+            return dialogue.length > blurFrom && !paid ? (
               <div
-                className="h-full flex flex-col items-center pt-16"
-                style={{
-                  background:
-                    "linear-gradient(to bottom, transparent, rgba(240,239,233,0.97) 28%)",
-                }}
+                className="absolute left-0 right-0 bottom-0 z-10 pointer-events-none"
+                style={{ top: "42%" }}
               >
-                <div className="pointer-events-auto bg-background rounded-2xl border border-border shadow-xl p-6 text-center w-72 mx-auto mt-4">
-                  <div className="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center mx-auto mb-3">
-                    <Lock className="w-5 h-5 text-brand" />
+                <div
+                  className="h-full flex flex-col items-center pt-16"
+                  style={{
+                    background:
+                      "linear-gradient(to bottom, transparent, rgba(240,239,233,0.97) 28%)",
+                  }}
+                >
+                  <div className="pointer-events-auto bg-background rounded-2xl border border-border shadow-xl p-6 text-center w-72 mx-auto mt-4">
+                    <div className="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center mx-auto mb-3">
+                      <Lock className="w-5 h-5 text-brand" />
+                    </div>
+                    <p className="font-semibold text-sm mb-1">Full Interview Guide</p>
+                    <p className="text-xs text-text-muted mb-4 leading-relaxed">
+                      Page 1 is your free preview. Unlock{" "}
+                      <strong>{lockedCount} more Q&amp;As</strong> and download the full PDF for{" "}
+                      <strong className="text-brand">KES 100</strong>.
+                    </p>
+                    <button
+                      onClick={() => setShowPayment(true)}
+                      className={cn(
+                        buttonVariants(),
+                        "bg-brand hover:bg-brand-mid text-white w-full gap-2 text-sm"
+                      )}
+                    >
+                      <Lock className="w-4 h-4" />
+                      Unlock &amp; Download · KES 100
+                    </button>
                   </div>
-                  <p className="font-semibold text-sm mb-1">Full Interview Guide</p>
-                  <p className="text-xs text-text-muted mb-4 leading-relaxed">
-                    Preview the first question above. Unlock all{" "}
-                    <strong>{dialogue.length - 1} more Q&amp;As</strong> and download the full PDF for{" "}
-                    <strong className="text-brand">KES 100</strong>.
-                  </p>
-                  <button
-                    onClick={() => setShowPayment(true)}
-                    className={cn(
-                      buttonVariants(),
-                      "bg-brand hover:bg-brand-mid text-white w-full gap-2 text-sm"
-                    )}
-                  >
-                    <Lock className="w-4 h-4" />
-                    Unlock &amp; Download · KES 100
-                  </button>
                 </div>
               </div>
-            </div>
-          )}
+            ) : null;
+          })()}
 
           <div
             ref={previewRef}
@@ -754,11 +759,14 @@ export function InterviewPrepForm() {
                   {data.roleTitle || extractJobTitle(data.jobDescription)}
                 </div>
 
-                {dialogue.map((qa, i) => (
+                {(() => {
+                  const secondSection = dialogue.findIndex((qa, i) => i > 0 && !!qa.section);
+                  const blurFrom = secondSection > 0 ? secondSection : 3;
+                  return dialogue.map((qa, i) => (
                   <div
                     key={i}
                     style={
-                      i >= 1 && !paid
+                      i >= blurFrom && !paid
                         ? { filter: "blur(5px)", userSelect: "none", pointerEvents: "none" }
                         : {}
                     }
@@ -889,7 +897,8 @@ export function InterviewPrepForm() {
                     </div>
                     </div>
                   </div>
-                ))}
+                  ));
+                })()}
               </>
             )}
           </div>
