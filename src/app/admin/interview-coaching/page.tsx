@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { type InterviewEvent } from "@/lib/analytics";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
-import { Users, Eye, User, FileText, Download, Loader2 } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Users, Eye, User, FileText, Download, Loader2, Plus } from "lucide-react";
 import { InterviewDialogueContent, type QA } from "@/components/interview-prep-form";
 
 interface StoredPrep {
@@ -83,13 +86,21 @@ export default function InterviewCoachingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="max-w-xs">
-        <StatCard
-          title="Interview Preps Generated"
-          value={items.length}
-          icon={Users}
-          gradient="bg-gradient-to-br from-[#1A5C3A] to-[#134A2E]"
-        />
+      <div className="flex items-start justify-between gap-4">
+        <div className="max-w-xs flex-1">
+          <StatCard
+            title="Interview Preps Generated"
+            value={items.length}
+            icon={Users}
+            gradient="bg-gradient-to-br from-[#1A5C3A] to-[#134A2E]"
+          />
+        </div>
+        <Link
+          href="/admin/interview-coaching/new"
+          className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2 flex-shrink-0")}
+        >
+          <Plus className="w-4 h-4" /> Create New
+        </Link>
       </div>
 
       <DataTable

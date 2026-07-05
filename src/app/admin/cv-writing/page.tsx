@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { type CvEvent } from "@/lib/analytics";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
-import { FileText, Eye, Download, Loader2 } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { FileText, Eye, Download, Loader2, Plus } from "lucide-react";
 import {
   type CvData,
   type Template,
@@ -117,13 +120,21 @@ export default function CvWritingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="max-w-xs">
-        <StatCard
-          title="Total CVs Generated"
-          value={items.length}
-          icon={FileText}
-          gradient="bg-gradient-to-br from-[#2E7D52] to-[#1A5C3A]"
-        />
+      <div className="flex items-start justify-between gap-4">
+        <div className="max-w-xs flex-1">
+          <StatCard
+            title="Total CVs Generated"
+            value={items.length}
+            icon={FileText}
+            gradient="bg-gradient-to-br from-[#2E7D52] to-[#1A5C3A]"
+          />
+        </div>
+        <Link
+          href="/admin/cv-writing/new"
+          className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2 flex-shrink-0")}
+        >
+          <Plus className="w-4 h-4" /> Create New
+        </Link>
       </div>
 
       <DataTable

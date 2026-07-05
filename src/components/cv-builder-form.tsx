@@ -265,7 +265,7 @@ const DUMMY_DATA: CvData = {
   referencesUponRequest: false,
 };
 
-export function CvBuilderForm() {
+export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean } = {}) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<CvData>(initial);
   const [template, setTemplate] = useState<Template>("classic");
@@ -511,6 +511,28 @@ export function CvBuilderForm() {
     await downloadCvDocx(data);
   }
 
+  async function completeDownload(target: "pdf" | "word") {
+    setGeneratingFile(true);
+    try {
+      if (target === "pdf") await handlePrint();
+      else await handleDownloadDocx();
+    } finally {
+      setGeneratingFile(false);
+    }
+    fetch("/api/cv-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: data.fullName || "Candidate", template, data }),
+    }).catch(() => {});
+  }
+
+  // Admin "Create New" mode skips the M-Pesa payment step entirely — the
+  // admin isn't a paying customer, they're using their own tool.
+  function triggerDownload(target: "pdf" | "word") {
+    if (skipPayment) completeDownload(target);
+    else setPayTarget(target);
+  }
+
   const canGoNext = () => {
     if (step === 0) return data.fullName.trim() && data.email.trim();
     if (step === 1) return data.summary.trim();
@@ -529,6 +551,11 @@ export function CvBuilderForm() {
       {/* Left panel — Form */}
       <div className="w-full lg:w-1/2 overflow-y-auto border-r border-border bg-background">
         <div className="p-8">
+          {skipPayment && (
+            <div className="mb-6 flex items-center gap-2 bg-brand-light text-brand text-xs font-semibold px-3 py-2 rounded-lg">
+              <Sparkles className="w-3.5 h-3.5" /> Admin mode — downloads are free, no payment required
+            </div>
+          )}
           {/* Header */}
           <div className="mb-8 flex items-start justify-between gap-4">
             <div>
@@ -1269,7 +1296,7 @@ export function CvBuilderForm() {
             ) : (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setPayTarget("word")}
+                  onClick={() => triggerDownload("word")}
                   className={cn(buttonVariants({ variant: "outline" }), "gap-2 border-brand text-brand hover:bg-brand/5")}
                 >
                   <Download className="w-4 h-4" /> Download Word
@@ -1277,7 +1304,7 @@ export function CvBuilderForm() {
                 <button
                   onClick={() => {
                     setMobilePreviewOpen(true);
-                    setPayTarget("pdf");
+                    triggerDownload("pdf");
                   }}
                   className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2")}
                 >
@@ -1297,18 +1324,7 @@ export function CvBuilderForm() {
           onSuccess={async () => {
             const target = payTarget;
             setPayTarget(null);
-            setGeneratingFile(true);
-            try {
-              if (target === "pdf") await handlePrint();
-              else await handleDownloadDocx();
-            } finally {
-              setGeneratingFile(false);
-            }
-            fetch("/api/cv-events", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: data.fullName || "Candidate", template, data }),
-            }).catch(() => {});
+            if (target) await completeDownload(target);
           }}
           onClose={() => setPayTarget(null)}
         />
@@ -1415,14 +1431,14 @@ export function CvBuilderForm() {
               <LayoutTemplate className="w-3.5 h-3.5" /> Choose Template
             </button>
             <button
-              onClick={() => setPayTarget("word")}
+              onClick={() => triggerDownload("word")}
               disabled={!hasContent}
               className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5 disabled:opacity-40 border-brand text-brand hover:bg-brand/5")}
             >
               <Download className="w-3.5 h-3.5" /> Word
             </button>
             <button
-              onClick={() => setPayTarget("pdf")}
+              onClick={() => triggerDownload("pdf")}
               disabled={!hasContent}
               className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5 disabled:opacity-40")}
             >
@@ -1456,7 +1472,7 @@ export function CvBuilderForm() {
                   <button
                     onClick={() => {
                       setShowMobileDownloadMenu(false);
-                      setPayTarget("pdf");
+                      triggerDownload("pdf");
                     }}
                     className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium hover:bg-background transition-colors text-left"
                   >
@@ -1465,7 +1481,7 @@ export function CvBuilderForm() {
                   <button
                     onClick={() => {
                       setShowMobileDownloadMenu(false);
-                      setPayTarget("word");
+                      triggerDownload("word");
                     }}
                     className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium hover:bg-background transition-colors text-left border-t border-border"
                   >

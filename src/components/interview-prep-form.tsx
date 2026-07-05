@@ -310,7 +310,7 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
   ];
 }
 
-export function InterviewPrepForm() {
+export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boolean } = {}) {
   const [data, setData] = useState<PrepData>({
     candidateName: "",
     roleTitle: "",
@@ -363,7 +363,7 @@ export function InterviewPrepForm() {
         if (res.status === 503) {
           const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
           setDialogue(result);
-          setPaid(false);
+          setPaid(skipPayment);
           setMobilePreviewOpen(true);
           return;
         }
@@ -371,19 +371,19 @@ export function InterviewPrepForm() {
       }
       const result = json.qa ?? [];
       setDialogue(result);
-      setPaid(false);
+      setPaid(skipPayment);
       setMobilePreviewOpen(true);
     } catch (e) {
       setGenerateError(e instanceof Error ? e.message : "Generation failed. Please try again.");
       // Fallback to local generation
       const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
       setDialogue(result);
-      setPaid(false);
+      setPaid(skipPayment);
       setMobilePreviewOpen(true);
     } finally {
       setGenerating(false);
     }
-  }, [canGenerate, data]);
+  }, [canGenerate, data, skipPayment]);
 
   async function handlePrint() {
     const el = previewRef.current;
@@ -403,11 +403,48 @@ export function InterviewPrepForm() {
       .save();
   }
 
+  async function completeUnlockAndDownload() {
+    setPaid(true);
+    setGeneratingFile(true);
+    // Give React a render tick to remove the blur before html2canvas snapshots it.
+    await new Promise((r) => setTimeout(r, 150));
+    try {
+      await handlePrint();
+    } finally {
+      setGeneratingFile(false);
+    }
+    fetch("/api/interview-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: data.candidateName || "Candidate",
+        role: data.roleTitle || extractJobTitle(data.jobDescription),
+        data: {
+          candidateName: data.candidateName,
+          roleTitle: data.roleTitle || extractJobTitle(data.jobDescription),
+          dialogue,
+        },
+      }),
+    }).catch(() => {});
+  }
+
+  // Admin "Create New" mode skips the M-Pesa payment step entirely — the
+  // admin isn't a paying customer, they're using their own tool.
+  function triggerUnlock() {
+    if (skipPayment) completeUnlockAndDownload();
+    else setShowPayment(true);
+  }
+
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Left panel — Form */}
       <div className="w-full lg:w-[420px] overflow-y-auto border-r border-border bg-background flex-shrink-0">
         <div className="p-8">
+          {skipPayment && (
+            <div className="mb-6 flex items-center gap-2 bg-brand-light text-brand text-xs font-semibold px-3 py-2 rounded-lg">
+              <Sparkles className="w-3.5 h-3.5" /> Admin mode — downloads are free, no payment required
+            </div>
+          )}
           <div className="mb-8">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-brand mb-2">
               Interview Preparation
@@ -680,7 +717,7 @@ export function InterviewPrepForm() {
           </div>
           {dialogue.length > 0 && (
             <button
-              onClick={() => setShowPayment(true)}
+              onClick={triggerUnlock}
               className={cn(buttonVariants({ variant: "outline" }), "h-8 text-xs gap-1.5")}
             >
               <Download className="w-3.5 h-3.5" /> Download PDF
@@ -691,29 +728,9 @@ export function InterviewPrepForm() {
               service="Interview Prep Download"
               amount={100}
               onSuccess={async () => {
-              setPaid(true);
-              setShowPayment(false);
-              setGeneratingFile(true);
-              await new Promise(r => setTimeout(r, 150));
-              try {
-                await handlePrint();
-              } finally {
-                setGeneratingFile(false);
-              }
-              fetch("/api/interview-events", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  name: data.candidateName || "Candidate",
-                  role: data.roleTitle || extractJobTitle(data.jobDescription),
-                  data: {
-                    candidateName: data.candidateName,
-                    roleTitle: data.roleTitle || extractJobTitle(data.jobDescription),
-                    dialogue,
-                  },
-                }),
-              }).catch(() => {});
-            }}
+                setShowPayment(false);
+                await completeUnlockAndDownload();
+              }}
               onClose={() => setShowPayment(false)}
             />
           )}
@@ -748,7 +765,7 @@ export function InterviewPrepForm() {
                       <strong className="text-brand">KES 100</strong>.
                     </p>
                     <button
-                      onClick={() => setShowPayment(true)}
+                      onClick={triggerUnlock}
                       className={cn(
                         buttonVariants(),
                         "bg-brand hover:bg-brand-mid text-white w-full gap-2 text-sm"

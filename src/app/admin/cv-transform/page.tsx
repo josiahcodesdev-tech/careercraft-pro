@@ -111,7 +111,7 @@ export default function AdminCvTransformPage() {
 
   const handleLoad = (parsed: ParsedCv) => {
     localStorage.setItem(CV_TRANSFORM_KEY, JSON.stringify(parsed));
-    router.push("/cv-builder?transform=1");
+    router.push("/admin/cv-writing/new?transform=1");
   };
 
   const removeItem = (id: string) => setItems((prev) => prev.filter((it) => it.id !== id));
