@@ -122,7 +122,7 @@ export default function CvWritingPage() {
           title="Total CVs Generated"
           value={items.length}
           icon={FileText}
-          gradient="bg-gradient-to-br from-[#10b981] to-[#059669]"
+          gradient="bg-gradient-to-br from-[#2E7D52] to-[#1A5C3A]"
         />
       </div>
 

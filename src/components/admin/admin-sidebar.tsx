@@ -43,7 +43,7 @@ export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () =
       )}
       <aside
         className={cn(
-          "bg-[#1B2838] text-white flex flex-col flex-shrink-0 h-screen z-50 transition-transform duration-300",
+          "bg-[#0F3323] text-white flex flex-col flex-shrink-0 h-screen z-50 transition-transform duration-300",
           "fixed lg:static w-60",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}

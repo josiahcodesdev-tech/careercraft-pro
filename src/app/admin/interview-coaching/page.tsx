@@ -88,7 +88,7 @@ export default function InterviewCoachingPage() {
           title="Interview Preps Generated"
           value={items.length}
           icon={Users}
-          gradient="bg-gradient-to-br from-[#14b8a6] to-[#0d9488]"
+          gradient="bg-gradient-to-br from-[#1A5C3A] to-[#134A2E]"
         />
       </div>
 

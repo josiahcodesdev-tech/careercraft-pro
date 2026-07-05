@@ -56,10 +56,10 @@ export default function AdminDashboardPage() {
   if (!data) return null;
 
   const typeColors: Record<string, string> = {
-    "CV Download": "bg-emerald-50 text-emerald-700",
-    "Interview Prep": "bg-teal-50 text-teal-700",
-    "Enquiry": "bg-sky-50 text-sky-700",
-    "Proposal": "bg-amber-50 text-amber-700",
+    "CV Download": "bg-brand-light text-brand",
+    "Interview Prep": "bg-brand-light text-brand-mid",
+    "Enquiry": "bg-[#FBF3DC] text-[#8B6914]",
+    "Proposal": "bg-[#FBF3DC] text-[#D4A017]",
   };
 
   return (
@@ -72,28 +72,28 @@ export default function AdminDashboardPage() {
           title="Total Enquiries"
           value={data.enquiries.length}
           icon={Mail}
-          gradient="bg-gradient-to-br from-[#0ea5e9] to-[#2563eb]"
+          gradient="bg-gradient-to-br from-[#D4A017] to-[#B8860B]"
           description={`${data.enquiries.filter((e) => isToday(e.date)).length} new today`}
         />
         <StatCard
           title="CV Writing"
           value={data.cvDownloads.length}
           icon={FileText}
-          gradient="bg-gradient-to-br from-[#10b981] to-[#059669]"
+          gradient="bg-gradient-to-br from-[#2E7D52] to-[#1A5C3A]"
           description="CVs generated"
         />
         <StatCard
           title="Interview Coaching"
           value={data.interviewPreps.length}
           icon={Users}
-          gradient="bg-gradient-to-br from-[#14b8a6] to-[#0d9488]"
+          gradient="bg-gradient-to-br from-[#1A5C3A] to-[#134A2E]"
           description="Preps generated"
         />
         <StatCard
           title="Proposals"
           value={data.proposals.length}
           icon={Briefcase}
-          gradient="bg-gradient-to-br from-[#f59e0b] to-[#d97706]"
+          gradient="bg-gradient-to-br from-[#134A2E] to-[#0B2F1D]"
           description="Proposals tracked"
         />
       </div>

@@ -23,7 +23,7 @@ export default function ProposalsPage() {
           title="Proposals Tracked"
           value={items.length}
           icon={Briefcase}
-          gradient="bg-gradient-to-br from-[#f59e0b] to-[#d97706]"
+          gradient="bg-gradient-to-br from-[#134A2E] to-[#0B2F1D]"
         />
       </div>
 

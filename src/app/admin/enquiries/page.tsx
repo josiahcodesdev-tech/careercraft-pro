@@ -23,7 +23,7 @@ export default function EnquiriesPage() {
           title="Total Enquiries"
           value={items.length}
           icon={Mail}
-          gradient="bg-gradient-to-br from-[#0ea5e9] to-[#2563eb]"
+          gradient="bg-gradient-to-br from-[#D4A017] to-[#B8860B]"
         />
       </div>
 
