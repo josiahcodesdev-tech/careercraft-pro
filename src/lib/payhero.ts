@@ -14,58 +14,42 @@ function dig(obj: unknown, path: string[]): unknown {
   return cur;
 }
 
-function firstDefined(obj: Record<string, unknown>, paths: string[][]): unknown {
+// Only matches string values. PayHero's top-level `status` field is
+// sometimes a BOOLEAN meaning "the API call itself succeeded" (not
+// "the payment succeeded") — treating it as a status string caused
+// confirmations to silently never match "SUCCESS"/"FAILED".
+function firstDefinedString(obj: Record<string, unknown>, paths: string[][]): string | undefined {
   for (const path of paths) {
     const val = dig(obj, path);
-    if (val !== undefined && val !== null && val !== "") return val;
+    if (typeof val === "string" && val !== "") return val;
+  }
+  return undefined;
+}
+
+function firstDefinedNumber(obj: Record<string, unknown>, paths: string[][]): number | undefined {
+  for (const path of paths) {
+    const val = dig(obj, path);
+    if (typeof val === "number") return val;
+    if (typeof val === "string" && val !== "" && !Number.isNaN(Number(val))) return Number(val);
   }
   return undefined;
 }
 
 /**
- * PayHero's webhook payload shape isn't publicly documented in detail and
- * varies by response/response.data nesting, so every lookup here tries
- * several plausible locations/casings rather than a single fixed path.
+ * PayHero wraps the real transaction result in a nested `response` object
+ * with PascalCase fields (Status, ResultCode, CheckoutRequestID,
+ * ExternalReference) — mirroring the raw Safaricom Daraja STK callback
+ * shape (Body.stkCallback.ResultCode etc). Some endpoints/versions instead
+ * return a flat snake_case body. This checks every plausible location
+ * rather than assuming one fixed shape.
  */
-export function extractPayheroFields(body: Record<string, unknown>): {
-  checkoutRequestId: string;
-  externalReference: string;
-  status: string;
-} {
-  const checkoutRequestId = String(
-    firstDefined(body, [
-      ["CheckoutRequestID"],
-      ["checkout_request_id"],
-      ["response", "CheckoutRequestID"],
-      ["response", "checkout_request_id"],
-      ["data", "CheckoutRequestID"],
-      ["data", "checkout_request_id"],
-      ["transaction", "CheckoutRequestID"],
-      ["transaction", "checkout_request_id"],
-    ]) ?? ""
-  );
-
-  const externalReference = String(
-    firstDefined(body, [
-      ["ExternalReference"],
-      ["external_reference"],
-      ["reference"],
-      ["Reference"],
-      ["response", "ExternalReference"],
-      ["response", "external_reference"],
-      ["data", "ExternalReference"],
-      ["data", "external_reference"],
-      ["transaction", "ExternalReference"],
-      ["transaction", "external_reference"],
-    ]) ?? ""
-  );
-
-  const rawStatus = String(
-    firstDefined(body, [
-      ["status"],
-      ["Status"],
-      ["response", "status"],
+export function derivePayheroStatus(data: Record<string, unknown>): string {
+  const rawStatus = (
+    firstDefinedString(data, [
       ["response", "Status"],
+      ["response", "status"],
+      ["Status"],
+      ["status"],
       ["data", "status"],
       ["transaction", "status"],
       ["response_status"],
@@ -77,9 +61,69 @@ export function extractPayheroFields(body: Record<string, unknown>): {
   let status = rawStatus;
   if (status === "COMPLETE" || status === "COMPLETED" || status === "SUCCESSFUL") status = "SUCCESS";
   if (status === "CANCELLED" || status === "CANCELED") status = "FAILED";
-  if (!status && body.success === false) status = "FAILED";
 
-  return { checkoutRequestId, externalReference, status: status || "PENDING" };
+  if (!status) {
+    // ResultCode (0 = success, non-zero = failure/cancelled) is the most
+    // reliable signal on shapes that don't expose a plain Status string —
+    // e.g. the raw Daraja stkCallback passthrough.
+    const resultCode = firstDefinedNumber(data, [
+      ["response", "ResultCode"],
+      ["ResultCode"],
+      ["Body", "stkCallback", "ResultCode"],
+      ["data", "ResultCode"],
+      ["transaction", "ResultCode"],
+    ]);
+    if (resultCode !== undefined) status = resultCode === 0 ? "SUCCESS" : "FAILED";
+  }
+
+  if (!status && data.success === false) status = "FAILED";
+
+  return status || "PENDING";
+}
+
+export function extractCheckoutRequestId(body: Record<string, unknown>): string {
+  return (
+    firstDefinedString(body, [
+      ["response", "CheckoutRequestID"],
+      ["response", "checkout_request_id"],
+      ["CheckoutRequestID"],
+      ["checkout_request_id"],
+      ["data", "CheckoutRequestID"],
+      ["data", "checkout_request_id"],
+      ["transaction", "CheckoutRequestID"],
+      ["transaction", "checkout_request_id"],
+      ["Body", "stkCallback", "CheckoutRequestID"],
+    ]) ?? ""
+  );
+}
+
+export function extractExternalReference(body: Record<string, unknown>): string {
+  return (
+    firstDefinedString(body, [
+      ["response", "ExternalReference"],
+      ["response", "external_reference"],
+      ["ExternalReference"],
+      ["external_reference"],
+      ["reference"],
+      ["Reference"],
+      ["data", "ExternalReference"],
+      ["data", "external_reference"],
+      ["transaction", "ExternalReference"],
+      ["transaction", "external_reference"],
+    ]) ?? ""
+  );
+}
+
+export function extractPayheroFields(body: Record<string, unknown>): {
+  checkoutRequestId: string;
+  externalReference: string;
+  status: string;
+} {
+  return {
+    checkoutRequestId: extractCheckoutRequestId(body),
+    externalReference: extractExternalReference(body),
+    status: derivePayheroStatus(body),
+  };
 }
 
 export async function recordPaymentStatus(fields: {

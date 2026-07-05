@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { extractCheckoutRequestId } from "@/lib/payhero";
 
 const PAYHERO_BASE = "https://backend.payhero.co.ke/api/v2";
 
@@ -61,9 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Return PayHero's checkout_request_id so the client can poll with it
-    const checkoutRequestId = String(
-      data.checkout_request_id ?? data.CheckoutRequestID ?? ""
-    );
+    const checkoutRequestId = extractCheckoutRequestId(data);
 
     return NextResponse.json({
       success: true,

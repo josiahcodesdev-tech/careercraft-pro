@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { lookupPaymentStatus, recordPaymentStatus } from "@/lib/payhero";
+import { lookupPaymentStatus, recordPaymentStatus, derivePayheroStatus } from "@/lib/payhero";
 
 const PAYHERO_BASE = "https://backend.payhero.co.ke/api/v2";
 
@@ -8,30 +8,6 @@ function getAuth(): string {
   const p = process.env.PAYHERO_API_PASSWORD;
   if (!u || !p) throw new Error("PayHero credentials not configured.");
   return `Basic ${Buffer.from(`${u}:${p}`).toString("base64")}`;
-}
-
-function extractStatus(data: Record<string, unknown>): string {
-  // Only trust explicit status strings — never infer from response_code
-  // (PayHero uses response_code "0" to mean "API call OK", not "payment succeeded")
-  const raw =
-    data.status ??
-    data.Status ??
-    (data.data as Record<string, unknown>)?.status ??
-    (data.transaction as Record<string, unknown>)?.status ??
-    data.response_status ??
-    "";
-
-  let status = String(raw).toUpperCase().trim();
-
-  // Normalise aliases PayHero may use
-  if (status === "COMPLETE" || status === "COMPLETED" || status === "SUCCESSFUL") status = "SUCCESS";
-  if (status === "CANCELLED" || status === "CANCELED") status = "FAILED";
-
-  // If the API call itself failed (network/auth error), treat as still pending
-  // so we keep polling rather than silently failing
-  if (!status && data.success === false) status = "FAILED";
-
-  return status || "PENDING";
 }
 
 export async function GET(req: NextRequest) {
@@ -66,7 +42,7 @@ export async function GET(req: NextRequest) {
     const data = await phRes.json() as Record<string, unknown>;
     console.log("[PayHero status]", ref, JSON.stringify(data));
 
-    const status = extractStatus(data);
+    const status = derivePayheroStatus(data);
 
     // Cache a terminal result so the next poll (or a retry using the other
     // reference form) can hit the fast DB path instead of calling out again.
