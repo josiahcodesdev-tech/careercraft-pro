@@ -10,7 +10,6 @@ const pageTitles: Record<string, string> = {
   "/admin": "Dashboard",
   "/admin/cv-writing": "CV Writing",
   "/admin/cv-writing/new": "New CV",
-  "/admin/cv-transform": "Batch CV Transform",
   "/admin/interview-coaching": "Interview Coaching",
   "/admin/interview-coaching/new": "New Interview Prep",
   "/admin/proposals": "Proposals & Grants",

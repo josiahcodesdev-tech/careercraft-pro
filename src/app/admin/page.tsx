@@ -3,7 +3,19 @@
 import { useEffect, useState, useMemo } from "react";
 import { type Analytics } from "@/lib/analytics";
 import { StatCard } from "@/components/admin/stat-card";
+import { WeeklyActivityChart, type DayBucket } from "@/components/admin/weekly-activity-chart";
+import { RevenueShareChart, type RevenueSlice } from "@/components/admin/revenue-share-chart";
 import { Mail, FileText, Users, Briefcase, Search } from "lucide-react";
+
+// Fixed prices from the payment flow (PaymentModal `amount` props in
+// cv-builder-form.tsx / interview-prep-form.tsx) — enquiries/proposals have
+// no fixed price, so they're excluded from the revenue chart specifically.
+const CV_PRICE = 40;
+const INTERVIEW_PRICE = 100;
+
+function localDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 interface ActivityItem {
   type: string;
@@ -26,6 +38,40 @@ export default function AdminDashboardPage() {
       .then((json) => setData(json as Analytics))
       .catch(() => setData({ cvDownloads: [], interviewPreps: [], enquiries: [], proposals: [] }));
   }, []);
+
+  const weeklyDays: DayBucket[] = useMemo(() => {
+    const days: DayBucket[] = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      days.push({
+        label: d.toLocaleDateString("en-GB", { weekday: "short", day: "2-digit" }),
+        dateKey: localDateKey(d),
+        values: [0, 0, 0, 0],
+      });
+    }
+    if (!data) return days;
+
+    const indexByKey = new Map(days.map((d, i) => [d.dateKey, i]));
+    const bump = (dateStr: string, seriesIdx: number) => {
+      const idx = indexByKey.get(localDateKey(new Date(dateStr)));
+      if (idx !== undefined) days[idx].values[seriesIdx] += 1;
+    };
+    data.cvDownloads.forEach((e) => bump(e.date, 0));
+    data.interviewPreps.forEach((e) => bump(e.date, 1));
+    data.enquiries.forEach((e) => bump(e.date, 2));
+    data.proposals.forEach((e) => bump(e.date, 3));
+    return days;
+  }, [data]);
+
+  const revenueSlices: RevenueSlice[] = useMemo(() => {
+    if (!data) return [];
+    return [
+      { key: "cv", label: "CV Writing", value: data.cvDownloads.length * CV_PRICE, color: "#008300" },
+      { key: "interview", label: "Interview Coaching", value: data.interviewPreps.length * INTERVIEW_PRICE, color: "#2a78d6" },
+    ].filter((s) => s.value > 0);
+  }, [data]);
 
   const allItems: ActivityItem[] = useMemo(() => {
     if (!data) return [];
@@ -96,6 +142,14 @@ export default function AdminDashboardPage() {
           gradient="bg-gradient-to-br from-[#134A2E] to-[#0B2F1D]"
           description="Proposals tracked"
         />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2">
+          <WeeklyActivityChart days={weeklyDays} />
+        </div>
+        <RevenueShareChart slices={revenueSlices} />
       </div>
 
       {/* Filter bar */}
