@@ -76,7 +76,11 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
         return;
       }
 
-      setPollRef(data.checkoutRequestId || reference);
+      // Poll using our own external_reference — PayHero's transaction-status
+      // endpoint looks transactions up by that (confirmed against the
+      // PayHero dashboard's "External Ref." column), not by the raw
+      // Safaricom-style checkoutRequestId, which it returns NOT_FOUND for.
+      setPollRef(reference);
       setPollCount(0);
       setStage("polling");
     } catch {
