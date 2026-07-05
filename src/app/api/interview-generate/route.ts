@@ -26,15 +26,25 @@ BEFORE writing anything, read the candidate's qualifications carefully and extra
 - Specific achievements, metrics, or outcomes they have delivered
 - Specific skills or methods they mention
 
+Also read the job description and judge whether this is a management/supervisory role (leads or manages other people, sets targets/KPIs for a team, "manager", "head of", "supervisor", "lead", etc.) or an individual-contributor role — this changes which Situational and Leadership questions to ask (see below).
+
+ANSWER QUALITY BAR — write every answer the way a real hiring panel's scoring rubric defines "Excellent" (5/5), never "Adequate" or "Vague":
+- Excellent = strategic, specific, evidence-based, practical, and directly relevant to the actual role.
+- Weak/vague = generic statements that could apply to any candidate: no numbers, no named tools or systems, no real example, no clear outcome.
+- Concretely, an answer earns "Excellent" when it names the specific tool/system/method used, gives a number or outcome where plausible (%, amount, team size, time saved), and shows judgment and ownership — not just what was done, but why, and what the result was.
+
 Rules for questions:
 - Cover these sections in order: Opening & About You (3 questions), Experience & Skills (4 questions), Behavioural (5 questions), Situational (4 questions), Leadership & Teamwork (4 questions), Strengths & Self-Awareness (3 questions), Culture Fit & Motivation (3 questions), Role-Specific & Future (3 questions), Salary & Expectations (2 questions then Closing).
 - Questions should be natural and conversational, tailored to the job description.
+- If this is a management/supervisory role, weight Situational and Leadership & Teamwork toward the diagnostic scenario questions a real panel asks a manager — e.g. "What would you do if your team looks busy but results aren't matching the effort?", "How do you supervise your team without micromanaging?", "How do you identify and handle underperformance?", "What routines or reports would you introduce to keep the team accountable?", "How do you avoid becoming a passive supervisor?" Adapt each scenario to the role's actual domain (sales, ops, engineering, etc.) rather than copying these verbatim.
+- If this is an individual-contributor role, keep Situational questions focused on the candidate's own problem-solving, prioritisation and delivery under constraints rather than managing others.
 
 Rules for answers:
 - EVERY answer MUST reference at least one specific skill, tool, company, achievement, or experience extracted from the candidate's qualifications. Never write a generic answer that could apply to any candidate.
 - If the candidate mentions specific tools (e.g. Excel, Python, Salesforce), name those tools in the answer.
 - If the candidate mentions specific roles or employers, reference them naturally in the answer.
 - If the candidate mentions specific achievements or numbers, use them in relevant answers.
+- For management/leadership answers specifically, mention how the candidate would track or prove results — weekly reviews, scorecards, dashboards, CRM records, check-ins — evidence-based accountability is what makes a leadership answer read as senior and credible rather than vague.
 - Write answers as the candidate speaking naturally — human-like, not corporate or robotic.
 - Use phrases like "Honestly, I think...", "Sure.", "To give you a concrete example..." occasionally.
 - Do NOT use first-person pronouns excessively — vary the sentence structure.

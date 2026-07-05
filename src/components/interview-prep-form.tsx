@@ -221,6 +221,10 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
       question: "If you discovered a colleague was underperforming, what would you do?",
       answer: `I'd first consider whether there might be circumstances I'm not aware of. If appropriate, I'd offer support privately — sometimes a colleague just needs help or someone to listen. If the underperformance was affecting the team's output, I'd raise it respectfully with my manager rather than making assumptions or creating tension.`,
     },
+    {
+      question: "Imagine things look busy on the surface, but results aren't matching the effort. How would you diagnose what's going wrong?",
+      answer: `I'd separate activity from outcomes first, since being busy isn't the same as being effective. I'd look at where things are actually stalling — is it the quality of what's going in, unclear priorities, a process bottleneck, or something external — rather than assuming it's a lack of effort. Once I have evidence of the real cause, I fix that specific blocker instead of just pushing everyone to work harder.`,
+    },
 
     // ── Leadership & Teamwork ────────────────────────────
     {
@@ -239,6 +243,10 @@ function generateDialogue(name: string, role: string, jd: string, qualifications
     {
       question: "Give an example of how you mentored or developed someone.",
       answer: `I once mentored a junior colleague who was struggling with confidence in presentations. I shared techniques I'd learned, practised with them before team meetings, and gave constructive feedback each time. Over a few months, their presentation skills improved noticeably, and they went on to lead client-facing presentations independently. It was one of the most rewarding experiences in my career.`,
+    },
+    {
+      question: "How do you keep people accountable without micromanaging or creating a culture of fear?",
+      answer: `I rely on clear expectations and lightweight, regular check-ins rather than hovering over people. I make sure progress is visible — a shared tracker, a quick weekly review, a simple report — so accountability comes from the work being transparent, not from me chasing anyone. When someone falls behind, I address it directly and early, focusing on the specific gap rather than making it personal.`,
     },
 
     // ── Strengths, Weaknesses & Self-awareness ───────────
