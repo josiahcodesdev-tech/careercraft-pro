@@ -276,6 +276,7 @@ export function CvBuilderForm() {
   const [payTarget, setPayTarget] = useState<"pdf" | "word" | null>(null);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [showMobileDownloadMenu, setShowMobileDownloadMenu] = useState(false);
+  const [generatingFile, setGeneratingFile] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1294,9 +1295,15 @@ export function CvBuilderForm() {
           service="CV Builder Download"
           amount={40}
           onSuccess={async () => {
+            const target = payTarget;
             setPayTarget(null);
-            if (payTarget === "pdf") await handlePrint();
-            else await handleDownloadDocx();
+            setGeneratingFile(true);
+            try {
+              if (target === "pdf") await handlePrint();
+              else await handleDownloadDocx();
+            } finally {
+              setGeneratingFile(false);
+            }
             fetch("/api/cv-events", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -1500,6 +1507,13 @@ export function CvBuilderForm() {
           </div>
         </div>
       </div>
+
+      {generatingFile && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 bg-foreground text-background rounded-xl shadow-xl px-4 py-3 text-sm font-medium">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Generating your file…
+        </div>
+      )}
     </div>
   );
 }

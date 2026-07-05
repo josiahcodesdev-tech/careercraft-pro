@@ -323,6 +323,7 @@ export function InterviewPrepForm() {
   const [uploadedFile, setUploadedFile] = useState<string>("");
   const [showPayment, setShowPayment] = useState(false);
   const [paid, setPaid] = useState(false);
+  const [generatingFile, setGeneratingFile] = useState(false);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [uploadedCv, setUploadedCv] = useState<string>("");
   const [scanningJd, setScanningJd] = useState(false);
@@ -692,8 +693,13 @@ export function InterviewPrepForm() {
               onSuccess={async () => {
               setPaid(true);
               setShowPayment(false);
+              setGeneratingFile(true);
               await new Promise(r => setTimeout(r, 150));
-              await handlePrint();
+              try {
+                await handlePrint();
+              } finally {
+                setGeneratingFile(false);
+              }
               fetch("/api/interview-events", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -775,6 +781,13 @@ export function InterviewPrepForm() {
           </div>
         </div>
       </div>
+
+      {generatingFile && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 bg-foreground text-background rounded-xl shadow-xl px-4 py-3 text-sm font-medium">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Generating your file…
+        </div>
+      )}
     </div>
   );
 }

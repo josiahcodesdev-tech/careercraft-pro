@@ -36,8 +36,11 @@ function formatTime(d: Date) {
   });
 }
 
-const POLL_INTERVAL_MS = 2000;
-const MAX_POLLS = 60; // 60 × 2 s = 2 min
+// Status checks now hit our own DB first (populated by PayHero's webhook)
+// before falling back to PayHero's API, so a tighter interval no longer
+// means hammering an external service on every tick.
+const POLL_INTERVAL_MS = 1200;
+const MAX_POLLS = 100; // 100 × 1.2 s = 2 min
 
 export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentModalProps) {
   const [phone, setPhone] = useState("");
@@ -103,7 +106,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
         if (s === "SUCCESS") {
           paidAt.current = new Date();
           setStage("success");
-          setTimeout(onSuccess, 1800);
+          setTimeout(onSuccess, 1200);
         } else if (s === "FAILED") {
           setStage("failed");
           setError("Payment was cancelled or declined. Please try again.");
