@@ -511,7 +511,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
     await downloadCvDocx(data);
   }
 
-  async function completeDownload(target: "pdf" | "word") {
+  async function completeDownload(target: "pdf" | "word", reference?: string) {
     setGeneratingFile(true);
     try {
       if (target === "pdf") await handlePrint();
@@ -522,7 +522,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
     fetch("/api/cv-events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: data.fullName || "Candidate", template, data }),
+      body: JSON.stringify({ name: data.fullName || "Candidate", template, data, reference }),
     }).catch(() => {});
   }
 
@@ -1321,10 +1321,10 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
         <PaymentModal
           service="CV Builder Download"
           amount={40}
-          onSuccess={async () => {
+          onSuccess={async (reference) => {
             const target = payTarget;
             setPayTarget(null);
-            if (target) await completeDownload(target);
+            if (target) await completeDownload(target, reference);
           }}
           onClose={() => setPayTarget(null)}
         />

@@ -411,7 +411,7 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
       .save();
   }
 
-  async function completeUnlockAndDownload() {
+  async function completeUnlockAndDownload(reference?: string) {
     setPaid(true);
     setGeneratingFile(true);
     // Give React a render tick to remove the blur before html2canvas snapshots it.
@@ -432,6 +432,7 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
           roleTitle: data.roleTitle || extractJobTitle(data.jobDescription),
           dialogue,
         },
+        reference,
       }),
     }).catch(() => {});
   }
@@ -735,9 +736,9 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
             <PaymentModal
               service="Interview Prep Download"
               amount={100}
-              onSuccess={async () => {
+              onSuccess={async (reference) => {
                 setShowPayment(false);
-                await completeUnlockAndDownload();
+                await completeUnlockAndDownload(reference);
               }}
               onClose={() => setShowPayment(false)}
             />

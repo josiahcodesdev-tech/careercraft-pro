@@ -17,7 +17,7 @@ import { buttonVariants } from "@/components/ui/button";
 export interface PaymentModalProps {
   service: string;
   amount: number;
-  onSuccess: () => void;
+  onSuccess: (reference: string) => void;
   onClose: () => void;
 }
 
@@ -110,7 +110,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
         if (s === "SUCCESS") {
           paidAt.current = new Date();
           setStage("success");
-          setTimeout(onSuccess, 1200);
+          setTimeout(() => onSuccess(externalRef), 1200);
         } else if (s === "FAILED") {
           setStage("failed");
           setError("Payment was cancelled or declined. Please try again.");
