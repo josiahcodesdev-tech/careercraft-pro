@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/openai";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Generating 30 Q&A pairs can take longer than Vercel's 10s default —
 // without this, slower OpenAI responses get killed by a 504 before they finish.
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  const limit = checkRateLimit(`interview-generate:${getClientIp(req)}`, 10, 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please slow down." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+    );
+  }
+
   let client;
   try {
     client = getOpenAI();

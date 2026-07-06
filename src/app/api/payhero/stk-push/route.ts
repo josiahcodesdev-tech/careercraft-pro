@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractCheckoutRequestId } from "@/lib/payhero";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const PAYHERO_BASE = "https://backend.payhero.co.ke/api/v2";
 
@@ -21,15 +22,39 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as { phone: string; amount: number; reference: string };
 
   const channelId = process.env.PAYHERO_CHANNEL_ID;
-  const callbackUrl = process.env.PAYHERO_CALLBACK_URL;
+  const callbackSecret = process.env.PAYHERO_CALLBACK_SECRET;
 
-  if (!channelId) {
+  if (!channelId || !process.env.PAYHERO_CALLBACK_URL || !callbackSecret) {
     return NextResponse.json({ error: "Payment service not configured." }, { status: 503 });
   }
+
+  // Embed a secret token in the callback URL we hand PayHero, so
+  // /api/payhero/callback can reject forged "payment succeeded" POSTs from
+  // anyone who isn't PayHero itself — never exposed to the browser.
+  const callbackUrl = new URL(process.env.PAYHERO_CALLBACK_URL);
+  callbackUrl.searchParams.set("token", callbackSecret);
 
   const phone = normalisePhone(body.phone || "");
   if (!/^2547\d{8}$|^2541\d{8}$/.test(phone)) {
     return NextResponse.json({ error: "Invalid phone number. Use format 07XXXXXXXX." }, { status: 400 });
+  }
+
+  // Cap STK pushes per phone number (don't let the site spam a stranger's
+  // phone with M-Pesa prompts) and per IP (don't let one attacker cycle
+  // through numbers).
+  const byPhone = checkRateLimit(`stk:phone:${phone}`, 3, 10 * 60 * 1000);
+  if (!byPhone.allowed) {
+    return NextResponse.json(
+      { error: "Too many payment attempts for this number. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(byPhone.retryAfterSeconds) } }
+    );
+  }
+  const byIp = checkRateLimit(`stk:ip:${getClientIp(req)}`, 10, 60 * 60 * 1000);
+  if (!byIp.allowed) {
+    return NextResponse.json(
+      { error: "Too many payment attempts. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(byIp.retryAfterSeconds) } }
+    );
   }
 
   let auth: string;
@@ -49,7 +74,7 @@ export async function POST(req: NextRequest) {
         channel_id: Number(channelId),
         provider: "m-pesa",
         external_reference: body.reference,
-        callback_url: callbackUrl,
+        callback_url: callbackUrl.toString(),
       }),
     });
 

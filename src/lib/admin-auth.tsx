@@ -1,71 +1,38 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
-
-const ADMIN_EMAIL = "josiahkamau021@gmail.com";
-const ADMIN_PASSWORD = "Haisoj@mwangi1";
-const AUTH_KEY = "careercraft_admin_auth";
+import { createContext, useContext, useCallback } from "react";
 
 interface AdminAuthCtx {
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
 }
 
 const Ctx = createContext<AdminAuthCtx>({
-  isAuthenticated: false,
-  isLoading: true,
-  login: () => false,
-  logout: () => {},
+  login: async () => false,
+  logout: async () => {},
 });
 
 export function useAdminAuth() {
   return useContext(Ctx);
 }
 
+// Real gatekeeping now happens server-side in src/proxy.ts, which checks a
+// signed httpOnly session cookie before any /admin page or /api/admin route
+// is reached. This provider is just a thin client for the login/logout API.
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
-  const pathname = usePathname();
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(AUTH_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.loggedIn) setIsAuthenticated(true);
-      }
-    } catch {}
-    setIsLoading(false);
+  const login = useCallback(async (email: string, password: string) => {
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    return res.ok;
   }, []);
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated && pathname !== "/admin/login") {
-      router.replace("/admin/login");
-    }
-  }, [isAuthenticated, isLoading, pathname, router]);
-
-  const login = useCallback((email: string, password: string) => {
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      localStorage.setItem(AUTH_KEY, JSON.stringify({ loggedIn: true, ts: Date.now() }));
-      setIsAuthenticated(true);
-      return true;
-    }
-    return false;
+  const logout = useCallback(async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    window.location.href = "/admin/login";
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(AUTH_KEY);
-    setIsAuthenticated(false);
-    router.replace("/admin/login");
-  }, [router]);
-
-  return (
-    <Ctx.Provider value={{ isAuthenticated, isLoading, login, logout }}>
-      {children}
-    </Ctx.Provider>
-  );
+  return <Ctx.Provider value={{ login, logout }}>{children}</Ctx.Provider>;
 }

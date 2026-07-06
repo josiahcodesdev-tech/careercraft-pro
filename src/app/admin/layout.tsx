@@ -17,21 +17,13 @@ const pageTitles: Record<string, string> = {
 };
 
 function AdminShell({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, logout } = useAdminAuth();
+  // No client-side auth check needed here — src/proxy.ts already redirects
+  // any unauthenticated request to /admin/login before this ever renders.
+  const { logout } = useAdminAuth();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (pathname === "/admin/login") return <>{children}</>;
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="animate-pulse text-text-muted text-sm">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) return null;
 
   const title = pageTitles[pathname] || "Admin";
 

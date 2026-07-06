@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/openai";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Parsing/rewriting a full CV can take longer than Vercel's 10s default —
 // without this, slower OpenAI responses get killed by a 504 before they finish.
@@ -48,6 +49,14 @@ async function extractJdRequirements(client: ReturnType<typeof import("@/lib/ope
 }
 
 export async function POST(req: NextRequest) {
+  const limit = checkRateLimit(`cv-transform:${getClientIp(req)}`, 10, 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please slow down." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+    );
+  }
+
   let client;
   try {
     client = getOpenAI();

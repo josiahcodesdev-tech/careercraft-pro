@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/openai";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // A slower OpenAI response can exceed Vercel's 10s default timeout —
 // without this, it gets killed by a 504 before it finishes.
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  const limit = checkRateLimit(`ai-enhance:${getClientIp(req)}`, 10, 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please slow down." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+    );
+  }
+
   let client;
   try {
     client = getOpenAI();

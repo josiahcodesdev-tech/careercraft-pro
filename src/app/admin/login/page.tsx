@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/lib/admin-auth";
@@ -10,27 +9,26 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const { login, isAuthenticated } = useAdminAuth();
-  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const { login } = useAdminAuth();
 
-  if (isAuthenticated) {
-    router.replace("/admin");
-    return null;
-  }
-
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const ok = login(email, password);
+    setSubmitting(true);
+    const ok = await login(email, password);
     if (ok) {
-      router.replace("/admin");
-    } else {
-      setError("Invalid email or password.");
+      // Full navigation so the fresh session cookie is guaranteed to be
+      // picked up by proxy.ts on the very next request.
+      window.location.href = "/admin";
+      return;
     }
+    setError("Invalid email or password.");
+    setSubmitting(false);
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#1B2838] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#0F3323] px-4">
       <div className="w-full max-w-[400px]">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -63,7 +61,7 @@ export default function AdminLoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="josiahcodes.dev@gmail.com"
+                placeholder="you@example.com"
                 required
               />
             </label>
@@ -84,9 +82,10 @@ export default function AdminLoginPage() {
 
             <Button
               type="submit"
-              className="w-full bg-brand hover:bg-brand-mid text-white font-semibold"
+              disabled={submitting}
+              className="w-full bg-brand hover:bg-brand-mid text-white font-semibold disabled:opacity-60"
             >
-              Sign in →
+              {submitting ? "Signing in..." : "Sign in →"}
             </Button>
           </form>
         </div>
