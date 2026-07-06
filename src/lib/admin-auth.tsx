@@ -3,8 +3,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
-const ADMIN_EMAIL = "josiahcodes.dev@gmail.com";
-const ADMIN_PASSWORD = "admin123";
+const ADMIN_EMAIL = "josiahkamau021@gmail.com";
+const ADMIN_PASSWORD = "Haisoj@mwangi1";
 const AUTH_KEY = "careercraft_admin_auth";
 
 interface AdminAuthCtx {
