@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/openai";
 
+// Generating 30 Q&A pairs can take longer than Vercel's 10s default —
+// without this, slower OpenAI responses get killed by a 504 before they finish.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   let client;
   try {

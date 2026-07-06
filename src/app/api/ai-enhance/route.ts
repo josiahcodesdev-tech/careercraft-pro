@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/openai";
 
+// A slower OpenAI response can exceed Vercel's 10s default timeout —
+// without this, it gets killed by a 504 before it finishes.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   let client;
   try {

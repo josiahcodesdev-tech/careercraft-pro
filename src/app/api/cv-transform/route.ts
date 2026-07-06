@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/openai";
 
+// Parsing/rewriting a full CV can take longer than Vercel's 10s default —
+// without this, slower OpenAI responses get killed by a 504 before they finish.
+export const maxDuration = 60;
+
 interface JdRequirements {
   targetRole: string;
   targetCompany: string;
