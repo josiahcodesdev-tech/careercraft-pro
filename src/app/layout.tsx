@@ -3,6 +3,7 @@ import { DM_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { PublicLayoutWrapper } from "@/components/public-layout-wrapper";
+import { SITE_URL } from "@/lib/site-config";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -17,6 +18,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "MyCareerCraft — Career Development & Professional Growth",
   description:
     "MyCareerCraft helps professionals shape their careers through expert coaching, CV writing, interview preparation, and personal branding strategies.",
