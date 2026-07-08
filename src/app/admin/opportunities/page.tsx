@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { type Opportunity, type OpportunityStatus } from "@/lib/opportunities";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
-import { Radar, Inbox, FileText, Briefcase, Loader2, RefreshCw } from "lucide-react";
+import { Radar, Inbox, FileText, Briefcase, Loader2, RefreshCw, Power } from "lucide-react";
 
 const selectClass =
   "h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors";
@@ -22,6 +22,33 @@ export default function OpportunitiesPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [scanEnabled, setScanEnabledState] = useState<boolean | null>(null);
+  const [togglingScan, setTogglingScan] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/opportunities/settings")
+      .then((res) => res.json())
+      .then((json) => setScanEnabledState(json.enabled ?? true))
+      .catch(() => setScanEnabledState(true));
+  }, []);
+
+  async function handleToggleScan() {
+    if (scanEnabled === null) return;
+    const next = !scanEnabled;
+    setTogglingScan(true);
+    try {
+      const res = await fetch("/api/admin/opportunities/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      const json = await res.json();
+      if (res.ok) setScanEnabledState(json.enabled);
+    } catch {
+      // leave state as-is; user can retry
+    }
+    setTogglingScan(false);
+  }
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
@@ -52,6 +79,8 @@ export default function OpportunitiesPage() {
       const json = await res.json();
       if (!res.ok) {
         setScanMessage(json.error ?? "Scan failed.");
+      } else if (json.skipped) {
+        setScanMessage("Scraping is turned off — turn it back on to run a scan.");
       } else {
         const rw = json.reliefweb;
         const dn = json.devnetjobs;
@@ -110,15 +139,36 @@ export default function OpportunitiesPage() {
             gradient="bg-gradient-to-br from-[#7b4fc9] to-[#5c3a9e]"
           />
         </div>
-        <button
-          onClick={handleScanNow}
-          disabled={scanning}
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-brand hover:bg-brand-mid text-white text-sm font-medium transition-colors disabled:opacity-60 flex-shrink-0"
-        >
-          {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          Scan now
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={handleToggleScan}
+            disabled={scanEnabled === null || togglingScan}
+            className={`inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 ${
+              scanEnabled
+                ? "bg-brand-light text-brand hover:bg-brand/20"
+                : "bg-red-50 text-red-600 hover:bg-red-100"
+            }`}
+          >
+            {togglingScan ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+            Scraping: {scanEnabled === null ? "…" : scanEnabled ? "On" : "Off"}
+          </button>
+          <button
+            onClick={handleScanNow}
+            disabled={scanning || !scanEnabled}
+            title={scanEnabled === false ? "Scraping is turned off" : undefined}
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-brand hover:bg-brand-mid text-white text-sm font-medium transition-colors disabled:opacity-60"
+          >
+            {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Scan now
+          </button>
+        </div>
       </div>
+
+      {scanEnabled === false && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          Scraping is turned off. The daily automatic scan and manual scans are both paused until you turn it back on.
+        </div>
+      )}
 
       {scanMessage && (
         <div className="bg-card border border-border rounded-xl px-4 py-3 text-sm text-text-secondary">

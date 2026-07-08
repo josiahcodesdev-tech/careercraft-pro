@@ -111,6 +111,24 @@ export async function updateOpportunityStatus(id: string, status: OpportunitySta
   if (error) throw new Error(error.message);
 }
 
+export async function getScanEnabled(): Promise<boolean> {
+  const { data, error } = await db()
+    .from("opportunity_scan_settings")
+    .select("enabled")
+    .eq("id", 1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  // Default to enabled if the settings row doesn't exist yet for some reason.
+  return data?.enabled !== false;
+}
+
+export async function setScanEnabled(enabled: boolean): Promise<void> {
+  const { error } = await db()
+    .from("opportunity_scan_settings")
+    .upsert({ id: 1, enabled, updated_at: new Date().toISOString() });
+  if (error) throw new Error(error.message);
+}
+
 export async function getOpportunityCounts(): Promise<{
   total: number;
   byStatus: Record<string, number>;
