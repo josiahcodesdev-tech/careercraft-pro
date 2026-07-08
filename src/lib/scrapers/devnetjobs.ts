@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import * as cheerio from "cheerio";
 import type { OpportunityDraft } from "@/lib/opportunities";
+import { matchesTargetCountry } from "@/lib/scrapers/target-countries";
 
 export interface ScrapeResult {
   drafts: OpportunityDraft[];
@@ -52,6 +53,7 @@ export async function fetchDevNetJobsRfps(): Promise<ScrapeResult> {
     const $ = cheerio.load(html);
 
     const drafts: OpportunityDraft[] = [];
+    let parsedCount = 0;
     $("tr.gridRow").each((_, row) => {
       const $row = $(row);
       const title = $row.find('[id$="_lblJobTitle"]').first().text().trim();
@@ -60,6 +62,12 @@ export async function fetchDevNetJobsRfps(): Promise<ScrapeResult> {
       const organization = $row.find('[id$="_lblJobCo"]').first().text().trim();
       const locationRaw = $row.find('[id$="_lblLocation"]').first().text().trim();
       const deadlineRaw = $row.find('[id$="_lblApplyDate"]').first().text().trim();
+
+      parsedCount++;
+
+      // Restrict to African English-speaking nations — DevNetJobs has no
+      // structured country field, just this free-text location string.
+      if (!matchesTargetCountry(locationRaw)) return;
 
       const location = stripLabel(locationRaw, "Location");
       const deadline = parseApplyByDate(deadlineRaw);
@@ -77,7 +85,9 @@ export async function fetchDevNetJobsRfps(): Promise<ScrapeResult> {
       });
     });
 
-    if (drafts.length === 0) {
+    // Only treat "nothing parsed at all" as a broken-selector warning — most
+    // rows legitimately not matching a target country is expected, not an error.
+    if (parsedCount === 0) {
       return { drafts: [], error: "Parsed 0 rows from a 200 response — selectors may be stale" };
     }
 

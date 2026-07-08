@@ -1,4 +1,5 @@
 import type { OpportunityDraft } from "@/lib/opportunities";
+import { TARGET_COUNTRY_ISO3 } from "@/lib/scrapers/target-countries";
 
 export interface ScrapeResult {
   drafts: OpportunityDraft[];
@@ -45,6 +46,14 @@ export async function fetchReliefWebJobs(): Promise<ScrapeResult> {
   const url = new URL("https://api.reliefweb.int/v2/jobs");
   url.searchParams.set("appname", appname);
   url.searchParams.set("query[value]", ME_KEYWORDS);
+  // Restrict to African English-speaking nations at the API level rather
+  // than filtering client-side after fetching — combined with `query[value]`
+  // via an implicit AND, per ReliefWeb's filter semantics.
+  url.searchParams.set("filter[field]", "country.iso3");
+  for (const iso3 of TARGET_COUNTRY_ISO3) {
+    url.searchParams.append("filter[value][]", iso3);
+  }
+  url.searchParams.set("filter[operator]", "OR");
   url.searchParams.set("limit", "50");
   url.searchParams.set("sort[]", "date:desc");
   url.searchParams.append("fields[include][]", "title");
