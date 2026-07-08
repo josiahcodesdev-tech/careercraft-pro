@@ -1,9 +1,41 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ServiceCarousel } from "@/components/service-carousel";
 import { CtaSection } from "@/components/cta-section";
+import { JsonLd } from "@/components/json-ld";
+import { SITE_URL } from "@/lib/site-config";
 import { Search, FileText, Users, Activity, Zap } from "lucide-react";
+
+const homeTitle = "MyCareerCraft — Career Development & Professional Growth";
+const homeDescription =
+  "Land the job you actually want. AI-personalised interview prep, ATS-ready CV writing, and career coaching for professionals in Kenya and beyond.";
+
+export const metadata: Metadata = {
+  title: homeTitle,
+  description: homeDescription,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: homeTitle,
+    description: homeDescription,
+    url: "/",
+    siteName: "MyCareerCraft",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: homeTitle,
+    description: homeDescription,
+  },
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "MyCareerCraft",
+  url: SITE_URL,
+};
 
 const careerPath = [
   { icon: Search, label: "Career assessment", status: "Done", active: false },
@@ -15,6 +47,7 @@ const careerPath = [
 export default function HomePage() {
   return (
     <>
+      <JsonLd data={websiteJsonLd} />
       {/* Hero */}
       <div className="max-w-[1100px] mx-auto px-8 py-6">
         <div className="grid lg:grid-cols-2 gap-16 items-center">

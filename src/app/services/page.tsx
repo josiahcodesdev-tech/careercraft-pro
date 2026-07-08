@@ -6,10 +6,26 @@ import { CtaSection } from "@/components/cta-section";
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 
+const servicesTitle = "Our Services — MyCareerCraft";
+const servicesDescription =
+  "Explore MyCareerCraft's career development services — career assessment, CV writing, interview coaching, personal branding, career transition, and more.";
+
 export const metadata: Metadata = {
-  title: "Our Services — MyCareerCraft",
-  description:
-    "Explore MyCareerCraft's career development services — career assessment, CV writing, interview coaching, personal branding, career transition, and more.",
+  title: servicesTitle,
+  description: servicesDescription,
+  alternates: { canonical: "/services" },
+  openGraph: {
+    title: servicesTitle,
+    description: servicesDescription,
+    url: "/services",
+    siteName: "MyCareerCraft",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: servicesTitle,
+    description: servicesDescription,
+  },
 };
 
 const services = [

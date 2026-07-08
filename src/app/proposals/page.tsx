@@ -4,12 +4,36 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CheckCircle, ArrowRight, ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/json-ld";
+import { createServiceJsonLd } from "@/lib/structured-data";
+
+const title = "Proposal Writing & Grants — MyCareerCraft";
+const description =
+  "Compelling, data-backed proposals and grant applications that win funding. We craft grant proposals, project proposals, business pitches, and funding applications.";
 
 export const metadata: Metadata = {
-  title: "Proposal Writing & Grants — MyCareerCraft",
-  description:
-    "Compelling, data-backed proposals and grant applications that win funding. We craft grant proposals, project proposals, business pitches, and funding applications.",
+  title,
+  description,
+  alternates: { canonical: "/proposals" },
+  openGraph: {
+    title,
+    description,
+    url: "/proposals",
+    siteName: "MyCareerCraft",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 };
+
+const serviceJsonLd = createServiceJsonLd({
+  name: "Proposal Writing & Grants",
+  description,
+  url: "/proposals",
+});
 
 const services = [
   {
@@ -76,6 +100,7 @@ const audiences = [
 export default function ProposalsPage() {
   return (
     <>
+      <JsonLd data={serviceJsonLd} />
       {/* Dark hero banner */}
       <section className="bg-brand-dark text-white py-14 px-8">
         <div className="max-w-[1100px] mx-auto text-center">
