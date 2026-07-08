@@ -13,6 +13,7 @@ export interface CvEvent {
   name: string;
   template: string;
   date: string;
+  paid: boolean;
 }
 
 export interface InterviewEvent {
@@ -20,6 +21,7 @@ export interface InterviewEvent {
   name: string;
   role: string;
   date: string;
+  paid: boolean;
 }
 
 export interface EnquiryEvent {
@@ -44,12 +46,17 @@ export interface Analytics {
 }
 
 export async function trackCvDownload(
-  event: { name: string; template: string },
+  event: { name: string; template: string; paid?: boolean },
   fullData: Record<string, unknown>
 ): Promise<string> {
   const { data, error } = await db()
     .from("cv_events")
-    .insert({ name: event.name, template: event.template, data: fullData })
+    .insert({
+      name: event.name,
+      template: event.template,
+      data: fullData,
+      paid: event.paid ?? true,
+    })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
@@ -57,12 +64,17 @@ export async function trackCvDownload(
 }
 
 export async function trackInterviewPrep(
-  event: { name: string; role: string },
+  event: { name: string; role: string; paid?: boolean },
   fullData: Record<string, unknown>
 ): Promise<string> {
   const { data, error } = await db()
     .from("interview_events")
-    .insert({ name: event.name, role: event.role, data: fullData })
+    .insert({
+      name: event.name,
+      role: event.role,
+      data: fullData,
+      paid: event.paid ?? true,
+    })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
@@ -72,7 +84,7 @@ export async function trackInterviewPrep(
 export async function listCvEvents(limit = 300): Promise<CvEvent[]> {
   const { data, error } = await db()
     .from("cv_events")
-    .select("id, name, template, created_at")
+    .select("id, name, template, created_at, paid")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
@@ -82,13 +94,14 @@ export async function listCvEvents(limit = 300): Promise<CvEvent[]> {
     name: row.name as string,
     template: row.template as string,
     date: row.created_at as string,
+    paid: row.paid !== false,
   }));
 }
 
 export async function listInterviewEvents(limit = 300): Promise<InterviewEvent[]> {
   const { data, error } = await db()
     .from("interview_events")
-    .select("id, name, role, created_at")
+    .select("id, name, role, created_at, paid")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
@@ -98,6 +111,7 @@ export async function listInterviewEvents(limit = 300): Promise<InterviewEvent[]
     name: row.name as string,
     role: row.role as string,
     date: row.created_at as string,
+    paid: row.paid !== false,
   }));
 }
 

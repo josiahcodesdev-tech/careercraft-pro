@@ -67,9 +67,11 @@ export default function AdminDashboardPage() {
 
   const revenueSlices: RevenueSlice[] = useMemo(() => {
     if (!data) return [];
+    const paidCvCount = data.cvDownloads.filter((e) => e.paid !== false).length;
+    const paidInterviewCount = data.interviewPreps.filter((e) => e.paid !== false).length;
     return [
-      { key: "cv", label: "CV Writing", value: data.cvDownloads.length * CV_PRICE, color: "#008300" },
-      { key: "interview", label: "Interview Coaching", value: data.interviewPreps.length * INTERVIEW_PRICE, color: "#2a78d6" },
+      { key: "cv", label: "CV Writing", value: paidCvCount * CV_PRICE, color: "#008300" },
+      { key: "interview", label: "Interview Coaching", value: paidInterviewCount * INTERVIEW_PRICE, color: "#2a78d6" },
     ].filter((s) => s.value > 0);
   }, [data]);
 

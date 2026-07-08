@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const id = await trackCvDownload({ name, template }, data);
+    const id = await trackCvDownload({ name, template, paid: !isAdmin }, data);
     return NextResponse.json({ id });
   } catch (e) {
     return NextResponse.json(

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const id = await trackInterviewPrep({ name, role }, data);
+    const id = await trackInterviewPrep({ name, role, paid: !isAdmin }, data);
     return NextResponse.json({ id });
   } catch (e) {
     return NextResponse.json(
