@@ -10,6 +10,7 @@ import {
   Users,
   Briefcase,
   Mail,
+  Radar,
   LogOut,
   ExternalLink,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/admin/interview-coaching", label: "Interview Coaching", icon: Users },
   { href: "/admin/proposals", label: "Proposals", icon: Briefcase },
   { href: "/admin/enquiries", label: "Enquiries", icon: Mail },
+  { href: "/admin/opportunities", label: "Opportunities", icon: Radar },
 ];
 
 export function AdminSidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {

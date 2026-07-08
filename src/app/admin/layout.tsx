@@ -14,6 +14,7 @@ const pageTitles: Record<string, string> = {
   "/admin/interview-coaching/new": "New Interview Prep",
   "/admin/proposals": "Proposals & Grants",
   "/admin/enquiries": "Enquiries",
+  "/admin/opportunities": "Opportunities",
 };
 
 function AdminShell({ children }: { children: React.ReactNode }) {
