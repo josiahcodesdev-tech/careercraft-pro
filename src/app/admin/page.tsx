@@ -5,7 +5,8 @@ import { type Analytics } from "@/lib/analytics";
 import { StatCard } from "@/components/admin/stat-card";
 import { WeeklyActivityChart, type DayBucket } from "@/components/admin/weekly-activity-chart";
 import { RevenueShareChart, type RevenueSlice } from "@/components/admin/revenue-share-chart";
-import { Mail, FileText, Users, Briefcase, Search } from "lucide-react";
+import { DailyRevenueChart, type RevenueDayBucket } from "@/components/admin/daily-revenue-chart";
+import { Mail, FileText, Users, Briefcase, Search, Wallet } from "lucide-react";
 
 // Fixed prices from the payment flow (PaymentModal `amount` props in
 // cv-builder-form.tsx / interview-prep-form.tsx) — enquiries/proposals have
@@ -31,6 +32,7 @@ export default function AdminDashboardPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [dateSort, setDateSort] = useState("newest");
+  const [revenueRange, setRevenueRange] = useState(14);
 
   useEffect(() => {
     fetch("/api/admin/analytics")
@@ -63,6 +65,42 @@ export default function AdminDashboardPage() {
     data.enquiries.forEach((e) => bump(e.date, 2));
     data.proposals.forEach((e) => bump(e.date, 3));
     return days;
+  }, [data]);
+
+  const dailyRevenueDays: RevenueDayBucket[] = useMemo(() => {
+    const days: RevenueDayBucket[] = [];
+    const now = new Date();
+    for (let i = revenueRange - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      days.push({
+        label: d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
+        dateKey: localDateKey(d),
+        cv: 0,
+        interview: 0,
+      });
+    }
+    if (!data) return days;
+
+    const indexByKey = new Map(days.map((d, i) => [d.dateKey, i]));
+    data.cvDownloads.forEach((e) => {
+      if (e.paid === false) return;
+      const idx = indexByKey.get(localDateKey(new Date(e.date)));
+      if (idx !== undefined) days[idx].cv += CV_PRICE;
+    });
+    data.interviewPreps.forEach((e) => {
+      if (e.paid === false) return;
+      const idx = indexByKey.get(localDateKey(new Date(e.date)));
+      if (idx !== undefined) days[idx].interview += INTERVIEW_PRICE;
+    });
+    return days;
+  }, [data, revenueRange]);
+
+  const todaysRevenue = useMemo(() => {
+    if (!data) return 0;
+    const paidCvToday = data.cvDownloads.filter((e) => e.paid !== false && isToday(e.date)).length;
+    const paidInterviewToday = data.interviewPreps.filter((e) => e.paid !== false && isToday(e.date)).length;
+    return paidCvToday * CV_PRICE + paidInterviewToday * INTERVIEW_PRICE;
   }, [data]);
 
   const revenueSlices: RevenueSlice[] = useMemo(() => {
@@ -115,7 +153,15 @@ export default function AdminDashboardPage() {
       <p className="text-sm text-text-secondary">Overview of all service activity</p>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+        <StatCard
+          title="Today's Revenue"
+          value={todaysRevenue}
+          prefix="KES"
+          icon={Wallet}
+          gradient="bg-gradient-to-br from-[#B8860B] to-[#8B6914]"
+          description="Paid CVs & interview preps today"
+        />
         <StatCard
           title="Total Enquiries"
           value={data.enquiries.length}
@@ -145,6 +191,8 @@ export default function AdminDashboardPage() {
           description="Proposals tracked"
         />
       </div>
+
+      <DailyRevenueChart days={dailyRevenueDays} range={revenueRange} onRangeChange={setRevenueRange} />
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

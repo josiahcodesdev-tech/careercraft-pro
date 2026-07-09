@@ -6,9 +6,10 @@ interface StatCardProps {
   icon: LucideIcon;
   gradient: string;
   description?: string;
+  prefix?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, gradient, description }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, gradient, description, prefix }: StatCardProps) {
   return (
     <div className={`rounded-2xl p-6 text-white ${gradient} relative overflow-hidden`}>
       <div className="absolute top-4 right-4 opacity-20">
@@ -16,7 +17,7 @@ export function StatCard({ title, value, icon: Icon, gradient, description }: St
       </div>
       <p className="text-sm font-medium text-white/80 mb-1">{title}</p>
       <p className="text-3xl font-heading font-black">
-        {value.toLocaleString()}
+        {prefix ? `${prefix} ` : ""}{value.toLocaleString()}
       </p>
       {description && (
         <p className="text-xs text-white/60 mt-1">{description}</p>
