@@ -17,6 +17,7 @@ import {
   Briefcase,
   GraduationCap,
   Wrench,
+  FolderKanban,
   Users,
   LayoutTemplate,
   Upload,
@@ -133,6 +134,13 @@ export interface RefereeEntry {
   phone: string;
 }
 
+export interface ProjectEntry {
+  name: string;
+  link: string;
+  technologies: string;
+  bullets: string[];
+}
+
 export interface CvData {
   fullName: string;
   tagline: string;
@@ -148,6 +156,7 @@ export interface CvData {
   experience: WorkEntry[];
   education: EducationEntry[];
   skillGroups: SkillGroup[];
+  projects: ProjectEntry[];
   referees: RefereeEntry[];
   referencesUponRequest: boolean;
 }
@@ -158,6 +167,7 @@ const STEPS = [
   { label: "Experience", icon: Briefcase },
   { label: "Education", icon: GraduationCap },
   { label: "Skills", icon: Wrench },
+  { label: "Projects", icon: FolderKanban },
   { label: "References", icon: Users },
 ];
 
@@ -179,6 +189,8 @@ const emptyEducation: EducationEntry = {
 };
 
 const emptySkillGroup: SkillGroup = { category: "", skills: "" };
+
+const emptyProject: ProjectEntry = { name: "", link: "", technologies: "", bullets: [""] };
 
 const emptyReferee: RefereeEntry = {
   name: "",
@@ -203,6 +215,7 @@ const initial: CvData = {
   experience: [{ ...emptyWork, bullets: [""] }],
   education: [{ ...emptyEducation }],
   skillGroups: [{ ...emptySkillGroup }],
+  projects: [{ ...emptyProject, bullets: [""] }],
   referees: [{ ...emptyReferee }],
   referencesUponRequest: false,
 };
@@ -260,6 +273,17 @@ const DUMMY_DATA: CvData = {
     { category: "Marketing & Strategy", skills: "Brand Management · Digital Marketing · Go-to-Market Strategy · Campaign Planning" },
     { category: "Tools & Platforms", skills: "HubSpot · Google Analytics · Salesforce · Meta Ads Manager" },
     { category: "Professional Skills", skills: "Team Leadership · Stakeholder Engagement · Data Analysis · Budget Management" },
+  ],
+  projects: [
+    {
+      name: "Brand Relaunch Campaign Microsite",
+      link: "janedoe-portfolio.com/brand-relaunch",
+      technologies: "Webflow · Google Analytics · Figma",
+      bullets: [
+        "Designed and launched a campaign microsite that drove 12,000+ unique visitors in the first month.",
+        "Coordinated with design and dev teams to ship on a 3-week timeline.",
+      ],
+    },
   ],
   referees: [{ name: "John Smith", title: "Director of Marketing", company: "Acme Corporation", email: "j.smith@acme.com", phone: "+254 711 000 000" }],
   referencesUponRequest: false,
@@ -398,6 +422,36 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
       i === index ? { ...g, ...patch } : g
     );
     update("skillGroups", next);
+  }
+
+  function updateProject(index: number, patch: Partial<ProjectEntry>) {
+    const next = data.projects.map((p, i) =>
+      i === index ? { ...p, ...patch } : p
+    );
+    update("projects", next);
+  }
+
+  function updateProjectBullet(projIndex: number, bulletIndex: number, value: string) {
+    const next = data.projects.map((p, i) => {
+      if (i !== projIndex) return p;
+      const bullets = p.bullets.map((b, j) => (j === bulletIndex ? value : b));
+      return { ...p, bullets };
+    });
+    update("projects", next);
+  }
+
+  function addProjectBullet(projIndex: number) {
+    const next = data.projects.map((p, i) =>
+      i === projIndex ? { ...p, bullets: [...p.bullets, ""] } : p
+    );
+    update("projects", next);
+  }
+
+  function removeProjectBullet(projIndex: number, bulletIndex: number) {
+    const next = data.projects.map((p, i) =>
+      i === projIndex ? { ...p, bullets: p.bullets.filter((_, j) => j !== bulletIndex) } : p
+    );
+    update("projects", next);
   }
 
   function updateReferee(index: number, patch: Partial<RefereeEntry>) {
@@ -1147,6 +1201,124 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
             {step === 5 && (
               <div className="space-y-5">
                 <h2 className="font-heading text-lg font-extrabold tracking-tight">
+                  Projects
+                </h2>
+                <p className="text-sm text-text-secondary">
+                  Optional — add personal or professional projects if you have
+                  relevant work to showcase.
+                </p>
+
+                {data.projects.map((proj, i) => (
+                  <div
+                    key={i}
+                    className="border border-border rounded-xl p-5 space-y-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-text-secondary">
+                        Project {i + 1}
+                      </span>
+                      {data.projects.length > 1 && (
+                        <button
+                          onClick={() =>
+                            update(
+                              "projects",
+                              data.projects.filter((_, j) => j !== i)
+                            )
+                          }
+                          className="text-red-400 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <label className="space-y-1.5">
+                        <span className="text-sm font-medium">Project name</span>
+                        <Input
+                          value={proj.name}
+                          onChange={(e) =>
+                            updateProject(i, { name: e.target.value })
+                          }
+                          placeholder="Inventory Tracker App"
+                        />
+                      </label>
+                      <label className="space-y-1.5">
+                        <span className="text-sm font-medium">Link (optional)</span>
+                        <Input
+                          value={proj.link}
+                          onChange={(e) =>
+                            updateProject(i, { link: e.target.value })
+                          }
+                          placeholder="github.com/you/project or live URL"
+                        />
+                      </label>
+                    </div>
+                    <label className="space-y-1.5 block">
+                      <span className="text-sm font-medium">Technologies used (optional)</span>
+                      <Input
+                        value={proj.technologies}
+                        onChange={(e) =>
+                          updateProject(i, { technologies: e.target.value })
+                        }
+                        placeholder="React · Node.js · PostgreSQL"
+                      />
+                    </label>
+
+                    <div className="space-y-2">
+                      <span className="text-sm font-medium">
+                        Key details / achievements
+                      </span>
+                      {proj.bullets.map((bullet, j) => (
+                        <div key={j} className="flex gap-2">
+                          <span className="mt-2 text-text-muted text-sm">
+                            •
+                          </span>
+                          <Input
+                            value={bullet}
+                            onChange={(e) => updateProjectBullet(i, j, e.target.value)}
+                            placeholder="Built a REST API handling 10K+ requests/day"
+                            className="flex-1"
+                          />
+                          {proj.bullets.length > 1 && (
+                            <button
+                              onClick={() => removeProjectBullet(i, j)}
+                              className="text-red-400 hover:text-red-600 transition-colors mt-1"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => addProjectBullet(i)}
+                        className="text-sm text-brand font-medium flex items-center gap-1 hover:underline"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add bullet
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  onClick={() =>
+                    update("projects", [
+                      ...data.projects,
+                      { ...emptyProject, bullets: [""] },
+                    ])
+                  }
+                  className={cn(
+                    buttonVariants({ variant: "outline" }),
+                    "w-full gap-2"
+                  )}
+                >
+                  <Plus className="w-4 h-4" /> Add project
+                </button>
+              </div>
+            )}
+
+            {step === 6 && (
+              <div className="space-y-5">
+                <h2 className="font-heading text-lg font-extrabold tracking-tight">
                   References
                 </h2>
                 <p className="text-sm text-text-secondary">
@@ -1725,6 +1897,60 @@ function hasRefs(data: CvData) {
   return data.referencesUponRequest || data.referees.some((r) => r.name);
 }
 
+function ProjectEntries({ data }: { data: CvData }) {
+  return (
+    <>
+      {(data.projects ?? [])
+        .filter((p) => p.name)
+        .map((proj, i) => (
+          <div key={i} style={{ marginBottom: 12, pageBreakInside: "avoid", breakInside: "avoid" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                marginBottom: 3,
+                pageBreakAfter: "avoid",
+                breakAfter: "avoid",
+              }}
+            >
+              <span style={{ fontWeight: 700, fontSize: "10pt" }}>{proj.name}</span>
+              {proj.link && (
+                <span style={{ fontSize: "8.5pt", color: "#777", whiteSpace: "nowrap" }}>
+                  {proj.link}
+                </span>
+              )}
+            </div>
+            {proj.technologies && (
+              <div style={{ fontSize: "9pt", color: "#555", fontStyle: "italic", marginBottom: 3 }}>
+                {proj.technologies}
+              </div>
+            )}
+            {proj.bullets.some((b) => b.trim()) && (
+              <div style={{ marginTop: 4 }}>
+                {proj.bullets
+                  .filter((b) => b.trim())
+                  .map((b, j) => (
+                    <div
+                      key={j}
+                      style={{ display: "flex", gap: 6, marginBottom: 3, alignItems: "flex-start" }}
+                    >
+                      <span style={{ flexShrink: 0, fontSize: "9.5pt", lineHeight: 1.5, color: "#333" }}>•</span>
+                      <span style={{ fontSize: "9.5pt", lineHeight: 1.5 }}>{b}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        ))}
+    </>
+  );
+}
+
+function hasProjects(data: CvData) {
+  return (data.projects ?? []).some((p) => p.name.trim());
+}
+
 /* ── Classic template ────────────────────────────────────── */
 
 function ClassicSectionHeading({ children }: { children: React.ReactNode }) {
@@ -1801,6 +2027,13 @@ export function ClassicPreview({ data }: { data: CvData }) {
         <>
           <ClassicSectionHeading>Core Skills</ClassicSectionHeading>
           <SkillRows data={data} />
+        </>
+      )}
+
+      {hasProjects(data) && (
+        <>
+          <ClassicSectionHeading>Projects</ClassicSectionHeading>
+          <ProjectEntries data={data} />
         </>
       )}
 
@@ -1935,6 +2168,13 @@ export function ModernPreview({ data }: { data: CvData }) {
           </>
         )}
 
+        {hasProjects(data) && (
+          <>
+            <ModernSectionHeading>Projects</ModernSectionHeading>
+            <ProjectEntries data={data} />
+          </>
+        )}
+
         {hasRefs(data) && (
           <>
             <ModernSectionHeading>References</ModernSectionHeading>
@@ -2031,6 +2271,13 @@ export function ExecutivePreview({ data }: { data: CvData }) {
         <>
           <ExecSectionHeading>Core Skills</ExecSectionHeading>
           <SkillRows data={data} />
+        </>
+      )}
+
+      {hasProjects(data) && (
+        <>
+          <ExecSectionHeading>Projects</ExecSectionHeading>
+          <ProjectEntries data={data} />
         </>
       )}
 
@@ -2157,6 +2404,13 @@ export function MinimalPreview({ data }: { data: CvData }) {
                 </div>
               ))}
           </div>
+        </>
+      )}
+
+      {hasProjects(data) && (
+        <>
+          <MinimalSectionHeading>Projects</MinimalSectionHeading>
+          <ProjectEntries data={data} />
         </>
       )}
 
@@ -2462,6 +2716,15 @@ export function BoldPreview({ data }: { data: CvData }) {
           </>
         )}
 
+        {hasProjects(data) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>
+              Projects
+            </h2>
+            <ProjectEntries data={data} />
+          </>
+        )}
+
         {hasRefs(data) && (
           <>
             <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>
@@ -2555,6 +2818,13 @@ export function ProfessionalPreview({ data }: { data: CvData }) {
             <EducationEntries data={data} />
           </>
         )}
+
+        {hasProjects(data) && (
+          <>
+            <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: gold, borderBottom: `2px solid ${gold}`, paddingBottom: 3, margin: "16px 0 10px" }}>Projects</h2>
+            <ProjectEntries data={data} />
+          </>
+        )}
       </div>
     </div>
   );
@@ -2621,6 +2891,13 @@ export function CreativePreview({ data }: { data: CvData }) {
           <>
             <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: dark, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>Education</h2>
             <EducationEntries data={data} />
+          </>
+        )}
+
+        {hasProjects(data) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: dark, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>Projects</h2>
+            <ProjectEntries data={data} />
           </>
         )}
 
@@ -2716,6 +2993,13 @@ export function CorporatePreview({ data }: { data: CvData }) {
             <>
               <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "16px 0 10px" }}>Education</h2>
               <EducationEntries data={data} />
+            </>
+          )}
+
+          {hasProjects(data) && (
+            <>
+              <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "16px 0 10px" }}>Projects</h2>
+              <ProjectEntries data={data} />
             </>
           )}
         </div>
@@ -2859,6 +3143,14 @@ export function FlorencePreview({ data }: { data: CvData }) {
           <>
             <FlorenceSectionHeading>Core Skills</FlorenceSectionHeading>
             <SkillRows data={data} />
+          </>
+        )}
+
+        {/* Projects */}
+        {hasProjects(data) && (
+          <>
+            <FlorenceSectionHeading>Projects</FlorenceSectionHeading>
+            <ProjectEntries data={data} />
           </>
         )}
 

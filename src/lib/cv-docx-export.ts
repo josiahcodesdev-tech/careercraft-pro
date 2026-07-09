@@ -39,6 +39,13 @@ interface RefereeEntry {
   phone: string;
 }
 
+interface ProjectEntry {
+  name: string;
+  link: string;
+  technologies: string;
+  bullets: string[];
+}
+
 interface CvData {
   fullName: string;
   tagline: string;
@@ -50,6 +57,7 @@ interface CvData {
   experience: WorkEntry[];
   education: EducationEntry[];
   skillGroups: SkillGroup[];
+  projects?: ProjectEntry[];
   referees: RefereeEntry[];
   referencesUponRequest: boolean;
 }
@@ -251,6 +259,44 @@ export async function downloadCvDocx(data: CvData): Promise<void> {
           ],
         })
       );
+    }
+  }
+
+  // Projects
+  const hasProjects = data.projects?.some((p) => p.name);
+  if (hasProjects) {
+    children.push(sectionHeading("Projects"));
+    for (const proj of data.projects ?? []) {
+      if (!proj.name) continue;
+      const metaParts = [proj.link, proj.technologies].filter(Boolean).join("  |  ");
+
+      children.push(
+        new Paragraph({
+          spacing: { before: 120, after: 40 },
+          children: [
+            new TextRun({ text: proj.name, bold: true, size: 22, font: "Calibri" }),
+          ],
+        })
+      );
+
+      if (metaParts) {
+        children.push(
+          new Paragraph({
+            spacing: { after: 40 },
+            children: [new TextRun({ text: metaParts, size: 18, font: "Calibri", color: "777777" })],
+          })
+        );
+      }
+
+      for (const bullet of proj.bullets.filter((b) => b.trim())) {
+        children.push(
+          new Paragraph({
+            bullet: { level: 0 },
+            spacing: { after: 40 },
+            children: [new TextRun({ text: bullet.trim(), size: 20, font: "Calibri" })],
+          })
+        );
+      }
     }
   }
 

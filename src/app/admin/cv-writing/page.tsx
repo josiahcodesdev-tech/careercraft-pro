@@ -267,6 +267,28 @@ export default function CvWritingPage() {
                   </div>
                 )}
 
+                {(viewing.projects ?? []).filter((p) => p.name).length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-xs uppercase tracking-wider text-brand mb-2">Projects</h3>
+                    {(viewing.projects ?? []).filter((p) => p.name).map((proj, i) => (
+                      <div key={i} className="mb-3">
+                        <div className="font-medium">
+                          {proj.name}
+                          {proj.link ? <span className="text-text-muted"> — {proj.link}</span> : null}
+                        </div>
+                        {proj.technologies ? (
+                          <div className="text-xs text-text-muted italic">{proj.technologies}</div>
+                        ) : null}
+                        {proj.bullets.filter(Boolean).length > 0 && (
+                          <ul className="list-disc pl-4 text-text-secondary text-xs mt-1 space-y-0.5">
+                            {proj.bullets.filter(Boolean).map((b, j) => <li key={j}>{b}</li>)}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <p className="text-xs text-text-muted pt-2">Template: <span className="capitalize font-medium">{viewing.template}</span></p>
               </div>
             </div>
