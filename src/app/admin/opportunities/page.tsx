@@ -9,6 +9,14 @@ import { Radar, Inbox, FileText, Briefcase, Loader2, RefreshCw, Power } from "lu
 const selectClass =
   "h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors";
 
+// Human-friendly names for the scraper each opportunity came from. Falls back
+// to the raw source key if a new scraper is added before this map is updated.
+const SOURCE_LABELS: Record<string, string> = {
+  reliefweb: "ReliefWeb",
+  devnetjobs: "DevNetJobs",
+  undp: "UNDP",
+};
+
 interface Counts {
   total: number;
   byStatus: Record<string, number>;
@@ -84,9 +92,11 @@ export default function OpportunitiesPage() {
       } else {
         const rw = json.reliefweb;
         const dn = json.devnetjobs;
+        const un = json.undp;
         const parts = [
           `ReliefWeb: ${rw.fetched} fetched${rw.error ? ` (${rw.error})` : ""}`,
           `DevNetJobs: ${dn.fetched} fetched${dn.error ? ` (${dn.error})` : ""}`,
+          `UNDP: ${un.fetched} fetched${un.error ? ` (${un.error})` : ""}`,
         ];
         setScanMessage(parts.join(" · "));
         load();
@@ -217,6 +227,15 @@ export default function OpportunitiesPage() {
             key: "organization",
             header: "Organization",
             render: (item: Opportunity) => item.organization || "—",
+          },
+          {
+            key: "source",
+            header: "Source",
+            render: (item: Opportunity) => (
+              <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold bg-background border border-border text-text-secondary">
+                {SOURCE_LABELS[item.source] ?? item.source}
+              </span>
+            ),
           },
           {
             key: "category",
