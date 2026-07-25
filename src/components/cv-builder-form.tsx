@@ -548,6 +548,11 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
     const html2pdf = ((await import("html2pdf.js")) as any).default;
     const fileName = data.fullName ? `${data.fullName.replace(/\s+/g, "_")}_CV` : "CV";
 
+    // Group each section on a clone so a section can't be split across pages.
+    // All template styles are inline, so the detached clone renders identically.
+    const printSource = el.cloneNode(true) as HTMLElement;
+    groupSectionsForPrint(printSource);
+
     await html2pdf()
       .set({
         margin: 0,
@@ -555,8 +560,10 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: { scale: 3, useCORS: true, logging: false },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        // Honour the break-inside:avoid boxes groupSectionsForPrint adds.
+        pagebreak: { mode: ["css", "legacy"] },
       })
-      .from(el)
+      .from(printSource)
       .save();
   }
 
@@ -1952,6 +1959,38 @@ function hasProjects(data: CvData) {
 }
 
 /* ── Classic template ────────────────────────────────────── */
+
+// Wrap each CV section (an <h2> heading plus the sibling content following it,
+// up to the next heading) in a break-inside:avoid box so html2pdf keeps the
+// whole section on one page — pushing an unfittable section to the next page
+// rather than slicing through it, which previously left a section straddling
+// the page edge with no room for the footer. Runs on a throwaway clone so the
+// on-screen preview is untouched. Experience is skipped: it can legitimately
+// run past one page and shouldn't be forced whole onto the next.
+function groupSectionsForPrint(root: HTMLElement) {
+  const headings = Array.from(root.querySelectorAll("h2"));
+  for (const heading of headings) {
+    const label = (heading.textContent || "").trim().toLowerCase();
+    if (label.includes("experience")) continue;
+    const parent = heading.parentElement;
+    if (!parent) continue;
+
+    // Gather the heading and the siblings after it, up to the next section.
+    const members: Element[] = [];
+    let node: Element | null = heading;
+    while (node) {
+      if (node !== heading && node.tagName === "H2") break;
+      members.push(node);
+      node = node.nextElementSibling;
+    }
+
+    const group = document.createElement("div");
+    group.style.breakInside = "avoid";
+    group.style.pageBreakInside = "avoid";
+    parent.insertBefore(group, heading);
+    members.forEach((m) => group.appendChild(m));
+  }
+}
 
 function ClassicSectionHeading({ children }: { children: React.ReactNode }) {
   return (
