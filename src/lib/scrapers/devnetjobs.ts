@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import * as cheerio from "cheerio";
 import type { OpportunityDraft } from "@/lib/opportunities";
 import { matchesTargetCountry } from "@/lib/scrapers/target-countries";
+import { matchesServiceArea } from "@/lib/scrapers/service-keywords";
 
 export interface ScrapeResult {
   drafts: OpportunityDraft[];
@@ -68,6 +69,11 @@ export async function fetchDevNetJobsRfps(): Promise<ScrapeResult> {
       // Restrict to African English-speaking nations — DevNetJobs has no
       // structured country field, just this free-text location string.
       if (!matchesTargetCountry(locationRaw)) return;
+
+      // Restrict to the service areas offered. DevNetJobs rows carry no
+      // description, so the assignment title is the only text to screen on —
+      // an RFP whose title doesn't name the service will be missed.
+      if (!matchesServiceArea(title)) return;
 
       const location = stripLabel(locationRaw, "Location");
       const deadline = parseApplyByDate(deadlineRaw);

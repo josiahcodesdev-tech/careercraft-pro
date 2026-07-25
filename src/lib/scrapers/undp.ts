@@ -1,5 +1,6 @@
 import type { OpportunityDraft } from "@/lib/opportunities";
 import { TARGET_COUNTRY_ISO3 } from "@/lib/scrapers/target-countries";
+import { matchesServiceArea } from "@/lib/scrapers/service-keywords";
 
 export interface ScrapeResult {
   drafts: OpportunityDraft[];
@@ -118,6 +119,9 @@ async function fetchCountryFeed(iso3: string): Promise<{ drafts: OpportunityDraf
 
     const drafts: OpportunityDraft[] = items
       .filter((item) => item.title && item.link)
+      // Restrict to the service areas offered. UNDP items carry a description,
+      // so screen on title + description for a bit more to match against.
+      .filter((item) => matchesServiceArea(`${item.title} ${item.description ?? ""}`))
       .map((item) => {
         const title = item.title as string;
         const sourceUrl = item.link as string;

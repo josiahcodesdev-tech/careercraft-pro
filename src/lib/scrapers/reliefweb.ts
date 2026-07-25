@@ -1,16 +1,11 @@
 import type { OpportunityDraft } from "@/lib/opportunities";
 import { TARGET_COUNTRY_ISO3 } from "@/lib/scrapers/target-countries";
+import { serviceKeywordQuery } from "@/lib/scrapers/service-keywords";
 
 export interface ScrapeResult {
   drafts: OpportunityDraft[];
   error?: string;
 }
-
-// Keeps this feed focused on the user's niche (M&E / MEAL consulting) rather
-// than every humanitarian job ReliefWeb has — their /jobs endpoint isn't
-// RFP/tender-specific, so without a keyword filter it would return roles
-// like logistics or medical that aren't relevant leads.
-const ME_KEYWORDS = '"monitoring and evaluation" OR "M&E" OR MEAL OR "monitoring, evaluation" OR "results measurement"';
 
 function dig(obj: unknown, path: string[]): unknown {
   let cur: unknown = obj;
@@ -45,7 +40,12 @@ export async function fetchReliefWebJobs(): Promise<ScrapeResult> {
 
   const url = new URL("https://api.reliefweb.int/v2/jobs");
   url.searchParams.set("appname", appname);
-  url.searchParams.set("query[value]", ME_KEYWORDS);
+  // Keep this feed focused on the services offered rather than every
+  // humanitarian job ReliefWeb has — the /jobs endpoint isn't RFP-specific, so
+  // without a keyword filter it returns unrelated logistics/medical roles. The
+  // phrase list is centralised in service-keywords.ts (M&E, leadership,
+  // strategic planning, education-systems review).
+  url.searchParams.set("query[value]", serviceKeywordQuery());
   // Restrict to African English-speaking nations at the API level rather
   // than filtering client-side after fetching — combined with `query[value]`
   // via an implicit AND, per ReliefWeb's filter semantics.
