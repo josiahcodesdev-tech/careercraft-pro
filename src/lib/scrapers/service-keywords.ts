@@ -35,6 +35,10 @@ export const SERVICE_AREAS: ServiceArea[] = [
       "leadership program",
       "management training",
       "executive coaching",
+      // Broader terms: exact "leadership training" wording barely appears on
+      // ReliefWeb; capacity building/development is how this work is listed.
+      "capacity building",
+      "capacity development",
     ],
   },
   {
@@ -45,6 +49,9 @@ export const SERVICE_AREAS: ServiceArea[] = [
       "strategic planning",
       "strategy development",
       "strategic review",
+      // Broader single terms — the exact phrases return ~0 on ReliefWeb.
+      "strategy",
+      "governance",
     ],
   },
   {
@@ -59,6 +66,9 @@ export const SERVICE_AREAS: ServiceArea[] = [
       "education assessment",
       "university review",
       "institutional review",
+      // Broader single terms — the review-specific phrases return ~0.
+      "education",
+      "curriculum",
     ],
   },
 ];
