@@ -18,7 +18,10 @@ export const SERVICE_AREAS: ServiceArea[] = [
     label: "Monitoring & Evaluation",
     phrases: [
       "monitoring and evaluation",
+      "monitoring & evaluation",
       "M&E",
+      "M & E",
+      "M+E",
       "MEAL",
       "monitoring, evaluation",
       "results measurement",
@@ -95,4 +98,22 @@ export function matchesServiceArea(text: string | null | undefined): boolean {
   if (!text) return false;
   const lower = text.toLowerCase();
   return ALL_PHRASES.some((phrase) => lower.includes(phrase.toLowerCase()));
+}
+
+// The `key`s of every service area whose phrases appear in `text`. An
+// opportunity can match more than one (e.g. an "M&E and capacity building"
+// role). Used to filter/label opportunities by service area after scraping,
+// since the matched area isn't stored on the row.
+export function classifyServiceAreas(text: string | null | undefined): string[] {
+  if (!text) return [];
+  const lower = text.toLowerCase();
+  return SERVICE_AREAS.filter((area) =>
+    area.phrases.some((phrase) => lower.includes(phrase.toLowerCase()))
+  ).map((area) => area.key);
+}
+
+// True if `text` matches the given service-area key. Convenience wrapper over
+// classifyServiceAreas for single-area filtering.
+export function matchesServiceAreaKey(text: string | null | undefined, key: string): boolean {
+  return classifyServiceAreas(text).includes(key);
 }

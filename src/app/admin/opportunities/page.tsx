@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { type Opportunity, type OpportunityStatus } from "@/lib/opportunities";
+import { SERVICE_AREAS, classifyServiceAreas } from "@/lib/scrapers/service-keywords";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { Radar, Inbox, FileText, Briefcase, Loader2, RefreshCw, Power } from "lucide-react";
@@ -28,6 +29,7 @@ export default function OpportunitiesPage() {
   const [counts, setCounts] = useState<Counts | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [areaFilter, setAreaFilter] = useState("all");
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [scanEnabled, setScanEnabledState] = useState<boolean | null>(null);
@@ -120,6 +122,16 @@ export default function OpportunitiesPage() {
     }
   }
 
+  // Service area is derived from the opportunity's text (title + organization)
+  // against the phrase lists rather than stored on the row, so this filter is
+  // applied client-side over the already-loaded items.
+  const visibleItems =
+    areaFilter === "all"
+      ? items
+      : items.filter((it) =>
+          classifyServiceAreas(`${it.title} ${it.organization ?? ""}`).includes(areaFilter)
+        );
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -205,6 +217,17 @@ export default function OpportunitiesPage() {
             <option value="job">Jobs</option>
           </select>
         </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-text-muted font-medium">Service area</label>
+          <select value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} className={selectClass}>
+            <option value="all">All service areas</option>
+            {SERVICE_AREAS.map((area) => (
+              <option key={area.key} value={area.key}>
+                {area.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <DataTable
@@ -276,7 +299,7 @@ export default function OpportunitiesPage() {
             ),
           },
         ]}
-        data={items}
+        data={visibleItems}
         emptyMessage="No opportunities found yet. Run a scan or check back after the next daily scrape."
       />
     </div>
