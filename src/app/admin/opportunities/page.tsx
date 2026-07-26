@@ -5,7 +5,7 @@ import { type Opportunity, type OpportunityStatus } from "@/lib/opportunities";
 import { SERVICE_AREAS, classifyServiceAreas } from "@/lib/scrapers/service-keywords";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
-import { Radar, Inbox, FileText, Briefcase, Loader2, RefreshCw, Power } from "lucide-react";
+import { Radar, Inbox, FileText, Briefcase, Loader2, RefreshCw, Power, Download } from "lucide-react";
 
 const selectClass =
   "h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors";
@@ -17,6 +17,43 @@ const SOURCE_LABELS: Record<string, string> = {
   devnetjobs: "DevNetJobs",
   undp: "UNDP",
 };
+
+// RFC-4180 field escaping: wrap in quotes if the value has a comma, quote or
+// newline, doubling any inner quotes.
+function csvCell(value: string | null | undefined): string {
+  const s = String(value ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function exportOpportunitiesCsv(rows: Opportunity[]) {
+  const headers = ["Title", "Organization", "Source", "Category", "Location", "Deadline", "Scraped", "Status", "URL"];
+  const lines = [headers.join(",")];
+  for (const it of rows) {
+    lines.push(
+      [
+        it.title,
+        it.organization ?? "",
+        SOURCE_LABELS[it.source] ?? it.source,
+        it.category === "rfp" ? "RFP" : "Job",
+        it.location ?? "",
+        it.deadline ?? "",
+        it.firstSeenAt ? it.firstSeenAt.slice(0, 10) : "",
+        it.status,
+        it.sourceUrl,
+      ]
+        .map(csvCell)
+        .join(",")
+    );
+  }
+  // Prepend a BOM so Excel opens UTF-8 correctly.
+  const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `opportunities_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 interface Counts {
   total: number;
@@ -30,6 +67,8 @@ export default function OpportunitiesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [areaFilter, setAreaFilter] = useState("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [scanEnabled, setScanEnabledState] = useState<boolean | null>(null);
@@ -122,15 +161,22 @@ export default function OpportunitiesPage() {
     }
   }
 
-  // Service area is derived from the opportunity's text (title + organization)
-  // against the phrase lists rather than stored on the row, so this filter is
-  // applied client-side over the already-loaded items.
-  const visibleItems =
-    areaFilter === "all"
-      ? items
-      : items.filter((it) =>
-          classifyServiceAreas(`${it.title} ${it.organization ?? ""}`).includes(areaFilter)
-        );
+  // Service area (derived from title + organization) and the scraped-date range
+  // are both filtered client-side over the already-loaded items. The date range
+  // compares the scraped date (firstSeenAt), and the export uses this same
+  // filtered set, so "filter by date" applies to the CSV too.
+  const visibleItems = items.filter((it) => {
+    if (
+      areaFilter !== "all" &&
+      !classifyServiceAreas(`${it.title} ${it.organization ?? ""}`).includes(areaFilter)
+    ) {
+      return false;
+    }
+    const scraped = it.firstSeenAt ? it.firstSeenAt.slice(0, 10) : "";
+    if (fromDate && (!scraped || scraped < fromDate)) return false;
+    if (toDate && (!scraped || scraped > toDate)) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -228,6 +274,21 @@ export default function OpportunitiesPage() {
             ))}
           </select>
         </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-text-muted font-medium">Scraped from</label>
+          <input type="date" value={fromDate} max={toDate || undefined} onChange={(e) => setFromDate(e.target.value)} className={selectClass} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-text-muted font-medium">Scraped to</label>
+          <input type="date" value={toDate} min={fromDate || undefined} onChange={(e) => setToDate(e.target.value)} className={selectClass} />
+        </div>
+        <button
+          onClick={() => exportOpportunitiesCsv(visibleItems)}
+          disabled={visibleItems.length === 0}
+          className="ml-auto inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-brand hover:bg-brand-mid text-white text-sm font-medium transition-colors disabled:opacity-60"
+        >
+          <Download className="w-4 h-4" /> Export CSV ({visibleItems.length})
+        </button>
       </div>
 
       <DataTable
