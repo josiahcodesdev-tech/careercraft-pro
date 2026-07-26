@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
-import { PaymentModal } from "@/components/payment-modal";
 import {
   Upload,
   FileText,
@@ -497,7 +496,6 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
   const [parsed, setParsed] = useState<ParsedCv | null>(null);
   const [error, setError] = useState("");
   const [usedBuilderDraft, setUsedBuilderDraft] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
   const router = useRouter();
 
   // Detect bfcache restoration and force a clean reload
@@ -729,25 +727,16 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
 
                 <button
                   onClick={() => {
-                    // Admin uses this tool payment-free — jump straight to the
-                    // admin CV builder, which reads the transform draft from
-                    // localStorage via ?transform=1 exactly like the paid flow.
-                    if (skipPayment) router.push("/admin/cv-writing/new?transform=1");
-                    else setShowPayment(true);
+                    // No charge here — payment is collected once, at the final
+                    // download in the CV builder. Both flows go straight there:
+                    // admin to its payment-free builder, public to /cv-builder
+                    // (which prompts payment only when downloading).
+                    router.push(skipPayment ? "/admin/cv-writing/new?transform=1" : "/cv-builder?transform=1");
                   }}
                   className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white w-full gap-2")}
                 >
                   <Sparkles className="w-4 h-4" /> Open in CV Builder <ArrowRight className="w-4 h-4" />
                 </button>
-
-                {showPayment && !skipPayment && (
-                  <PaymentModal
-                    service={parsed?.matchedRole ? `CV Match — ${parsed.matchedRole}` : "CV Transform"}
-                    amount={50}
-                    onSuccess={() => { setShowPayment(false); router.push("/cv-builder?transform=1"); }}
-                    onClose={() => setShowPayment(false)}
-                  />
-                )}
               </div>
             ) : (
               <>
