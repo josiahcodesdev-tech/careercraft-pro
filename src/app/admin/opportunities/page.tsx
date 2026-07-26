@@ -283,6 +283,15 @@ export default function OpportunitiesPage() {
                 : "—",
           },
           {
+            key: "scraped",
+            header: "Scraped",
+            render: (item: Opportunity) => (
+              <span className="text-text-secondary whitespace-nowrap">
+                {new Date(item.firstSeenAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+              </span>
+            ),
+          },
+          {
             key: "status",
             header: "Status",
             render: (item: Opportunity) => (
