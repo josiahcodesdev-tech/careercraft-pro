@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PaymentModal } from "@/components/payment-modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -304,6 +304,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
   const previewRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
 
   // Detect bfcache restoration (browser Back button) and force a clean reload
   useEffect(() => {
@@ -372,14 +373,17 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
           }));
 
           localStorage.removeItem("careercraft_cv_transform");
-          // Strip ?transform=1 from URL so a refresh loads a clean form
-          router.replace("/cv-builder");
+          // Strip ?transform=1 from the CURRENT path so a refresh loads a clean
+          // form — must stay on this route (public /cv-builder or the admin
+          // /admin/cv-writing/new), not hop to /cv-builder, which would unmount
+          // the admin builder and lose the data just loaded into state.
+          router.replace(pathname);
         }
       } catch (err) {
         console.error("Failed to load transform data:", err);
       }
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, pathname]);
 
   // Persist CV builder data so cv-transform can recover it from image-based PDFs
   useEffect(() => {
