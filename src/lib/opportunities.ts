@@ -92,8 +92,10 @@ export async function listOpportunities(opts?: {
     .select(
       "id, source, external_id, title, organization, category, location, deadline, source_url, status, first_seen_at, last_seen_at"
     )
-    .order("deadline", { ascending: true, nullsFirst: false })
+    // Newest-scraped first (today at the top, older below), then by soonest
+    // deadline within the same scrape batch.
     .order("first_seen_at", { ascending: false })
+    .order("deadline", { ascending: true, nullsFirst: false })
     .limit(500);
 
   if (opts?.status && opts.status !== "all") query = query.eq("status", opts.status);
