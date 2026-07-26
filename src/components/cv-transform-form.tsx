@@ -487,7 +487,7 @@ function cvBuilderDraftToText(d: CvBuilderDraft): string {
   return lines.join("\n");
 }
 
-export function CvTransformForm() {
+export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean } = {}) {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvFileName, setCvFileName] = useState("");
   const [jdText, setJdText] = useState("");
@@ -728,13 +728,19 @@ export function CvTransformForm() {
                 </div>
 
                 <button
-                  onClick={() => setShowPayment(true)}
+                  onClick={() => {
+                    // Admin uses this tool payment-free — jump straight to the
+                    // admin CV builder, which reads the transform draft from
+                    // localStorage via ?transform=1 exactly like the paid flow.
+                    if (skipPayment) router.push("/admin/cv-writing/new?transform=1");
+                    else setShowPayment(true);
+                  }}
                   className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white w-full gap-2")}
                 >
                   <Sparkles className="w-4 h-4" /> Open in CV Builder <ArrowRight className="w-4 h-4" />
                 </button>
 
-                {showPayment && (
+                {showPayment && !skipPayment && (
                   <PaymentModal
                     service={parsed?.matchedRole ? `CV Match — ${parsed.matchedRole}` : "CV Transform"}
                     amount={50}

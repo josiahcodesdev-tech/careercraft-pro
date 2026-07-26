@@ -7,7 +7,7 @@ import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FileText, Eye, Download, Loader2, Plus } from "lucide-react";
+import { FileText, Eye, Download, Loader2, Plus, Sparkles } from "lucide-react";
 import {
   type CvData,
   type Template,
@@ -129,12 +129,20 @@ export default function CvWritingPage() {
             gradient="bg-gradient-to-br from-[#2E7D52] to-[#1A5C3A]"
           />
         </div>
-        <Link
-          href="/admin/cv-writing/new"
-          className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2 flex-shrink-0")}
-        >
-          <Plus className="w-4 h-4" /> Create New
-        </Link>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Link
+            href="/admin/cv-writing/transform"
+            className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
+          >
+            <Sparkles className="w-4 h-4" /> Transform CV
+          </Link>
+          <Link
+            href="/admin/cv-writing/new"
+            className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white gap-2")}
+          >
+            <Plus className="w-4 h-4" /> Create New
+          </Link>
+        </div>
       </div>
 
       <DataTable
