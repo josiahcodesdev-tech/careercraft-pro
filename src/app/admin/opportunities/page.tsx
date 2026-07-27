@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { type Opportunity, type OpportunityStatus } from "@/lib/opportunities";
-import { SERVICE_AREAS, classifyServiceAreas } from "@/lib/scrapers/service-keywords";
+import { type Opportunity, type OpportunityStatus, isKenyaLocation } from "@/lib/opportunities";
+import { SERVICE_AREAS, classifyServiceAreas, categoryLabels } from "@/lib/scrapers/service-keywords";
 import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { Radar, Inbox, FileText, Briefcase, Loader2, RefreshCw, Power, Download } from "lucide-react";
@@ -26,7 +26,7 @@ function csvCell(value: string | null | undefined): string {
 }
 
 function exportOpportunitiesCsv(rows: Opportunity[]) {
-  const headers = ["Title", "Organization", "Source", "Category", "Location", "Deadline", "Scraped", "Status", "URL"];
+  const headers = ["Title", "Organization", "Source", "Category", "Program areas", "Location", "Deadline", "Scraped", "Status", "URL"];
   const lines = [headers.join(",")];
   for (const it of rows) {
     lines.push(
@@ -35,6 +35,7 @@ function exportOpportunitiesCsv(rows: Opportunity[]) {
         it.organization ?? "",
         SOURCE_LABELS[it.source] ?? it.source,
         it.category === "rfp" ? "RFP" : "Job",
+        categoryLabels(`${it.title} ${it.organization ?? ""}`).join("; "),
         it.location ?? "",
         it.deadline ?? "",
         it.firstSeenAt ? it.firstSeenAt.slice(0, 10) : "",
@@ -165,18 +166,23 @@ export default function OpportunitiesPage() {
   // are both filtered client-side over the already-loaded items. The date range
   // compares the scraped date (firstSeenAt), and the export uses this same
   // filtered set, so "filter by date" applies to the CSV too.
-  const visibleItems = items.filter((it) => {
-    if (
-      areaFilter !== "all" &&
-      !classifyServiceAreas(`${it.title} ${it.organization ?? ""}`).includes(areaFilter)
-    ) {
-      return false;
-    }
-    const scraped = it.firstSeenAt ? it.firstSeenAt.slice(0, 10) : "";
-    if (fromDate && (!scraped || scraped < fromDate)) return false;
-    if (toDate && (!scraped || scraped > toDate)) return false;
-    return true;
-  });
+  const visibleItems = items
+    .filter((it) => {
+      if (areaFilter !== "all") {
+        const cats = classifyServiceAreas(`${it.title} ${it.organization ?? ""}`);
+        // "uncategorized" = no keyword hit; otherwise must contain the key.
+        if (areaFilter === "uncategorized" ? cats.length > 0 : !cats.includes(areaFilter)) {
+          return false;
+        }
+      }
+      const scraped = it.firstSeenAt ? it.firstSeenAt.slice(0, 10) : "";
+      if (fromDate && (!scraped || scraped < fromDate)) return false;
+      if (toDate && (!scraped || scraped > toDate)) return false;
+      return true;
+    })
+    // Kenya-based leads to the top (accreditation edge), preserving newest-first
+    // order within each group — V8's sort is stable.
+    .sort((a, b) => Number(isKenyaLocation(b.location)) - Number(isKenyaLocation(a.location)));
 
   return (
     <div className="space-y-6">
@@ -264,14 +270,15 @@ export default function OpportunitiesPage() {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-text-muted font-medium">Service area</label>
+          <label className="text-xs text-text-muted font-medium">Program area</label>
           <select value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} className={selectClass}>
-            <option value="all">All service areas</option>
+            <option value="all">All programs</option>
             {SERVICE_AREAS.map((area) => (
               <option key={area.key} value={area.key}>
                 {area.label}
               </option>
             ))}
+            <option value="uncategorized">Uncategorized</option>
           </select>
         </div>
         <div className="flex flex-col gap-1">
@@ -331,9 +338,43 @@ export default function OpportunitiesPage() {
             ),
           },
           {
+            key: "programs",
+            header: "Program areas",
+            render: (item: Opportunity) => {
+              const labels = categoryLabels(`${item.title} ${item.organization ?? ""}`);
+              const uncategorized = labels[0] === "Uncategorized";
+              return (
+                <div className="flex flex-wrap gap-1 max-w-[220px]">
+                  {labels.map((l) => (
+                    <span
+                      key={l}
+                      className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                        uncategorized
+                          ? "bg-amber-50 text-amber-700 border border-amber-200"
+                          : "bg-background border border-border text-text-secondary"
+                      }`}
+                    >
+                      {l}
+                    </span>
+                  ))}
+                </div>
+              );
+            },
+          },
+          {
             key: "location",
             header: "Location",
-            render: (item: Opportunity) => item.location || "—",
+            render: (item: Opportunity) =>
+              item.location ? (
+                <span className="whitespace-nowrap">
+                  {isKenyaLocation(item.location) && (
+                    <span className="mr-1 inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand text-white align-middle">KE</span>
+                  )}
+                  {item.location}
+                </span>
+              ) : (
+                "—"
+              ),
           },
           {
             key: "deadline",

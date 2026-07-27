@@ -24,6 +24,12 @@ export interface Opportunity {
   lastSeenAt: string;
 }
 
+// VASOL's accreditations (NITA, TVETA, KASNEB, HRMPEB) are Kenya-specific, so
+// Kenya-based opportunities get ranked to the top of the digest/dashboard.
+export function isKenyaLocation(location: string | null | undefined): boolean {
+  return (location ?? "").toLowerCase().includes("kenya");
+}
+
 export interface OpportunityDraft {
   source: OpportunitySource;
   externalId: string;
