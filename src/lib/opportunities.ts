@@ -137,6 +137,36 @@ export async function setScanEnabled(enabled: boolean): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+// When the scraper last touched the table, and how many rows that run saw.
+// Derived from the data (a scan stamps every row it upserts with the same
+// last_seen_at), so no separate scan-log table is needed. `newCount` is how
+// many of those were brand-new that run (first_seen_at === last_seen_at).
+export async function getLastScan(): Promise<{ at: string | null; seenCount: number; newCount: number }> {
+  const { data, error } = await db()
+    .from("opportunities")
+    .select("last_seen_at")
+    .order("last_seen_at", { ascending: false })
+    .limit(1);
+  if (error) throw new Error(error.message);
+  const at = (data?.[0]?.last_seen_at as string | undefined) ?? null;
+  if (!at) return { at: null, seenCount: 0, newCount: 0 };
+
+  const { count: seenCount, error: e2 } = await db()
+    .from("opportunities")
+    .select("*", { count: "exact", head: true })
+    .eq("last_seen_at", at);
+  if (e2) throw new Error(e2.message);
+
+  const { count: newCount, error: e3 } = await db()
+    .from("opportunities")
+    .select("*", { count: "exact", head: true })
+    .eq("last_seen_at", at)
+    .eq("first_seen_at", at);
+  if (e3) throw new Error(e3.message);
+
+  return { at, seenCount: seenCount ?? 0, newCount: newCount ?? 0 };
+}
+
 export async function getOpportunityCounts(): Promise<{
   total: number;
   byStatus: Record<string, number>;

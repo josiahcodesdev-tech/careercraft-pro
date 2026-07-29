@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listOpportunities, getOpportunityCounts } from "@/lib/opportunities";
+import { listOpportunities, getOpportunityCounts, getLastScan } from "@/lib/opportunities";
 import { runOpportunityScan } from "@/lib/opportunity-scan";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -11,15 +11,16 @@ export const maxDuration = 60;
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   try {
-    const [data, counts] = await Promise.all([
+    const [data, counts, lastScan] = await Promise.all([
       listOpportunities({
         status: searchParams.get("status") ?? undefined,
         category: searchParams.get("category") ?? undefined,
         source: searchParams.get("source") ?? undefined,
       }),
       getOpportunityCounts(),
+      getLastScan(),
     ]);
-    return NextResponse.json({ data, counts });
+    return NextResponse.json({ data, counts, lastScan });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to load opportunities." },

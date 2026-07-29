@@ -65,6 +65,7 @@ interface Counts {
 export default function OpportunitiesPage() {
   const [items, setItems] = useState<Opportunity[]>([]);
   const [counts, setCounts] = useState<Counts | null>(null);
+  const [lastScan, setLastScan] = useState<{ at: string | null; seenCount: number; newCount: number } | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [areaFilter, setAreaFilter] = useState("all");
@@ -110,10 +111,12 @@ export default function OpportunitiesPage() {
       .then((json) => {
         setItems(json.data ?? []);
         setCounts(json.counts ?? null);
+        setLastScan(json.lastScan ?? null);
       })
       .catch(() => {
         setItems([]);
         setCounts(null);
+        setLastScan(null);
       });
   }, [statusFilter, categoryFilter]);
 
@@ -237,6 +240,23 @@ export default function OpportunitiesPage() {
           </button>
         </div>
       </div>
+
+      {lastScan?.at && (
+        <p className="text-xs text-text-muted -mt-2">
+          Last scraped:{" "}
+          <span className="font-medium text-text-secondary">
+            {new Date(lastScan.at).toLocaleString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>{" "}
+          · {lastScan.seenCount} opportunit{lastScan.seenCount === 1 ? "y" : "ies"} seen
+          {lastScan.newCount > 0 ? ` · ${lastScan.newCount} new` : ""}
+        </p>
+      )}
 
       {scanEnabled === false && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
