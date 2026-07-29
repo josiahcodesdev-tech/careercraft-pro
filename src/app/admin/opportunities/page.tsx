@@ -18,6 +18,13 @@ const SOURCE_LABELS: Record<string, string> = {
   undp: "UNDP",
 };
 
+// Today's date as YYYY-MM-DD in the viewer's local timezone, for the "Today"
+// quick date filter (matches the locally-formatted Scraped column).
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 // RFC-4180 field escaping: wrap in quotes if the value has a comma, quote or
 // newline, doubling any inner quotes.
 function csvCell(value: string | null | undefined): string {
@@ -308,6 +315,36 @@ export default function OpportunitiesPage() {
         <div className="flex flex-col gap-1">
           <label className="text-xs text-text-muted font-medium">Scraped to</label>
           <input type="date" value={toDate} min={fromDate || undefined} onChange={(e) => setToDate(e.target.value)} className={selectClass} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-text-muted font-medium">Quick</label>
+          <div className="flex gap-1">
+            <button
+              onClick={() => {
+                const t = localToday();
+                setFromDate(t);
+                setToDate(t);
+              }}
+              className={`h-9 px-3 rounded-lg border text-sm font-medium transition-colors ${
+                fromDate === localToday() && toDate === localToday()
+                  ? "border-brand bg-brand-light text-brand"
+                  : "border-border bg-background hover:border-brand"
+              }`}
+            >
+              Today
+            </button>
+            {(fromDate || toDate) && (
+              <button
+                onClick={() => {
+                  setFromDate("");
+                  setToDate("");
+                }}
+                className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-text-muted hover:border-brand transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
         <button
           onClick={() => exportOpportunitiesCsv(visibleItems)}
