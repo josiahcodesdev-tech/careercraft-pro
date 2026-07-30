@@ -32,23 +32,29 @@ function joinNames(obj: unknown, path: string[]): string | undefined {
   return names.length > 0 ? names.join(", ") : undefined;
 }
 
-export async function fetchReliefWebJobs(): Promise<ScrapeResult> {
-  const appname = process.env.RELIEFWEB_APPNAME;
-  if (!appname) {
-    return { drafts: [], error: "RELIEFWEB_APPNAME not configured" };
-  }
+// Organisations always worth tracking regardless of the keyword filter. Their
+// postings are pulled in by matching ReliefWeb's source name/shortname, so an
+// IUCN tender/consultancy surfaces even when its title doesn't hit a program
+// keyword. (IUCN's own procurement portal forbids scraping — robots.txt
+// Disallow: / — so ReliefWeb is the compliant channel for their listings.)
+const TRACKED_ORG_QUERY = 'IUCN OR "International Union for Conservation of Nature"';
 
+// One ReliefWeb /jobs query scoped to the target countries. `queryValue` is the
+// full-text query; `queryFields` restricts which fields it matches (e.g. the
+// source name for an org query) — omit to search the default fields.
+async function queryReliefWebJobs(
+  appname: string,
+  queryValue: string,
+  queryFields?: string[]
+): Promise<OpportunityDraft[]> {
   const url = new URL("https://api.reliefweb.int/v2/jobs");
   url.searchParams.set("appname", appname);
-  // Keep this feed focused on the services offered rather than every
-  // humanitarian job ReliefWeb has — the /jobs endpoint isn't RFP-specific, so
-  // without a keyword filter it returns unrelated logistics/medical roles. The
-  // phrase list is centralised in service-keywords.ts (M&E, leadership,
-  // strategic planning, education-systems review).
-  url.searchParams.set("query[value]", serviceKeywordQuery());
-  // Restrict to African English-speaking nations at the API level rather
-  // than filtering client-side after fetching — combined with `query[value]`
-  // via an implicit AND, per ReliefWeb's filter semantics.
+  url.searchParams.set("query[value]", queryValue);
+  if (queryFields) {
+    for (const field of queryFields) url.searchParams.append("query[fields][]", field);
+  }
+  // Restrict to African English-speaking nations at the API level — combined
+  // with `query[value]` via an implicit AND, per ReliefWeb's filter semantics.
   url.searchParams.set("filter[field]", "country.iso3");
   for (const iso3 of TARGET_COUNTRY_ISO3) {
     url.searchParams.append("filter[value][]", iso3);
@@ -56,22 +62,17 @@ export async function fetchReliefWebJobs(): Promise<ScrapeResult> {
   url.searchParams.set("filter[operator]", "OR");
   url.searchParams.set("limit", "50");
   url.searchParams.set("sort[]", "date:desc");
-  url.searchParams.append("fields[include][]", "title");
-  url.searchParams.append("fields[include][]", "url");
-  url.searchParams.append("fields[include][]", "source.name");
-  url.searchParams.append("fields[include][]", "country.name");
-  url.searchParams.append("fields[include][]", "city.name");
-  url.searchParams.append("fields[include][]", "date.closing");
+  for (const field of ["title", "url", "source.name", "country.name", "city.name", "date.closing"]) {
+    url.searchParams.append("fields[include][]", field);
+  }
 
-  try {
-    const res = await fetch(url.toString());
-    if (!res.ok) {
-      return { drafts: [], error: `ReliefWeb API returned ${res.status}` };
-    }
-    const json = await res.json();
-    const items = Array.isArray(json?.data) ? (json.data as unknown[]) : [];
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`ReliefWeb API returned ${res.status}`);
+  const json = await res.json();
+  const items = Array.isArray(json?.data) ? (json.data as unknown[]) : [];
 
-    const drafts: OpportunityDraft[] = items.map((item) => {
+  return items
+    .map((item): OpportunityDraft => {
       const id = String(dig(item, ["id"]) ?? "");
       const title = firstString(item, ["fields", "title"]) ?? "Untitled listing";
       const sourceUrl = firstString(item, ["fields", "url"]) ?? "https://reliefweb.int/jobs";
@@ -82,20 +83,31 @@ export async function fetchReliefWebJobs(): Promise<ScrapeResult> {
       const deadlineRaw = firstString(item, ["fields", "date", "closing"]);
       const deadline = deadlineRaw ? deadlineRaw.slice(0, 10) : null;
 
-      return {
-        source: "reliefweb",
-        externalId: id,
-        title,
-        organization,
-        category: "job",
-        location,
-        deadline,
-        sourceUrl,
-        raw: item,
-      };
-    });
+      return { source: "reliefweb", externalId: id, title, organization, category: "job", location, deadline, sourceUrl, raw: item };
+    })
+    .filter((d) => d.externalId);
+}
 
-    return { drafts: drafts.filter((d) => d.externalId) };
+export async function fetchReliefWebJobs(): Promise<ScrapeResult> {
+  const appname = process.env.RELIEFWEB_APPNAME;
+  if (!appname) {
+    return { drafts: [], error: "RELIEFWEB_APPNAME not configured" };
+  }
+
+  try {
+    // Two passes: (1) the service-keyword feed (M&E/leadership/etc.), which
+    // keeps the /jobs endpoint from returning every unrelated humanitarian
+    // role; (2) tracked priority orgs (IUCN) by source, regardless of keyword.
+    const [byKeyword, byOrg] = await Promise.all([
+      queryReliefWebJobs(appname, serviceKeywordQuery()),
+      queryReliefWebJobs(appname, TRACKED_ORG_QUERY, ["source.name", "source.shortname"]),
+    ]);
+
+    // Dedup by externalId — an IUCN job that also matched a keyword appears once.
+    const byId = new Map<string, OpportunityDraft>();
+    for (const draft of [...byKeyword, ...byOrg]) byId.set(draft.externalId, draft);
+
+    return { drafts: [...byId.values()] };
   } catch (e) {
     return { drafts: [], error: e instanceof Error ? e.message : "Failed to fetch ReliefWeb jobs" };
   }
