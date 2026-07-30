@@ -32,12 +32,20 @@ function joinNames(obj: unknown, path: string[]): string | undefined {
   return names.length > 0 ? names.join(", ") : undefined;
 }
 
-// Organisations always worth tracking regardless of the keyword filter. Their
-// postings are pulled in by matching ReliefWeb's source name/shortname, so an
-// IUCN tender/consultancy surfaces even when its title doesn't hit a program
-// keyword. (IUCN's own procurement portal forbids scraping — robots.txt
-// Disallow: / — so ReliefWeb is the compliant channel for their listings.)
-const TRACKED_ORG_QUERY = 'IUCN OR "International Union for Conservation of Nature"';
+// Priority organisations tracked by source regardless of the keyword filter —
+// their tenders/consultancies surface even when the title misses a program
+// keyword. IUCN's own procurement portal forbids scraping (robots.txt
+// Disallow: /), so ReliefWeb is the compliant channel; the others are
+// development/conservation partners worth catching the same way. Combined into
+// one OR'd source query so it's a single request. Add an org by extending this
+// list (each entry OR's its name variants).
+const TRACKED_ORGS = [
+  'IUCN OR "International Union for Conservation of Nature"',
+  'WWF OR "World Wide Fund" OR "World Wildlife Fund"',
+  'FAO OR "Food and Agriculture Organization"',
+  'GIZ OR "Deutsche Gesellschaft"',
+];
+const TRACKED_ORG_QUERY = TRACKED_ORGS.map((org) => `(${org})`).join(" OR ");
 
 // One ReliefWeb /jobs query scoped to the target countries. `queryValue` is the
 // full-text query; `queryFields` restricts which fields it matches (e.g. the
