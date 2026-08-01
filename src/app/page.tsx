@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ServiceCarousel } from "@/components/service-carousel";
+import { StatsBand } from "@/components/stats-band";
 import { CtaSection } from "@/components/cta-section";
 import { JsonLd } from "@/components/json-ld";
 import { SITE_URL } from "@/lib/site-config";
@@ -140,6 +141,11 @@ export default function HomePage() {
             </div>
 
           </div>
+        </div>
+
+        {/* Social-proof stats band */}
+        <div className="mt-14">
+          <StatsBand />
         </div>
       </div>
 
