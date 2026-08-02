@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PaymentModal } from "@/components/payment-modal";
 import { JdTailor, type JdDraft } from "@/components/jd-tailor";
+import { AssistedTextarea } from "@/components/assisted-textarea";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { buttonVariants } from "@/components/ui/button";
@@ -298,6 +299,8 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
   const [enhancingSummary, setEnhancingSummary] = useState(false);
   const [enhancingBullets, setEnhancingBullets] = useState<number | null>(null);
   const [aiError, setAiError] = useState("");
+  // The pasted job description, used to tailor AI enhance + inline suggestions.
+  const [jdContext, setJdContext] = useState("");
   const [payTarget, setPayTarget] = useState<"pdf" | "word" | null>(null);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [showMobileDownloadMenu, setShowMobileDownloadMenu] = useState(false);
@@ -431,7 +434,8 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
 
   // Pre-fill headline, summary and a key-skills group from a job description.
   // Experience/education are left untouched — the candidate adds those.
-  function applyJdDraft(draft: JdDraft) {
+  function applyJdDraft(draft: JdDraft, jd: string) {
+    setJdContext(jd);
     setData((prev) => {
       const existing = prev.skillGroups.filter((g) => g.category || g.skills);
       const skillGroups = draft.skills.length
@@ -527,7 +531,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
       const res = await fetch("/api/ai-enhance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "summary", summary: data.summary, targetRole: data.tagline }),
+        body: JSON.stringify({ type: "summary", summary: data.summary, targetRole: data.tagline, jd: jdContext || undefined }),
       });
       const json = await res.json() as { result?: string; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Failed");
@@ -548,7 +552,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
       const res = await fetch("/api/ai-enhance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "bullets", role: exp.role, company: exp.company, bullets: exp.bullets }),
+        body: JSON.stringify({ type: "bullets", role: exp.role, company: exp.company, bullets: exp.bullets, jd: jdContext || undefined }),
       });
       const json = await res.json() as { result?: string[]; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Failed");
@@ -865,9 +869,12 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
                   and career strengths. Include keywords from your target job
                   description for ATS optimisation.
                 </p>
-                <Textarea
+                <AssistedTextarea
                   value={data.summary}
-                  onChange={(e) => update("summary", e.target.value)}
+                  onChange={(v) => update("summary", v)}
+                  kind="summary"
+                  jd={jdContext || undefined}
+                  role={data.tagline || undefined}
                   placeholder="Results-driven software engineer with 8+ years of experience building scalable web applications..."
                   className="min-h-[160px]"
                 />

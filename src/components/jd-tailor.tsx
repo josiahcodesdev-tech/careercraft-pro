@@ -13,7 +13,7 @@ export interface JdDraft {
 // A compact panel for the CV Builder: paste/upload a job-description (text or a
 // screenshot) and pre-fill a tailored draft (headline, summary, key skills)
 // that the user then completes with their real experience.
-export function JdTailor({ onApply }: { onApply: (draft: JdDraft) => void }) {
+export function JdTailor({ onApply }: { onApply: (draft: JdDraft, jd: string) => void }) {
   const [open, setOpen] = useState(false);
   const [jd, setJd] = useState("");
   const [ocr, setOcr] = useState(false);
@@ -67,7 +67,7 @@ export function JdTailor({ onApply }: { onApply: (draft: JdDraft) => void }) {
       });
       const json = (await res.json()) as { draft?: JdDraft; error?: string };
       if (!res.ok || !json.draft) throw new Error(json.error ?? "Could not process the job description.");
-      onApply(json.draft);
+      onApply(json.draft, jd);
       setApplied(true);
       setOpen(false);
     } catch (err) {

@@ -29,7 +29,14 @@ export async function POST(req: NextRequest) {
     company?: string;
     bullets?: string[];
     targetRole?: string;
+    jd?: string;
   };
+
+  // When the user has pasted a target job description, steer the rewrite toward
+  // its language and requirements (without copying it verbatim).
+  const jdBlock = body.jd?.trim()
+    ? `\n\nTarget job description — weave in its keywords, terminology and priorities where they fit the candidate's real experience (do NOT copy it verbatim or invent experience they don't have):\n${body.jd.slice(0, 3000)}`
+    : "";
 
   try {
     if (body.type === "summary") {
@@ -43,7 +50,7 @@ export async function POST(req: NextRequest) {
           },
           {
             role: "user",
-            content: `Target role: ${body.targetRole || "not specified"}\n\nCurrent summary:\n${body.summary}`,
+            content: `Target role: ${body.targetRole || "not specified"}\n\nCurrent summary:\n${body.summary}${jdBlock}`,
           },
         ],
         temperature: 0.7,
@@ -65,7 +72,7 @@ export async function POST(req: NextRequest) {
           },
           {
             role: "user",
-            content: `Role: ${body.role || "not specified"}\nCompany: ${body.company || "not specified"}\n\nCurrent bullets:\n${existing}`,
+            content: `Role: ${body.role || "not specified"}\nCompany: ${body.company || "not specified"}\n\nCurrent bullets:\n${existing}${jdBlock}`,
           },
         ],
         temperature: 0.7,
