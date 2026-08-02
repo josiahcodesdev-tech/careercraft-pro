@@ -10,6 +10,7 @@ import { useState } from "react";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
+  { href: "/cv-builder", label: "ATS CV Builder" },
 ];
 
 export function Navbar() {

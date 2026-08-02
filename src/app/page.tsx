@@ -3,11 +3,10 @@ import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ServiceCarousel } from "@/components/service-carousel";
-import { StatsBand } from "@/components/stats-band";
 import { CtaSection } from "@/components/cta-section";
 import { JsonLd } from "@/components/json-ld";
 import { SITE_URL } from "@/lib/site-config";
-import { Search, FileText, Users, Activity, Zap } from "lucide-react";
+import { Search, FileText, Users, Activity, Zap, Star, type LucideIcon } from "lucide-react";
 
 const homeTitle = "MyCareerCraft — Career Development & Professional Growth";
 const homeDescription =
@@ -38,19 +37,44 @@ const websiteJsonLd = {
   url: SITE_URL,
 };
 
-const careerPath = [
-  { icon: Search, label: "Career assessment", status: "Done", active: false },
-  { icon: FileText, label: "CV & personal brand", status: "Done", active: false },
-  { icon: Users, label: "Interview coaching", status: "Done", active: true },
-  { icon: Activity, label: "Career transition", status: "Done", active: false },
+type Step = {
+  icon: LucideIcon;
+  label: string;
+  status: "Done" | "In progress" | "Up next";
+  description?: string;
+};
+
+const careerPath: Step[] = [
+  { icon: Search, label: "Career assessment", status: "Done" },
+  { icon: FileText, label: "CV & personal brand", status: "Done" },
+  {
+    icon: Users,
+    label: "Interview coaching",
+    status: "In progress",
+    description: "Mock interviews and storytelling frameworks so you walk in ready to win.",
+  },
+  { icon: Activity, label: "Career transition", status: "Up next" },
 ];
+
+const stepsDone = careerPath.filter((s) => s.status === "Done").length;
 
 export default function HomePage() {
   return (
     <>
       <JsonLd data={websiteJsonLd} />
       {/* Hero */}
-      <div className="max-w-[1100px] mx-auto px-8 py-6">
+      <section className="relative overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 text-border/60"
+          style={{
+            backgroundImage: "radial-gradient(currentColor 1.1px, transparent 1.1px)",
+            backgroundSize: "22px 22px",
+            WebkitMaskImage: "radial-gradient(ellipse 80% 70% at 32% 22%, #000 8%, transparent 68%)",
+            maskImage: "radial-gradient(ellipse 80% 70% at 32% 22%, #000 8%, transparent 68%)",
+          }}
+        />
+        <div className="relative max-w-[1100px] mx-auto px-8 py-6">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <span className="inline-flex items-center gap-1.5 bg-brand-light text-brand text-xs font-semibold px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-6">
@@ -60,7 +84,24 @@ export default function HomePage() {
             <h1 className="font-heading text-[clamp(34px,4.5vw,52px)] font-black leading-[1.15] tracking-tight mb-5">
               Shape the career
               <br />
-              you <em className="not-italic text-brand">deserve</em>
+              you{" "}
+              <span className="relative inline-block text-brand">
+                deserve
+                <svg
+                  aria-hidden
+                  viewBox="0 0 220 14"
+                  preserveAspectRatio="none"
+                  fill="none"
+                  className="absolute -bottom-1.5 left-0 w-full h-[0.4em] text-gold"
+                >
+                  <path
+                    d="M4 9 Q 70 3 110 6 T 216 8"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
             </h1>
             <p className="text-[17px] text-text-secondary leading-relaxed max-w-[440px] mb-8">
               We help professionals at every stage discover their strengths,
@@ -98,56 +139,92 @@ export default function HomePage() {
 
           {/* Hero visual */}
           <div className="relative hidden lg:block">
-            <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
-              <h3 className="font-heading text-lg font-extrabold text-brand mb-6">
-                Your career journey
-              </h3>
-              <div className="flex flex-col gap-4">
-                {careerPath.map((step) => (
-                  <div
-                    key={step.label}
-                    className={`flex items-center gap-3.5 px-4 py-3 rounded-lg border transition-all ${
-                      step.active
-                        ? "bg-brand-light border-brand"
-                        : "bg-background border-border"
-                    }`}
-                  >
-                    <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                        step.active ? "bg-brand" : "bg-border"
-                      }`}
-                    >
-                      <step.icon
-                        className={`w-[18px] h-[18px] ${
-                          step.active ? "text-white" : "text-text-muted"
+            <div className="bg-card border border-border rounded-2xl p-7 shadow-xl">
+              {/* Header + progress */}
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-heading text-lg font-extrabold text-brand">
+                  Your career journey
+                </h3>
+                <span className="text-[11px] font-semibold text-text-muted bg-background border border-border px-2.5 py-1 rounded-full whitespace-nowrap">
+                  {stepsDone} / {careerPath.length} done
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-border mb-6 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-brand"
+                  style={{ width: `${((stepsDone + 0.5) / careerPath.length) * 100}%` }}
+                />
+              </div>
+
+              {/* Steps */}
+              <div className="flex flex-col">
+                {careerPath.map((step, i) => {
+                  const isLast = i === careerPath.length - 1;
+                  const done = step.status === "Done";
+                  const active = step.status === "In progress";
+                  return (
+                    <div key={step.label} className="flex gap-3.5">
+                      {/* Icon + connector */}
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                            active ? "bg-brand" : "bg-background border border-border"
+                          }`}
+                        >
+                          <step.icon
+                            className={`w-[18px] h-[18px] ${active ? "text-white" : "text-text-muted"}`}
+                          />
+                        </div>
+                        {!isLast && (
+                          <div
+                            className={`w-0.5 flex-1 my-1 rounded ${
+                              done || active ? "bg-brand" : "bg-border"
+                            }`}
+                          />
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div
+                        className={`flex-1 mb-3 rounded-lg border px-4 py-3 transition-all ${
+                          active ? "bg-brand-light border-brand" : "bg-background border-border"
                         }`}
-                      />
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold flex-1">{step.label}</span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap ${
+                              active
+                                ? "bg-brand text-white"
+                                : done
+                                ? "bg-border text-text-muted"
+                                : "bg-gold/15 text-gold"
+                            }`}
+                          >
+                            {step.status}
+                          </span>
+                        </div>
+                        {step.description && (
+                          <p className="text-xs text-text-secondary leading-snug mt-1.5">
+                            {step.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-sm font-medium flex-1">
-                      {step.label}
-                    </span>
-                    <span
-                      className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
-                        step.active
-                          ? "bg-brand text-white"
-                          : "bg-border text-text-muted"
-                      }`}
-                    >
-                      {step.status}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
+            {/* Rating badge */}
+            <div className="absolute -bottom-4 right-6 flex items-center gap-1.5 bg-gold text-white text-sm font-bold px-4 py-2 rounded-xl shadow-lg">
+              <Star className="w-4 h-4 fill-current" />
+              4.9 average rating
+            </div>
           </div>
         </div>
-
-        {/* Social-proof stats band */}
-        <div className="mt-14">
-          <StatsBand />
         </div>
-      </div>
+      </section>
 
       {/* Services carousel */}
       <section className="bg-card py-20 px-8">
