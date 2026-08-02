@@ -3,10 +3,11 @@ import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ServiceCarousel } from "@/components/service-carousel";
+import { CareerJourney } from "@/components/career-journey";
 import { CtaSection } from "@/components/cta-section";
 import { JsonLd } from "@/components/json-ld";
 import { SITE_URL } from "@/lib/site-config";
-import { Search, FileText, Users, Activity, Zap, Star, type LucideIcon } from "lucide-react";
+import { Zap } from "lucide-react";
 
 const homeTitle = "MyCareerCraft — Career Development & Professional Growth";
 const homeDescription =
@@ -36,27 +37,6 @@ const websiteJsonLd = {
   name: "MyCareerCraft",
   url: SITE_URL,
 };
-
-type Step = {
-  icon: LucideIcon;
-  label: string;
-  status: "Done" | "In progress" | "Up next";
-  description?: string;
-};
-
-const careerPath: Step[] = [
-  { icon: Search, label: "Career assessment", status: "Done" },
-  { icon: FileText, label: "CV & personal brand", status: "Done" },
-  {
-    icon: Users,
-    label: "Interview coaching",
-    status: "In progress",
-    description: "Mock interviews and storytelling frameworks so you walk in ready to win.",
-  },
-  { icon: Activity, label: "Career transition", status: "Up next" },
-];
-
-const stepsDone = careerPath.filter((s) => s.status === "Done").length;
 
 export default function HomePage() {
   return (
@@ -137,91 +117,8 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Hero visual */}
-          <div className="relative hidden lg:block">
-            <div className="bg-card border border-border rounded-2xl p-7 shadow-xl">
-              {/* Header + progress */}
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-heading text-lg font-extrabold text-brand">
-                  Your career journey
-                </h3>
-                <span className="text-[11px] font-semibold text-text-muted bg-background border border-border px-2.5 py-1 rounded-full whitespace-nowrap">
-                  {stepsDone} / {careerPath.length} done
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-border mb-6 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-brand"
-                  style={{ width: `${((stepsDone + 0.5) / careerPath.length) * 100}%` }}
-                />
-              </div>
-
-              {/* Steps */}
-              <div className="flex flex-col">
-                {careerPath.map((step, i) => {
-                  const isLast = i === careerPath.length - 1;
-                  const done = step.status === "Done";
-                  const active = step.status === "In progress";
-                  return (
-                    <div key={step.label} className="flex gap-3.5">
-                      {/* Icon + connector */}
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            active ? "bg-brand" : "bg-background border border-border"
-                          }`}
-                        >
-                          <step.icon
-                            className={`w-[18px] h-[18px] ${active ? "text-white" : "text-text-muted"}`}
-                          />
-                        </div>
-                        {!isLast && (
-                          <div
-                            className={`w-0.5 flex-1 my-1 rounded ${
-                              done || active ? "bg-brand" : "bg-border"
-                            }`}
-                          />
-                        )}
-                      </div>
-
-                      {/* Content */}
-                      <div
-                        className={`flex-1 mb-3 rounded-lg border px-4 py-3 transition-all ${
-                          active ? "bg-brand-light border-brand" : "bg-background border-border"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold flex-1">{step.label}</span>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap ${
-                              active
-                                ? "bg-brand text-white"
-                                : done
-                                ? "bg-border text-text-muted"
-                                : "bg-gold/15 text-gold"
-                            }`}
-                          >
-                            {step.status}
-                          </span>
-                        </div>
-                        {step.description && (
-                          <p className="text-xs text-text-secondary leading-snug mt-1.5">
-                            {step.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Rating badge */}
-            <div className="absolute -bottom-4 right-6 flex items-center gap-1.5 bg-gold text-white text-sm font-bold px-4 py-2 rounded-xl shadow-lg">
-              <Star className="w-4 h-4 fill-current" />
-              4.9 average rating
-            </div>
-          </div>
+          {/* Hero visual — animated career-journey card */}
+          <CareerJourney />
         </div>
         </div>
       </section>
