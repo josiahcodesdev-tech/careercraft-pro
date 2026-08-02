@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
+import { ocrJdImage, imageFromPaste } from "@/lib/jd-image";
 import {
   Upload,
   FileText,
@@ -491,6 +492,7 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
   const [cvFileName, setCvFileName] = useState("");
   const [jdText, setJdText] = useState("");
   const [jdFileName, setJdFileName] = useState("");
+  const [jdOcr, setJdOcr] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanStep, setScanStep] = useState(0);
   const [parsed, setParsed] = useState<ParsedCv | null>(null);
@@ -522,17 +524,39 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
     if (!f) return;
     try {
       let text: string;
-      if (f.name.toLowerCase().endsWith(".pdf")) {
+      if (f.type.startsWith("image/")) {
+        setJdOcr(true);
+        text = await ocrJdImage(f);
+      } else if (f.name.toLowerCase().endsWith(".pdf")) {
         text = await extractTextFromPdf(f);
       } else {
         text = await f.text();
       }
       setJdText(text.slice(0, 5000));
       setJdFileName(f.name);
-    } catch {
-      setError("Could not read the job description file.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not read the job description file.");
+    } finally {
+      setJdOcr(false);
     }
     e.target.value = "";
+  }, []);
+
+  // Paste a job-post screenshot straight into the JD box → OCR it to text.
+  const handleJdPaste = useCallback(async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const img = imageFromPaste(e);
+    if (!img) return; // no image → let the normal text paste happen
+    e.preventDefault();
+    try {
+      setJdOcr(true);
+      const text = await ocrJdImage(img);
+      setJdText(text.slice(0, 5000));
+      setJdFileName("Pasted job screenshot");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not read the pasted image.");
+    } finally {
+      setJdOcr(false);
+    }
   }, []);
 
   const handleTransform = useCallback(async () => {
@@ -784,16 +808,25 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
                   <textarea
                     value={jdText}
                     onChange={(e) => { setJdText(e.target.value); if (!e.target.value) setJdFileName(""); }}
-                    placeholder="Paste the job description here…"
+                    onPaste={handleJdPaste}
+                    placeholder="Paste the job description — or paste/upload a screenshot of it…"
                     rows={5}
                     className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-text-muted outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors resize-none"
                   />
                   <div className="flex items-center gap-1.5 mt-1.5">
-                    <span className="text-xs text-text-muted">or</span>
-                    <label className="text-xs font-medium text-brand cursor-pointer hover:underline">
-                      upload a file
-                      <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleJdUpload} className="hidden" />
-                    </label>
+                    {jdOcr ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-brand font-medium">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Reading job description image…
+                      </span>
+                    ) : (
+                      <>
+                        <span className="text-xs text-text-muted">or</span>
+                        <label className="text-xs font-medium text-brand cursor-pointer hover:underline">
+                          upload a file or screenshot
+                          <input type="file" accept=".pdf,.doc,.docx,.txt,image/*" onChange={handleJdUpload} className="hidden" />
+                        </label>
+                      </>
+                    )}
                   </div>
                 </div>
 

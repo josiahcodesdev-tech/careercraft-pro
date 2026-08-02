@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PaymentModal } from "@/components/payment-modal";
+import { JdTailor, type JdDraft } from "@/components/jd-tailor";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { buttonVariants } from "@/components/ui/button";
@@ -428,6 +429,23 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
     update("skillGroups", next);
   }
 
+  // Pre-fill headline, summary and a key-skills group from a job description.
+  // Experience/education are left untouched — the candidate adds those.
+  function applyJdDraft(draft: JdDraft) {
+    setData((prev) => {
+      const existing = prev.skillGroups.filter((g) => g.category || g.skills);
+      const skillGroups = draft.skills.length
+        ? [{ category: "Key skills", skills: draft.skills.join(", ") }, ...existing]
+        : prev.skillGroups;
+      return {
+        ...prev,
+        tagline: draft.role || prev.tagline,
+        summary: draft.summary || prev.summary,
+        skillGroups,
+      };
+    });
+  }
+
   function updateProject(index: number, patch: Partial<ProjectEntry>) {
     const next = data.projects.map((p, i) =>
       i === index ? { ...p, ...patch } : p
@@ -664,6 +682,11 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
                 <span className="hidden sm:inline">{s.label}</span>
               </button>
             ))}
+          </div>
+
+          {/* Tailor the CV to a job description (text or screenshot) */}
+          <div className="mb-6">
+            <JdTailor onApply={applyJdDraft} />
           </div>
 
           {/* Step content */}
