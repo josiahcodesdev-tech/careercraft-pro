@@ -25,13 +25,16 @@ const STEP_MS = 2400;
 // (Done / In progress / Up next) all follow the active step.
 export function CareerJourney() {
   const [active, setActive] = useState(0);
+  // Hovering a step pauses the loop and holds on that step; leaving resumes.
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
+    if (paused) return;
     // Respect reduced-motion: don't loop — leave the first step highlighted.
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const id = setInterval(() => setActive((a) => (a + 1) % STEPS.length), STEP_MS);
     return () => clearInterval(id);
-  }, []);
+  }, [paused]);
 
   const progressPct = ((active + 0.5) / STEPS.length) * 100;
 
@@ -52,14 +55,21 @@ export function CareerJourney() {
           />
         </div>
 
-        {/* Steps */}
-        <div className="flex flex-col">
+        {/* Steps — hovering one holds it highlighted; leaving the list resumes. */}
+        <div className="flex flex-col" onMouseLeave={() => setPaused(false)}>
           {STEPS.map((step, i) => {
             const isLast = i === STEPS.length - 1;
             const done = i < active;
             const isActive = i === active;
             return (
-              <div key={step.label} className="flex gap-3.5">
+              <div
+                key={step.label}
+                className="flex gap-3.5 cursor-default"
+                onMouseEnter={() => {
+                  setActive(i);
+                  setPaused(true);
+                }}
+              >
                 {/* Icon + connector */}
                 <div className="flex flex-col items-center">
                   <div
