@@ -5,7 +5,12 @@ function db(): any {
   return getSupabaseAdmin();
 }
 
-export type OpportunitySource = "reliefweb" | "devnetjobs" | "undp";
+export type OpportunitySource =
+  | "reliefweb"
+  | "devnetjobs"
+  | "undp"
+  | "worldbank"
+  | "ungm";
 export type OpportunityCategory = "rfp" | "job";
 export type OpportunityStatus = "new" | "reviewing" | "applied" | "ignored";
 

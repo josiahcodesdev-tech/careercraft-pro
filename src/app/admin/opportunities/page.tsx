@@ -16,6 +16,8 @@ const SOURCE_LABELS: Record<string, string> = {
   reliefweb: "ReliefWeb",
   devnetjobs: "DevNetJobs",
   undp: "UNDP",
+  worldbank: "World Bank",
+  ungm: "UNGM",
 };
 
 // Today's date as YYYY-MM-DD in the viewer's local timezone, for the "Today"
@@ -142,15 +144,17 @@ export default function OpportunitiesPage() {
       } else if (json.skipped) {
         setScanMessage("Scraping is turned off — turn it back on to run a scan.");
       } else {
-        const rw = json.reliefweb;
-        const dn = json.devnetjobs;
-        const un = json.undp;
-        const parts = [
-          `ReliefWeb: ${rw.fetched} fetched${rw.error ? ` (${rw.error})` : ""}`,
-          `DevNetJobs: ${dn.fetched} fetched${dn.error ? ` (${dn.error})` : ""}`,
-          `UNDP: ${un.fetched} fetched${un.error ? ` (${un.error})` : ""}`,
-        ];
-        setScanMessage(parts.join(" · "));
+        // Rendered from whatever the scan reports rather than a fixed list, so
+        // a newly added scraper shows up here without a change to this file.
+        const sources: Record<string, { fetched: number; error?: string }> =
+          json.sources ?? {};
+        const parts = Object.entries(sources).map(
+          ([id, result]) =>
+            `${SOURCE_LABELS[id] ?? id}: ${result.fetched} fetched${result.error ? ` (${result.error})` : ""}`,
+        );
+        setScanMessage(
+          parts.length > 0 ? parts.join(" · ") : "Scan finished but reported no sources.",
+        );
         load();
       }
     } catch {
