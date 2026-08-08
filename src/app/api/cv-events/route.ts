@@ -3,6 +3,7 @@ import { trackCvDownload } from "@/lib/analytics";
 import { lookupPaymentStatus } from "@/lib/payhero";
 import { verifySessionToken, ADMIN_SESSION_COOKIE } from "@/lib/admin-session";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { getPaymentsEnabled } from "@/lib/settings";
 
 export async function POST(req: NextRequest) {
   const limit = checkRateLimit(`cv-events:${getClientIp(req)}`, 20, 60 * 1000);
@@ -22,18 +23,33 @@ export async function POST(req: NextRequest) {
 
   // Anyone who knows this endpoint shape could otherwise flood the admin
   // dashboard with fake entries. Allow it only for an authenticated admin
-  // session (the "Create New" free-download path) or a reference that
-  // resolves to a real confirmed M-Pesa payment.
+  // session (the "Create New" free-download path), a reference that resolves
+  // to a real confirmed M-Pesa payment, or while the admin has payments
+  // switched off site-wide.
+  //
+  // This flag is re-read here rather than trusted from the client: the form
+  // asks /api/payments/enabled only to decide whether to show the paywall,
+  // and a hand-rolled POST must not be able to claim the giveaway is on.
   const isAdmin = verifySessionToken(req.cookies.get(ADMIN_SESSION_COOKIE)?.value);
-  if (!isAdmin) {
-    const paid = typeof reference === "string" && reference && (await lookupPaymentStatus(reference)) === "SUCCESS";
-    if (!paid) {
-      return NextResponse.json({ error: "No confirmed payment found for this download." }, { status: 403 });
-    }
+  const paymentsEnabled = await getPaymentsEnabled();
+
+  // Checked even during a giveaway, so someone who paid moments before the
+  // switch was flipped is still recorded as a paying customer.
+  const confirmed =
+    typeof reference === "string" &&
+    reference.length > 0 &&
+    (await lookupPaymentStatus(reference)) === "SUCCESS";
+
+  if (!isAdmin && paymentsEnabled && !confirmed) {
+    return NextResponse.json({ error: "No confirmed payment found for this download." }, { status: 403 });
   }
 
+  // Admin downloads and giveaway downloads both record paid = false, which is
+  // what keeps them out of the dashboard's revenue figures.
+  const paid = !isAdmin && confirmed;
+
   try {
-    const id = await trackCvDownload({ name, template, paid: !isAdmin }, data);
+    const id = await trackCvDownload({ name, template, paid }, data);
     return NextResponse.json({ id });
   } catch (e) {
     return NextResponse.json(

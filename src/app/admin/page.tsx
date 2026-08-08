@@ -6,7 +6,7 @@ import { StatCard } from "@/components/admin/stat-card";
 import { WeeklyActivityChart, type DayBucket } from "@/components/admin/weekly-activity-chart";
 import { RevenueShareChart, type RevenueSlice } from "@/components/admin/revenue-share-chart";
 import { DailyRevenueChart, type RevenueDayBucket } from "@/components/admin/daily-revenue-chart";
-import { Mail, FileText, Users, Briefcase, Search, Wallet } from "lucide-react";
+import { Mail, FileText, Users, Briefcase, Search, Wallet, Power, Loader2 } from "lucide-react";
 
 // Fixed prices from the payment flow (PaymentModal `amount` props in
 // cv-builder-form.tsx / interview-prep-form.tsx) — enquiries/proposals have
@@ -33,6 +33,8 @@ export default function AdminDashboardPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [dateSort, setDateSort] = useState("newest");
   const [revenueRange, setRevenueRange] = useState(14);
+  const [paymentsEnabled, setPaymentsEnabled] = useState<boolean | null>(null);
+  const [togglingPayments, setTogglingPayments] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/analytics")
@@ -40,6 +42,31 @@ export default function AdminDashboardPage() {
       .then((json) => setData(json as Analytics))
       .catch(() => setData({ cvDownloads: [], interviewPreps: [], enquiries: [], proposals: [] }));
   }, []);
+
+  useEffect(() => {
+    fetch("/api/admin/payments/settings")
+      .then((res) => res.json())
+      .then((json) => setPaymentsEnabled(json.enabled ?? true))
+      .catch(() => setPaymentsEnabled(true));
+  }, []);
+
+  async function handleTogglePayments() {
+    if (paymentsEnabled === null) return;
+    const next = !paymentsEnabled;
+    setTogglingPayments(true);
+    try {
+      const res = await fetch("/api/admin/payments/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      const json = await res.json();
+      if (res.ok) setPaymentsEnabled(json.enabled);
+    } catch {
+      // leave state as-is; the admin can retry
+    }
+    setTogglingPayments(false);
+  }
 
   const weeklyDays: DayBucket[] = useMemo(() => {
     const days: DayBucket[] = [];
@@ -150,7 +177,37 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-text-secondary">Overview of all service activity</p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <p className="text-sm text-text-secondary">Overview of all service activity</p>
+        <button
+          onClick={handleTogglePayments}
+          disabled={paymentsEnabled === null || togglingPayments}
+          title={
+            paymentsEnabled === false
+              ? "Downloads are free right now. Switch on to start charging again."
+              : "Clients are being charged. Switch off to make downloads free."
+          }
+          className={`inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 flex-shrink-0 ${
+            paymentsEnabled === false
+              ? "bg-red-50 text-red-600 hover:bg-red-100"
+              : "bg-brand-light text-brand hover:bg-brand/20"
+          }`}
+        >
+          {togglingPayments ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+          Payments: {paymentsEnabled === null ? "…" : paymentsEnabled ? "On" : "Off"}
+        </button>
+      </div>
+
+      {paymentsEnabled === false && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <Power className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>
+            <strong>Giveaway mode is on.</strong> CV and interview-prep downloads are free for
+            everyone and no M-Pesa prompt is sent. They still appear in the activity table, but are
+            excluded from revenue. Switch payments back on when the giveaway ends.
+          </span>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { usePaymentsEnabled } from "@/lib/use-payments-enabled";
 import {
   Plus,
   Trash2,
@@ -302,6 +303,9 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
   // The pasted job description, used to tailor AI enhance + inline suggestions.
   const [jdContext, setJdContext] = useState("");
   const [payTarget, setPayTarget] = useState<"pdf" | "word" | null>(null);
+  // Site-wide switch the admin flips from the dashboard. Null while loading,
+  // which counts as "charging" — see freeDownloads below.
+  const paymentsEnabled = usePaymentsEnabled();
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [showMobileDownloadMenu, setShowMobileDownloadMenu] = useState(false);
   const [generatingFile, setGeneratingFile] = useState(false);
@@ -613,10 +617,16 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
     }).catch(() => {});
   }
 
-  // Admin "Create New" mode skips the M-Pesa payment step entirely — the
-  // admin isn't a paying customer, they're using their own tool.
+  // Two ways a download is free: admin "Create New" mode (the admin isn't a
+  // paying customer, they're using their own tool), and a giveaway run with
+  // payments switched off site-wide.
+  //
+  // `paymentsEnabled === false` rather than `!paymentsEnabled`, so the null
+  // still-loading state falls through to charging.
+  const freeDownloads = skipPayment || paymentsEnabled === false;
+
   function triggerDownload(target: "pdf" | "word") {
-    if (skipPayment) completeDownload(target);
+    if (freeDownloads) completeDownload(target);
     else setPayTarget(target);
   }
 
@@ -641,6 +651,11 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
           {skipPayment && (
             <div className="mb-6 flex items-center gap-2 bg-brand-light text-brand text-xs font-semibold px-3 py-2 rounded-lg">
               <Sparkles className="w-3.5 h-3.5" /> Admin mode — downloads are free, no payment required
+            </div>
+          )}
+          {!skipPayment && paymentsEnabled === false && (
+            <div className="mb-6 flex items-center gap-2 bg-brand-light text-brand text-xs font-semibold px-3 py-2 rounded-lg">
+              <Sparkles className="w-3.5 h-3.5" /> Free for a limited time — download your CV at no charge
             </div>
           )}
           {/* Header */}

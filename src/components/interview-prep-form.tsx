@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { usePaymentsEnabled } from "@/lib/use-payments-enabled";
 import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download, Lock, ArrowLeft } from "lucide-react";
 import { PaymentModal } from "@/components/payment-modal";
 
@@ -331,6 +332,12 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
   const [uploadedFile, setUploadedFile] = useState<string>("");
   const [showPayment, setShowPayment] = useState(false);
   const [paid, setPaid] = useState(false);
+  // Site-wide switch the admin flips from the dashboard. Two ways a download
+  // is free: admin "Create New" mode, and a giveaway run with payments off.
+  // `=== false` rather than `!`, so the null still-loading state falls
+  // through to charging instead of unlocking the guide.
+  const paymentsEnabled = usePaymentsEnabled();
+  const freeDownloads = skipPayment || paymentsEnabled === false;
   const [generatingFile, setGeneratingFile] = useState(false);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [uploadedCv, setUploadedCv] = useState<string>("");
@@ -371,7 +378,7 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
         if (res.status === 503) {
           const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
           setDialogue(result);
-          setPaid(skipPayment);
+          setPaid(freeDownloads);
           setMobilePreviewOpen(true);
           return;
         }
@@ -379,19 +386,19 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
       }
       const result = json.qa ?? [];
       setDialogue(result);
-      setPaid(skipPayment);
+      setPaid(freeDownloads);
       setMobilePreviewOpen(true);
     } catch (e) {
       setGenerateError(e instanceof Error ? e.message : "Generation failed. Please try again.");
       // Fallback to local generation
       const result = generateDialogue(data.candidateName.trim(), data.roleTitle, data.jobDescription, data.qualifications);
       setDialogue(result);
-      setPaid(skipPayment);
+      setPaid(freeDownloads);
       setMobilePreviewOpen(true);
     } finally {
       setGenerating(false);
     }
-  }, [canGenerate, data, skipPayment]);
+  }, [canGenerate, data, freeDownloads]);
 
   async function handlePrint() {
     const el = previewRef.current;
@@ -440,7 +447,7 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
   // Admin "Create New" mode skips the M-Pesa payment step entirely — the
   // admin isn't a paying customer, they're using their own tool.
   function triggerUnlock() {
-    if (skipPayment) completeUnlockAndDownload();
+    if (freeDownloads) completeUnlockAndDownload();
     else setShowPayment(true);
   }
 
@@ -452,6 +459,11 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
           {skipPayment && (
             <div className="mb-6 flex items-center gap-2 bg-brand-light text-brand text-xs font-semibold px-3 py-2 rounded-lg">
               <Sparkles className="w-3.5 h-3.5" /> Admin mode — downloads are free, no payment required
+            </div>
+          )}
+          {!skipPayment && paymentsEnabled === false && (
+            <div className="mb-6 flex items-center gap-2 bg-brand-light text-brand text-xs font-semibold px-3 py-2 rounded-lg">
+              <Sparkles className="w-3.5 h-3.5" /> Free for a limited time — the full guide is yours at no charge
             </div>
           )}
           <div className="mb-8">
@@ -751,7 +763,10 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
             const secondSection = dialogue.findIndex((qa, i) => i > 0 && !!qa.section);
             const blurFrom = secondSection > 0 ? secondSection : 3;
             const lockedCount = dialogue.length - blurFrom;
-            return dialogue.length > blurFrom && !paid ? (
+            // `freeDownloads` is checked alongside `paid` because the flag can
+            // arrive after the guide was generated — without it, a giveaway
+            // visitor who generated early would still see the locked overlay.
+            return dialogue.length > blurFrom && !paid && !freeDownloads ? (
               <div
                 className="absolute left-0 right-0 bottom-0 z-10 pointer-events-none"
                 style={{ top: "42%" }}
@@ -802,7 +817,7 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
               candidateName={data.candidateName}
               roleTitle={data.roleTitle || extractJobTitle(data.jobDescription)}
               dialogue={dialogue}
-              paid={paid}
+              paid={paid || freeDownloads}
             />
           </div>
         </div>

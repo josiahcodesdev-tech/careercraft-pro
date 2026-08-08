@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractCheckoutRequestId } from "@/lib/payhero";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { getPaymentsEnabled } from "@/lib/settings";
 
 const PAYHERO_BASE = "https://backend.payhero.co.ke/api/v2";
 
@@ -20,6 +21,16 @@ function normalisePhone(raw: string): string {
 
 export async function POST(req: NextRequest) {
   const body = await req.json() as { phone: string; amount: number; reference: string };
+
+  // Nobody should get an M-Pesa prompt during a giveaway. The forms already
+  // hide the paywall when payments are off, but a stale tab left open across
+  // the toggle would otherwise still push a charge to someone's phone.
+  if (!(await getPaymentsEnabled())) {
+    return NextResponse.json(
+      { error: "Payments are currently disabled — downloads are free." },
+      { status: 409 }
+    );
+  }
 
   const channelId = process.env.PAYHERO_CHANNEL_ID;
   const callbackSecret = process.env.PAYHERO_CALLBACK_SECRET;
