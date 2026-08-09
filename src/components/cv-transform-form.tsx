@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -487,9 +487,179 @@ function cvBuilderDraftToText(d: CvBuilderDraft): string {
   return lines.join("\n");
 }
 
+// ── Live preview ───────────────────────────────────────────────────────────
+
+/**
+ * .docx (and anything else zip-based) comes back from file.text() as binary
+ * noise, since only PDFs get a real extractor. Rendering that as a "preview"
+ * looks broken, so unreadable text falls back to the How-it-works panel
+ * instead — the transform itself is unaffected.
+ */
+function looksReadable(text: string): boolean {
+  const sample = text.slice(0, 2000);
+  if (sample.trim().length < 20) return false;
+  // Strip control characters, keeping tab/newline/carriage return.
+  const printable = sample.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+  return printable.length / sample.length > 0.85;
+}
+
+// A very long CV would bloat the DOM for no benefit — the full text is still
+// what gets sent to the transform.
+const MAX_PREVIEW_CHARS = 20000;
+
+function PreviewPage({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="bg-white rounded-lg shadow-md mx-auto p-10 w-full max-w-[700px] text-neutral-800"
+      style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function PreviewSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mt-6">
+      <h3 className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 border-b border-neutral-200 pb-1 mb-2">
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+// Parsed dates are "YYYY-MM" (see extractDateParts), but tolerate a bare year
+// or an empty value rather than rendering "Invalid Date" in someone's CV.
+function formatMonth(value: string): string {
+  if (!value) return "";
+  const [year, month] = value.split("-");
+  if (!month) return year ?? "";
+  const d = new Date(Number(year), Number(month) - 1);
+  return Number.isNaN(d.getTime())
+    ? year
+    : d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
+
+function formatRange(start: string, end: string, current: boolean): string {
+  const from = formatMonth(start);
+  const to = current ? "Present" : formatMonth(end);
+  if (from && to) return `${from} — ${to}`;
+  return from || to;
+}
+
+/** The raw document, shown the moment a CV is picked. */
+function UploadedCvPreview({ text }: { text: string }) {
+  const clipped = text.length > MAX_PREVIEW_CHARS;
+  return (
+    <PreviewPage>
+      <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed">
+        {clipped ? text.slice(0, MAX_PREVIEW_CHARS) : text}
+      </p>
+      {clipped && (
+        <p className="mt-4 text-[11px] italic text-neutral-500">
+          Preview truncated — the full document is still used for the transform.
+        </p>
+      )}
+    </PreviewPage>
+  );
+}
+
+/** The rewritten, ATS-formatted version, shown once the transform finishes. */
+function TransformedCvPreview({ cv }: { cv: ParsedCv }) {
+  const contact = [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean);
+
+  return (
+    <PreviewPage>
+      <h2 className="text-2xl font-bold tracking-tight leading-tight">
+        {cv.fullName || "Your Name"}
+      </h2>
+      {cv.tagline && <p className="text-sm font-medium text-neutral-600 mt-0.5">{cv.tagline}</p>}
+      {contact.length > 0 && (
+        <p className="text-[11px] text-neutral-500 mt-2">{contact.join("  ·  ")}</p>
+      )}
+
+      {cv.summary && (
+        <PreviewSection title="Professional Summary">
+          <p className="text-[13px] leading-relaxed whitespace-pre-line">{cv.summary}</p>
+        </PreviewSection>
+      )}
+
+      {cv.experience.length > 0 && (
+        <PreviewSection title="Professional Experience">
+          <div className="space-y-4">
+            {cv.experience.map((role, i) => (
+              <div key={i}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-[13px] font-semibold">
+                    {role.role}
+                    {role.company && <span className="font-normal text-neutral-600"> · {role.company}</span>}
+                  </p>
+                  <span className="text-[11px] text-neutral-500 whitespace-nowrap flex-shrink-0">
+                    {formatRange(role.startDate, role.endDate, role.current)}
+                  </span>
+                </div>
+                {role.bullets.length > 0 && (
+                  <ul className="mt-1.5 space-y-1">
+                    {role.bullets.map((b, j) => (
+                      <li key={j} className="text-[12.5px] leading-relaxed pl-4 relative">
+                        <span className="absolute left-0 text-neutral-400">•</span>
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </PreviewSection>
+      )}
+
+      {cv.education.length > 0 && (
+        <PreviewSection title="Education">
+          <div className="space-y-2">
+            {cv.education.map((e, i) => (
+              <div key={i} className="flex items-baseline justify-between gap-3">
+                <p className="text-[13px]">
+                  <span className="font-semibold">
+                    {e.degree}
+                    {e.field && ` in ${e.field}`}
+                  </span>
+                  {e.institution && <span className="text-neutral-600"> · {e.institution}</span>}
+                </p>
+                <span className="text-[11px] text-neutral-500 whitespace-nowrap flex-shrink-0">
+                  {formatRange(e.startDate, e.endDate, false)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </PreviewSection>
+      )}
+
+      {cv.skillGroups.length > 0 && (
+        <PreviewSection title="Skills">
+          <div className="space-y-1">
+            {cv.skillGroups.map((g, i) => (
+              <p key={i} className="text-[12.5px] leading-relaxed">
+                {g.category && <span className="font-semibold">{g.category}: </span>}
+                <span className="text-neutral-700">{g.skills}</span>
+              </p>
+            ))}
+          </div>
+        </PreviewSection>
+      )}
+    </PreviewPage>
+  );
+}
+
 export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean } = {}) {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvFileName, setCvFileName] = useState("");
+  // Extracted the moment a file is picked, so the right-hand panel can show
+  // the document straight away instead of waiting for the transform. The same
+  // text is then reused by handleTransform rather than parsing the PDF twice.
+  const [cvText, setCvText] = useState("");
+  const [extracting, setExtracting] = useState(false);
   const [jdText, setJdText] = useState("");
   const [jdFileName, setJdFileName] = useState("");
   const [jdOcr, setJdOcr] = useState(false);
@@ -509,14 +679,31 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
     return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
 
-  const handleCvSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCvSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     setCvFile(f);
     setCvFileName(f.name);
     setError("");
     setParsed(null);
+    setCvText("");
     e.target.value = "";
+
+    // Read it now purely to drive the preview. A failure here is not surfaced
+    // as an error — the transform re-reads the file and reports properly then,
+    // including the image-based-PDF recovery path, which needs its own
+    // messaging. All that happens here is the preview stays on How-it-works.
+    setExtracting(true);
+    try {
+      const text = f.name.toLowerCase().endsWith(".pdf")
+        ? await extractTextFromPdf(f)
+        : await f.text();
+      setCvText(text);
+    } catch {
+      setCvText("");
+    } finally {
+      setExtracting(false);
+    }
   }, []);
 
   const handleJdUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -567,11 +754,15 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
     setUsedBuilderDraft(false);
 
     try {
-      let text: string;
-      if (cvFile.name.toLowerCase().endsWith(".pdf")) {
-        text = await extractTextFromPdf(cvFile);
-      } else {
-        text = await cvFile.text();
+      // Already read when the file was picked (that is what feeds the live
+      // preview); only re-read if that attempt failed.
+      let text = cvText;
+      if (!text) {
+        if (cvFile.name.toLowerCase().endsWith(".pdf")) {
+          text = await extractTextFromPdf(cvFile);
+        } else {
+          text = await cvFile.text();
+        }
       }
 
       // Image-based PDF (html2pdf.js output) — try to recover from CV Builder draft in localStorage
@@ -633,9 +824,11 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
       setScanning(false);
       setScanStep(0);
     }
-  }, [cvFile, jdText]);
+  }, [cvFile, jdText, cvText]);
 
   const scanSteps = getScanSteps(!!jdText.trim());
+  // Only render text we can actually show as a document — see looksReadable.
+  const previewText = cvText && looksReadable(cvText) ? cvText : "";
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -698,7 +891,7 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
                     </p>
                   </div>
                   <button
-                    onClick={() => { setCvFile(null); setCvFileName(""); setParsed(null); setJdText(""); setJdFileName(""); setUsedBuilderDraft(false); localStorage.removeItem(CV_TRANSFORM_KEY); }}
+                    onClick={() => { setCvFile(null); setCvFileName(""); setCvText(""); setParsed(null); setJdText(""); setJdFileName(""); setUsedBuilderDraft(false); localStorage.removeItem(CV_TRANSFORM_KEY); }}
                     className="text-text-muted hover:text-red-500 transition-colors p-1"
                   >
                     <X className="w-4 h-4" />
@@ -773,7 +966,7 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
                         <FileText className="w-4 h-4 text-brand" />
                       </div>
                       <p className="text-sm font-medium flex-1 truncate">{cvFileName}</p>
-                      <button onClick={() => { setCvFile(null); setCvFileName(""); }} className="text-text-muted hover:text-red-500 transition-colors p-1">
+                      <button onClick={() => { setCvFile(null); setCvFileName(""); setCvText(""); }} className="text-text-muted hover:text-red-500 transition-colors p-1">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
@@ -848,8 +1041,38 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="hidden lg:flex flex-1 flex-col bg-[#f0efe9] items-center justify-center p-8">
+      {/* Right panel — live preview of the CV, falling back to How it works
+          until there is something readable to show. */}
+      <div className="hidden lg:flex flex-1 flex-col bg-[#f0efe9] overflow-y-auto">
+        {parsed ? (
+          <div className="p-8 w-full">
+            <div className="max-w-[700px] mx-auto mb-3 flex items-center justify-between gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-brand">
+                ATS Preview
+              </p>
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-brand bg-brand-light px-2 py-0.5 rounded-full">
+                <BadgeCheck className="w-3 h-3" /> Transformed
+              </span>
+            </div>
+            <TransformedCvPreview cv={parsed} />
+          </div>
+        ) : extracting ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8">
+            <Loader2 className="w-8 h-8 text-brand animate-spin" />
+            <p className="text-sm font-medium">Reading {cvFileName}…</p>
+          </div>
+        ) : previewText ? (
+          <div className="p-8 w-full">
+            <div className="max-w-[700px] mx-auto mb-3 flex items-center justify-between gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-brand">
+                Your CV
+              </p>
+              <span className="text-[11px] text-text-muted truncate">{cvFileName}</span>
+            </div>
+            <UploadedCvPreview text={previewText} />
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-8">
         <div className="max-w-[400px] text-center">
           <div className="w-20 h-20 rounded-2xl bg-brand-light flex items-center justify-center mx-auto mb-6">
             <Sparkles className="w-10 h-10 text-brand" />
@@ -869,6 +1092,8 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
             ))}
           </div>
         </div>
+          </div>
+        )}
       </div>
     </div>
   );
