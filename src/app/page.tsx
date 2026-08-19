@@ -7,7 +7,7 @@ import { ResumePreview } from "@/components/resume-preview";
 import { CtaSection } from "@/components/cta-section";
 import { JsonLd } from "@/components/json-ld";
 import { SITE_URL } from "@/lib/site-config";
-import { ArrowRight, Check, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, Check, FileText, Sparkles, WandSparkles } from "lucide-react";
 
 const homeTitle = "MyCareerCraft — Career Development & Professional Growth";
 const homeDescription =
@@ -58,12 +58,17 @@ export default function HomePage() {
               </div>
               <div className="mt-12 grid grid-cols-1 gap-6 border-t border-brand/15 pt-7 sm:grid-cols-3 sm:gap-5 2xl:mt-16 2xl:gap-8">
                 {[
-                  { number: "01", title: "Add your details", text: "Start fresh or bring your current CV." },
-                  { number: "02", title: "Shape your story", text: "Turn your experience into clear impact." },
-                  { number: "03", title: "Apply confidently", text: "Download an ATS-ready professional CV." },
+                  { number: "01", icon: FileText, title: "Add your details", text: "Start fresh or bring your current CV." },
+                  { number: "02", icon: WandSparkles, title: "Shape your story", text: "Turn your experience into clear impact." },
+                  { number: "03", icon: BadgeCheck, title: "Apply confidently", text: "Download an ATS-ready professional CV." },
                 ].map((step) => (
                   <div key={step.number}>
-                    <span className="text-xs font-black tracking-[0.16em] text-gold">{step.number}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-white shadow-sm shadow-brand/20">
+                        <step.icon className="h-5 w-5" />
+                      </span>
+                      <span className="text-xs font-black tracking-[0.16em] text-gold">{step.number}</span>
+                    </div>
                     <h2 className="mt-2 font-heading text-lg font-extrabold text-[#173f31]">{step.title}</h2>
                     <p className="mt-2 max-w-[190px] text-sm leading-relaxed text-text-secondary">{step.text}</p>
                   </div>
