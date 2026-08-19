@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/lib/openai";
+import { getOpenAI, AI_MODEL } from "@/lib/openai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Vision OCR: read a job-description screenshot into plain text. Shared by the
 // CV Builder (pre-fill a tailored draft) and CV Transform (tailor the CV).
-// gpt-4o-mini is vision-capable; the call can exceed Vercel's 10s default.
+// GPT-5.6 is vision-capable; the call can exceed Vercel's 10s default.
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: AI_MODEL.quality,
       messages: [
         {
           role: "system",
@@ -51,8 +51,7 @@ export async function POST(req: NextRequest) {
           ],
         },
       ],
-      temperature: 0,
-      max_tokens: 1500,
+      max_completion_tokens: 3000,
     });
 
     const text = res.choices[0]?.message?.content?.trim() ?? "";

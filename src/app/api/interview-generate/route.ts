@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/lib/openai";
+import { getOpenAI, AI_MODEL } from "@/lib/openai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Generating 30 Q&A pairs can take longer than Vercel's 10s default —
@@ -65,12 +65,11 @@ Rules for answers:
 - Keep answers concise — 3–5 sentences max per answer.
 - The opening question must greet ${name} by name.
 
-Return a valid JSON array with this exact structure (no markdown, no code fences, just raw JSON):
-[
+Return raw JSON (no markdown, no code fences) as an object whose single "qa" key holds the array of all 30 pairs, in this exact structure:
+{"qa": [
   {"section": "Opening & About You", "question": "...", "answer": "..."},
-  {"question": "...", "answer": "..."},
-  ...
-]
+  {"question": "...", "answer": "..."}
+]}
 
 Only include "section" on the first question of each new section.`;
 
@@ -78,13 +77,12 @@ Only include "section" on the first question of each new section.`;
 
   try {
     const chat = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: AI_MODEL.bulk,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.65,
-      max_tokens: 4000,
+      max_completion_tokens: 6000,
       response_format: { type: "json_object" },
     });
 
@@ -97,16 +95,31 @@ Only include "section" on the first question of each new section.`;
       return NextResponse.json({ error: "AI returned invalid JSON." }, { status: 500 });
     }
 
-    // Handle both {qa: [...]} and [...] shapes
+    // The prompt asks for {qa: [...]}, but stay tolerant of the other shapes a
+    // model can land on: a bare array, the array under some other key, an array
+    // nested one level down, or — when it reads the schema as a per-item
+    // template — a single pair returned on its own.
     type QAItem = { section?: string; question: string; answer: string };
+    const isQA = (v: unknown): v is QAItem =>
+      !!v && typeof v === "object" && "question" in v && "answer" in v;
+
     let qa: QAItem[] = [];
     if (Array.isArray(parsed)) {
       qa = parsed as QAItem[];
     } else if (parsed && typeof parsed === "object") {
       const obj = parsed as Record<string, unknown>;
-      const firstArray = Object.values(obj).find((v) => Array.isArray(v));
-      if (firstArray) qa = firstArray as QAItem[];
+      const values = Object.values(obj);
+      const found =
+        (Array.isArray(obj.qa) ? obj.qa : undefined) ??
+        values.find((v) => Array.isArray(v)) ??
+        values
+          .filter((v): v is Record<string, unknown> => !!v && typeof v === "object")
+          .flatMap((v) => Object.values(v))
+          .find((v) => Array.isArray(v));
+      if (found) qa = found as QAItem[];
+      else if (isQA(obj)) qa = [obj as QAItem];
     }
+    qa = qa.filter(isQA);
 
     if (!qa.length) {
       return NextResponse.json({ error: "AI returned no questions." }, { status: 500 });

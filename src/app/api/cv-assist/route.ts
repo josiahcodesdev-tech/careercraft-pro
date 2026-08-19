@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/lib/openai";
+import { getOpenAI, AI_MODEL } from "@/lib/openai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // As-you-type writing assist: given what the user has written so far in a CV
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: AI_MODEL.fast,
       messages: [
         {
           role: "system",
@@ -57,8 +57,7 @@ export async function POST(req: NextRequest) {
           content: `Text so far:\n"""${text}"""${roleContext}${companyContext}${jdContext}\n\nContinuation:`,
         },
       ],
-      temperature: 0.5,
-      max_tokens: 40,
+      max_completion_tokens: 200,
     });
 
     let suggestion = res.choices[0]?.message?.content?.trim() ?? "";

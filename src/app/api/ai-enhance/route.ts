@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/lib/openai";
+import { getOpenAI, AI_MODEL } from "@/lib/openai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // A slower OpenAI response can exceed Vercel's 10s default timeout —
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   try {
     if (body.type === "summary") {
       const chat = await client.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: AI_MODEL.quality,
         messages: [
           {
             role: "system",
@@ -53,8 +53,7 @@ export async function POST(req: NextRequest) {
             content: `Target role: ${body.targetRole || "not specified"}\n\nCurrent summary:\n${body.summary}${jdBlock}`,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 300,
+        max_completion_tokens: 900,
       });
 
       return NextResponse.json({ result: chat.choices[0].message.content?.trim() ?? "" });
@@ -63,7 +62,7 @@ export async function POST(req: NextRequest) {
     if (body.type === "bullets") {
       const existing = (body.bullets ?? []).filter((b) => b.trim()).join("\n");
       const chat = await client.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: AI_MODEL.quality,
         messages: [
           {
             role: "system",
@@ -75,8 +74,7 @@ export async function POST(req: NextRequest) {
             content: `Role: ${body.role || "not specified"}\nCompany: ${body.company || "not specified"}\n\nCurrent bullets:\n${existing}${jdBlock}`,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 400,
+        max_completion_tokens: 1200,
       });
 
       const text = chat.choices[0].message.content?.trim() ?? "";

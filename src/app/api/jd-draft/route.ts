@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/lib/openai";
+import { getOpenAI, AI_MODEL } from "@/lib/openai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Turn a job description into starter fields for a NEW CV: a headline, a
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: AI_MODEL.quality,
       messages: [
         {
           role: "system",
@@ -50,8 +50,7 @@ export async function POST(req: NextRequest) {
           content: `Job description:\n\n${jobDescription.slice(0, 5000)}\n\nReturn JSON: {"role":"target job title (+ optional focus areas)","summary":"2-3 sentence first-person summary","skills":["skill1","skill2",...]}`,
         },
       ],
-      temperature: 0.3,
-      max_tokens: 500,
+      max_completion_tokens: 1200,
       response_format: { type: "json_object" },
     });
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/lib/openai";
+import { getOpenAI, AI_MODEL } from "@/lib/openai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Parsing/rewriting a full CV can take longer than Vercel's 10s default —
@@ -16,7 +16,7 @@ interface JdRequirements {
 
 async function extractJdRequirements(client: ReturnType<typeof import("@/lib/openai").getOpenAI>, jd: string): Promise<JdRequirements> {
   const res = await client.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: AI_MODEL.quality,
     messages: [
       {
         role: "system",
@@ -28,8 +28,7 @@ async function extractJdRequirements(client: ReturnType<typeof import("@/lib/ope
         content: `Analyse this job description and return JSON:\n\n${jd}\n\nJSON structure:\n{"targetRole":"exact job title from JD","targetCompany":"company name or empty string","requiredSkills":["skill1","skill2"...],"coreResponsibilities":["responsibility1","responsibility2"...],"atsKeywords":["keyword1","keyword2..."]}`,
       },
     ],
-    temperature: 0.1,
-    max_tokens: 700,
+    max_completion_tokens: 1500,
     response_format: { type: "json_object" },
   });
 
@@ -173,13 +172,12 @@ GENERAL RULES:
 
   try {
     const chat = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: AI_MODEL.quality,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
       ],
-      temperature: 0.3,
-      max_tokens: 4000,
+      max_completion_tokens: 6000,
       response_format: { type: "json_object" },
     });
 
