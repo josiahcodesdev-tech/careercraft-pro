@@ -56,7 +56,7 @@ export default function HomePage() {
                 <Link href="/cv-builder" className={cn(buttonVariants(), "h-14 rounded-xl bg-brand px-7 text-base font-bold text-white shadow-lg shadow-brand/15 hover:bg-brand-mid")}>Build your CV <ArrowRight className="ml-1 h-4 w-4" /></Link>
                 <Link href="/services" className={cn(buttonVariants({ variant: "outline" }), "h-14 rounded-xl border-brand/25 bg-transparent px-7 text-base font-bold text-brand hover:bg-brand-light")}>Explore services</Link>
               </div>
-              <div className="mt-12 grid grid-cols-1 gap-6 border-t border-brand/15 pt-7 sm:grid-cols-3 sm:gap-5 2xl:mt-16 2xl:gap-8">
+              <div className="mt-12 hidden grid-cols-3 gap-5 border-t border-brand/15 pt-7 sm:grid 2xl:mt-16 2xl:gap-8">
                 {[
                   { number: "01", icon: FileText, title: "Add your details", text: "Start fresh or bring your current CV." },
                   { number: "02", icon: WandSparkles, title: "Shape your story", text: "Turn your experience into clear impact." },
