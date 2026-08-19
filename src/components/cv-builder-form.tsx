@@ -22,6 +22,7 @@ import {
   Wrench,
   FolderKanban,
   Users,
+  Award,
   LayoutTemplate,
   Upload,
   ZoomIn,
@@ -93,10 +94,9 @@ const TEMPLATES: { id: Template; name: string; description: string; accent: stri
   {
     id: "corporate",
     name: "Corporate",
-    description: "Navy header and sidebar with circle photo. Clean and authoritative.",
-    accent: "#1B3A5C",
+    description: "Single column with terracotta section rules and navy headings. Consultancy-grade and ATS-safe.",
+    accent: "#C0392B",
     font: "Segoe UI",
-    hasPhoto: true,
   },
   {
     id: "florence",
@@ -110,6 +110,7 @@ const TEMPLATES: { id: Template; name: string; description: string; accent: stri
 export interface WorkEntry {
   company: string;
   role: string;
+  location: string;
   startDate: string;
   endDate: string;
   current: boolean;
@@ -120,8 +121,15 @@ export interface EducationEntry {
   institution: string;
   degree: string;
   field: string;
+  location: string;
   startDate: string;
   endDate: string;
+}
+
+export interface CertificationEntry {
+  name: string;
+  issuer: string;
+  date: string;
 }
 
 export interface SkillGroup {
@@ -158,10 +166,13 @@ export interface CvData {
   summary: string;
   experience: WorkEntry[];
   education: EducationEntry[];
+  certifications: CertificationEntry[];
   skillGroups: SkillGroup[];
   projects: ProjectEntry[];
   referees: RefereeEntry[];
   referencesUponRequest: boolean;
+  // Optional closing line — citizenship, work authorisation, languages.
+  footerNote: string;
 }
 
 const STEPS = [
@@ -169,6 +180,7 @@ const STEPS = [
   { label: "Summary", icon: FileText },
   { label: "Experience", icon: Briefcase },
   { label: "Education", icon: GraduationCap },
+  { label: "Certifications", icon: Award },
   { label: "Skills", icon: Wrench },
   { label: "Projects", icon: FolderKanban },
   { label: "References", icon: Users },
@@ -177,6 +189,7 @@ const STEPS = [
 const emptyWork: WorkEntry = {
   company: "",
   role: "",
+  location: "",
   startDate: "",
   endDate: "",
   current: false,
@@ -187,9 +200,12 @@ const emptyEducation: EducationEntry = {
   institution: "",
   degree: "",
   field: "",
+  location: "",
   startDate: "",
   endDate: "",
 };
+
+const emptyCertification: CertificationEntry = { name: "", issuer: "", date: "" };
 
 const emptySkillGroup: SkillGroup = { category: "", skills: "" };
 
@@ -217,10 +233,12 @@ const initial: CvData = {
   summary: "",
   experience: [{ ...emptyWork, bullets: [""] }],
   education: [{ ...emptyEducation }],
+  certifications: [{ ...emptyCertification }],
   skillGroups: [{ ...emptySkillGroup }],
   projects: [{ ...emptyProject, bullets: [""] }],
   referees: [{ ...emptyReferee }],
   referencesUponRequest: false,
+  footerNote: "",
 };
 
 const AVATAR_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23D1D5DB'/%3E%3Ccircle cx='50' cy='37' r='18' fill='%239CA3AF'/%3E%3Cellipse cx='50' cy='84' rx='31' ry='22' fill='%239CA3AF'/%3E%3C/svg%3E";
@@ -241,6 +259,7 @@ const DUMMY_DATA: CvData = {
     {
       role: "Senior Marketing Manager",
       company: "Acme Corporation",
+      location: "Nairobi, Kenya",
       startDate: "2022-03",
       endDate: "",
       current: true,
@@ -253,6 +272,7 @@ const DUMMY_DATA: CvData = {
     {
       role: "Marketing Specialist",
       company: "Global Solutions Ltd",
+      location: "Nairobi, Kenya",
       startDate: "2019-06",
       endDate: "2022-02",
       current: false,
@@ -268,9 +288,14 @@ const DUMMY_DATA: CvData = {
       institution: "University of Nairobi",
       degree: "Bachelor of Commerce",
       field: "Marketing",
+      location: "Nairobi, Kenya",
       startDate: "2015-09",
       endDate: "2019-05",
     },
+  ],
+  certifications: [
+    { name: "Professional Diploma in Digital Marketing", issuer: "Digital Marketing Institute", date: "2023-04" },
+    { name: "Google Analytics 4 Certification", issuer: "Google Skillshop", date: "2022-08" },
   ],
   skillGroups: [
     { category: "Marketing & Strategy", skills: "Brand Management · Digital Marketing · Go-to-Market Strategy · Campaign Planning" },
@@ -290,6 +315,7 @@ const DUMMY_DATA: CvData = {
   ],
   referees: [{ name: "John Smith", title: "Director of Marketing", company: "Acme Corporation", email: "j.smith@acme.com", phone: "+254 711 000 000" }],
   referencesUponRequest: false,
+  footerNote: "Kenyan Citizen | Authorised to Work in Kenya | English & Swahili (Fluent)",
 };
 
 export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean } = {}) {
@@ -334,6 +360,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
             ? parsed.experience.map((exp: Record<string, unknown>) => ({
                 company: String(exp.company || ""),
                 role: String(exp.role || ""),
+                location: String(exp.location || ""),
                 startDate: String(exp.startDate || ""),
                 endDate: String(exp.endDate || ""),
                 current: exp.current === true || /present/i.test(String(exp.endDate || "")),
@@ -341,17 +368,26 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
                   ? exp.bullets.map(String)
                   : [""],
               }))
-            : [{ company: "", role: "", startDate: "", endDate: "", current: false, bullets: [""] }];
+            : [{ ...emptyWork, bullets: [""] }];
 
           const education = Array.isArray(parsed.education) && parsed.education.length > 0
             ? parsed.education.map((edu: Record<string, unknown>) => ({
                 institution: String(edu.institution || ""),
                 degree: String(edu.degree || ""),
                 field: String(edu.field || ""),
+                location: String(edu.location || ""),
                 startDate: String(edu.startDate || ""),
                 endDate: String(edu.endDate || ""),
               }))
-            : [{ institution: "", degree: "", field: "", startDate: "", endDate: "" }];
+            : [{ ...emptyEducation }];
+
+          const certifications = Array.isArray(parsed.certifications) && parsed.certifications.length > 0
+            ? parsed.certifications.map((c: Record<string, unknown>) => ({
+                name: String(c.name || ""),
+                issuer: String(c.issuer || ""),
+                date: String(c.date || ""),
+              }))
+            : [{ ...emptyCertification }];
 
           const skillGroups = Array.isArray(parsed.skillGroups) && parsed.skillGroups.length > 0
             ? parsed.skillGroups.map((g: Record<string, unknown>) => ({
@@ -375,9 +411,11 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
             summary: String(parsed.summary || ""),
             experience,
             education,
+            certifications,
             skillGroups,
             referees: prev.referees,
             referencesUponRequest: prev.referencesUponRequest,
+            footerNote: String(parsed.footerNote || ""),
           }));
 
           localStorage.removeItem("careercraft_cv_transform");
@@ -427,6 +465,13 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
       i === index ? { ...e, ...patch } : e
     );
     update("education", next);
+  }
+
+  function updateCertification(index: number, patch: Partial<CertificationEntry>) {
+    const next = (data.certifications ?? []).map((c, i) =>
+      i === index ? { ...c, ...patch } : c
+    );
+    update("certifications", next);
   }
 
   function updateSkillGroup(index: number, patch: Partial<SkillGroup>) {
@@ -870,6 +915,19 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
                       placeholder="linkedin.com/in/josiah-mwangi"
                     />
                   </label>
+                  <label className="space-y-1.5 sm:col-span-2">
+                    <span className="text-sm font-medium">
+                      Closing line{" "}
+                      <span className="text-text-muted font-normal">
+                        (optional — printed at the foot of the CV)
+                      </span>
+                    </span>
+                    <Input
+                      value={data.footerNote ?? ""}
+                      onChange={(e) => update("footerNote", e.target.value)}
+                      placeholder="Kenyan Citizen | Authorised to Work in Kenya | English & Swahili (Fluent)"
+                    />
+                  </label>
                 </div>
               </div>
             )}
@@ -969,6 +1027,18 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
                             updateExperience(i, { role: e.target.value })
                           }
                           placeholder="Senior Software Engineer"
+                        />
+                      </label>
+                      <label className="space-y-1.5 sm:col-span-2">
+                        <span className="text-sm font-medium">
+                          Location <span className="text-text-muted font-normal">(optional)</span>
+                        </span>
+                        <Input
+                          value={exp.location ?? ""}
+                          onChange={(e) =>
+                            updateExperience(i, { location: e.target.value })
+                          }
+                          placeholder="Nairobi, Kenya"
                         />
                       </label>
                       <label className="space-y-1.5">
@@ -1149,6 +1219,18 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
                           placeholder="Computer Science"
                         />
                       </label>
+                      <label className="space-y-1.5">
+                        <span className="text-sm font-medium">
+                          Location <span className="text-text-muted font-normal">(optional)</span>
+                        </span>
+                        <Input
+                          value={edu.location ?? ""}
+                          onChange={(e) =>
+                            updateEducation(i, { location: e.target.value })
+                          }
+                          placeholder="Nairobi, Kenya"
+                        />
+                      </label>
                       <div className="grid grid-cols-2 gap-3">
                         <label className="space-y-1.5">
                           <span className="text-sm font-medium">Start</span>
@@ -1193,6 +1275,99 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
             )}
 
             {step === 4 && (
+              <div className="space-y-5">
+                <h2 className="font-heading text-lg font-extrabold tracking-tight">
+                  Certifications
+                </h2>
+                <p className="text-sm text-text-secondary">
+                  Professional certificates, short courses and licences. Leave
+                  this step empty if you have none — the section is simply left
+                  off your CV.
+                </p>
+
+                {(data.certifications ?? []).map((cert, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-border p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-text-secondary">
+                        Certification {i + 1}
+                      </span>
+                      {(data.certifications ?? []).length > 1 && (
+                        <button
+                          onClick={() =>
+                            update(
+                              "certifications",
+                              (data.certifications ?? []).filter((_, j) => j !== i)
+                            )
+                          }
+                          className="text-red-400 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    <label className="space-y-1.5 block">
+                      <span className="text-sm font-medium">Certification</span>
+                      <Input
+                        value={cert.name}
+                        onChange={(e) =>
+                          updateCertification(i, { name: e.target.value })
+                        }
+                        placeholder="Monitoring & Evaluation for NGOs"
+                      />
+                    </label>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <label className="space-y-1.5">
+                        <span className="text-sm font-medium">
+                          Issuing body
+                        </span>
+                        <Input
+                          value={cert.issuer}
+                          onChange={(e) =>
+                            updateCertification(i, { issuer: e.target.value })
+                          }
+                          placeholder="Vantage Africa School of Leadership"
+                        />
+                      </label>
+                      <label className="space-y-1.5">
+                        <span className="text-sm font-medium">
+                          Date awarded{" "}
+                          <span className="text-text-muted font-normal">
+                            (optional)
+                          </span>
+                        </span>
+                        <Input
+                          type="month"
+                          value={cert.date}
+                          onChange={(e) =>
+                            updateCertification(i, { date: e.target.value })
+                          }
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  onClick={() =>
+                    update("certifications", [
+                      ...(data.certifications ?? []),
+                      { ...emptyCertification },
+                    ])
+                  }
+                  className={cn(
+                    buttonVariants({ variant: "outline" }),
+                    "w-full gap-2"
+                  )}
+                >
+                  <Plus className="w-4 h-4" /> Add another certification
+                </button>
+              </div>
+            )}
+
+            {step === 5 && (
               <div className="space-y-5">
                 <h2 className="font-heading text-lg font-extrabold tracking-tight">
                   Core skills
@@ -1254,7 +1429,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
               </div>
             )}
 
-            {step === 5 && (
+            {step === 6 && (
               <div className="space-y-5">
                 <h2 className="font-heading text-lg font-extrabold tracking-tight">
                   Projects
@@ -1372,7 +1547,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
               </div>
             )}
 
-            {step === 6 && (
+            {step === 7 && (
               <div className="space-y-5">
                 <h2 className="font-heading text-lg font-extrabold tracking-tight">
                   References
@@ -1800,6 +1975,11 @@ function ExperienceEntries({ data }: { data: CvData }) {
                     {" "}— {exp.company}
                   </span>
                 )}
+                {exp.location && (
+                  <span style={{ fontSize: "9pt", color: "#777" }}>
+                    {" "}· {exp.location}
+                  </span>
+                )}
               </div>
               <span
                 style={{
@@ -1856,6 +2036,11 @@ function EducationEntries({ data }: { data: CvData }) {
                 {edu.institution && (
                   <span style={{ fontSize: "9.5pt", color: "#555" }}>
                     {" "}— {edu.institution}
+                  </span>
+                )}
+                {edu.location && (
+                  <span style={{ fontSize: "9pt", color: "#777" }}>
+                    {" "}· {edu.location}
                   </span>
                 )}
               </div>
@@ -2007,6 +2192,83 @@ function hasProjects(data: CvData) {
   return (data.projects ?? []).some((p) => p.name.trim());
 }
 
+function CertificationEntries({ data }: { data: CvData }) {
+  return (
+    <>
+      {(data.certifications ?? [])
+        .filter((c) => c.name)
+        .map((cert, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              gap: 16,
+              marginBottom: 5,
+              pageBreakInside: "avoid",
+              breakInside: "avoid",
+            }}
+          >
+            <div style={{ fontSize: "9.5pt" }}>
+              <span style={{ fontWeight: 700 }}>{cert.name}</span>
+              {cert.issuer && (
+                <span style={{ color: "#555" }}> — {cert.issuer}</span>
+              )}
+            </div>
+            {cert.date && (
+              <span
+                style={{
+                  fontSize: "8.5pt",
+                  color: "#777",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                {formatDate(cert.date)}
+              </span>
+            )}
+          </div>
+        ))}
+    </>
+  );
+}
+
+function hasCertifications(data: CvData) {
+  return (data.certifications ?? []).some((c) => c.name.trim());
+}
+
+// The closing line (citizenship, work authorisation, languages) sits at the
+// foot of whichever template is in use, separated by a hairline rule.
+function FooterNote({
+  data,
+  color = "#777",
+  rule = "#ddd",
+}: {
+  data: CvData;
+  color?: string;
+  rule?: string;
+}) {
+  if (!data.footerNote?.trim()) return null;
+  return (
+    <div
+      style={{
+        marginTop: 20,
+        paddingTop: 10,
+        borderTop: `1px solid ${rule}`,
+        textAlign: "center" as const,
+        fontSize: "8.5pt",
+        fontStyle: "italic",
+        color,
+        pageBreakInside: "avoid",
+        breakInside: "avoid",
+      }}
+    >
+      {data.footerNote}
+    </div>
+  );
+}
+
 /* ── Classic template ────────────────────────────────────── */
 
 // Wrap each CV section (an <h2> heading plus the sibling content following it,
@@ -2111,6 +2373,13 @@ export function ClassicPreview({ data }: { data: CvData }) {
         </>
       )}
 
+      {hasCertifications(data) && (
+        <>
+          <ClassicSectionHeading>Certifications</ClassicSectionHeading>
+          <CertificationEntries data={data} />
+        </>
+      )}
+
       {data.skillGroups.some((g) => g.category && g.skills) && (
         <>
           <ClassicSectionHeading>Core Skills</ClassicSectionHeading>
@@ -2131,6 +2400,7 @@ export function ClassicPreview({ data }: { data: CvData }) {
           <ReferencesBlock data={data} />
         </>
       )}
+      <FooterNote data={data} />
     </div>
   );
 }
@@ -2220,6 +2490,13 @@ export function ModernPreview({ data }: { data: CvData }) {
           </>
         )}
 
+        {hasCertifications(data) && (
+          <>
+            <ModernSectionHeading>Certifications</ModernSectionHeading>
+            <CertificationEntries data={data} />
+          </>
+        )}
+
         {data.skillGroups.some((g) => g.category && g.skills) && (
           <>
             <ModernSectionHeading>Core Skills</ModernSectionHeading>
@@ -2269,6 +2546,7 @@ export function ModernPreview({ data }: { data: CvData }) {
             <ReferencesBlock data={data} />
           </>
         )}
+        <FooterNote data={data} />
       </div>
     </div>
   );
@@ -2355,6 +2633,13 @@ export function ExecutivePreview({ data }: { data: CvData }) {
         </>
       )}
 
+      {hasCertifications(data) && (
+        <>
+          <ExecSectionHeading>Certifications</ExecSectionHeading>
+          <CertificationEntries data={data} />
+        </>
+      )}
+
       {data.skillGroups.some((g) => g.category && g.skills) && (
         <>
           <ExecSectionHeading>Core Skills</ExecSectionHeading>
@@ -2375,6 +2660,7 @@ export function ExecutivePreview({ data }: { data: CvData }) {
           <ReferencesBlock data={data} />
         </>
       )}
+      <FooterNote data={data} />
     </div>
   );
 }
@@ -2457,6 +2743,13 @@ export function MinimalPreview({ data }: { data: CvData }) {
         </>
       )}
 
+      {hasCertifications(data) && (
+        <>
+          <MinimalSectionHeading>Certifications</MinimalSectionHeading>
+          <CertificationEntries data={data} />
+        </>
+      )}
+
       {data.skillGroups.some((g) => g.category && g.skills) && (
         <>
           <MinimalSectionHeading>Skills</MinimalSectionHeading>
@@ -2508,6 +2801,7 @@ export function MinimalPreview({ data }: { data: CvData }) {
           <ReferencesBlock data={data} />
         </>
       )}
+      <FooterNote data={data} />
     </div>
   );
 }
@@ -2622,27 +2916,32 @@ function TemplateThumbnail({ id, accent }: { id: Template; accent: string }) {
   }
 
   if (id === "corporate") {
+    const navy = "#1F3A5F";
     return (
-      <div style={{ height: "100%" }}>
-        <div style={{ background: accent, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(255,255,255,0.2)", flexShrink: 0 }} />
-          <div>
-            <div style={{ height: 5, width: 60, background: "rgba(255,255,255,0.9)", borderRadius: 2, marginBottom: 2 }} />
-            <div style={{ height: 3, width: 40, background: "rgba(255,255,255,0.4)", borderRadius: 2 }} />
+      <div style={{ height: "100%", padding: "12px 14px", background: "#fff" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ height: 7, width: "75%", background: navy, borderRadius: 2, marginBottom: 3 }} />
+            <div style={{ height: 3, width: "60%", background: "#ccc", borderRadius: 2 }} />
           </div>
-        </div>
-        <div style={{ display: "flex", flex: 1 }}>
-          <div style={{ width: "30%", background: "#e8ecf0", padding: "6px 6px" }}>
-            {[30, 20, 25].map((w, i) => (
-              <div key={i} style={{ height: 2.5, width: `${w}px`, background: "#c5cdd5", borderRadius: 2, marginBottom: 3 }} />
-            ))}
-          </div>
-          <div style={{ flex: 1, padding: "6px 8px" }}>
-            {lineW.slice(0, 4).map((w, i) => (
-              <div key={i} style={{ height: 2.5, width: w, background: "#e5e5e5", borderRadius: 2, marginBottom: 2.5 }} />
+          <div style={{ width: "32%", flexShrink: 0 }}>
+            {[100, 85, 92].map((w, i) => (
+              <div key={i} style={{ height: 2, width: `${w}%`, background: "#ddd", borderRadius: 2, marginBottom: 2 }} />
             ))}
           </div>
         </div>
+        <div style={{ height: 1.5, width: "100%", background: accent, margin: "6px 0 7px" }} />
+        <div style={{ height: 3, width: "28%", background: accent, borderRadius: 2, marginBottom: 2 }} />
+        <div style={{ height: 1, width: "100%", background: "#e8e8e8", marginBottom: 5 }} />
+        {lineW.map((w, i) => (
+          <div key={i} style={{ height: 2.5, width: w, background: "#e5e5e5", borderRadius: 2, marginBottom: 2.5 }} />
+        ))}
+        <div style={{ height: 3, width: "22%", background: accent, borderRadius: 2, marginTop: 5, marginBottom: 2 }} />
+        <div style={{ height: 1, width: "100%", background: "#e8e8e8", marginBottom: 5 }} />
+        <div style={{ height: 3, width: "45%", background: navy, borderRadius: 2, marginBottom: 3 }} />
+        {lineW.slice(0, 2).map((w, i) => (
+          <div key={i} style={{ height: 2.5, width: w, background: "#e5e5e5", borderRadius: 2, marginBottom: 2.5 }} />
+        ))}
       </div>
     );
   }
@@ -2788,6 +3087,15 @@ export function BoldPreview({ data }: { data: CvData }) {
           </>
         )}
 
+        {hasCertifications(data) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>
+              Certifications
+            </h2>
+            <CertificationEntries data={data} />
+          </>
+        )}
+
         {data.skillGroups.some((g) => g.category && g.skills) && (
           <>
             <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>
@@ -2821,6 +3129,7 @@ export function BoldPreview({ data }: { data: CvData }) {
             <ReferencesBlock data={data} />
           </>
         )}
+        <FooterNote data={data} color="rgba(255,255,255,0.6)" rule="rgba(255,255,255,0.2)" />
       </div>
     </div>
   );
@@ -2907,12 +3216,20 @@ export function ProfessionalPreview({ data }: { data: CvData }) {
           </>
         )}
 
+        {hasCertifications(data) && (
+          <>
+            <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: gold, borderBottom: `2px solid ${gold}`, paddingBottom: 3, margin: "16px 0 10px" }}>Certifications</h2>
+            <CertificationEntries data={data} />
+          </>
+        )}
+
         {hasProjects(data) && (
           <>
             <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: gold, borderBottom: `2px solid ${gold}`, paddingBottom: 3, margin: "16px 0 10px" }}>Projects</h2>
             <ProjectEntries data={data} />
           </>
         )}
+        <FooterNote data={data} />
       </div>
     </div>
   );
@@ -2982,6 +3299,13 @@ export function CreativePreview({ data }: { data: CvData }) {
           </>
         )}
 
+        {hasCertifications(data) && (
+          <>
+            <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: dark, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>Certifications</h2>
+            <CertificationEntries data={data} />
+          </>
+        )}
+
         {hasProjects(data) && (
           <>
             <h2 style={{ fontSize: "10.5pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: dark, borderBottom: `2px solid ${accent}`, paddingBottom: 3, margin: "16px 0 10px" }}>Projects</h2>
@@ -2995,103 +3319,489 @@ export function CreativePreview({ data }: { data: CvData }) {
             <ReferencesBlock data={data} />
           </>
         )}
+        <FooterNote data={data} />
       </div>
     </div>
   );
 }
 
-/* ── Corporate template (navy header + sidebar) ──────────── */
+/* ── Corporate template ──────────────────────────────────── */
+
+// Corporate is a single-column consultancy layout: a left-aligned name with the
+// contact details set to its right, a terracotta rule closing the header, and
+// terracotta section labels over hairline rules. It carries its own entry
+// blocks rather than the shared ones — the navy title / italic employer / right
+// aligned dates arrangement is what makes the whole page read as one document.
+const CORP_ACCENT = "#C0392B";
+const CORP_NAVY = "#1F3A5F";
+const CORP_BODY = "#333333";
+const CORP_MUTED = "#666666";
+const CORP_RULE = "#DDDDDD";
+
+function CorporateSectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      style={{
+        fontSize: "9pt",
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: "0.8px",
+        color: CORP_ACCENT,
+        borderBottom: `1px solid ${CORP_RULE}`,
+        paddingBottom: 5,
+        margin: "18px 0 10px",
+        pageBreakAfter: "avoid",
+        breakAfter: "avoid",
+      }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+// Navy title on the left with the date flush right, employer/institution in
+// italic underneath. Shared by experience, education and projects so the three
+// sections stay on the same grid.
+function CorporateEntryHead({
+  title,
+  subtitle,
+  meta,
+}: {
+  title: string;
+  subtitle?: string;
+  meta?: string;
+}) {
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: 16,
+          pageBreakAfter: "avoid",
+          breakAfter: "avoid",
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: "10.5pt", color: CORP_NAVY }}>
+          {title}
+        </span>
+        {meta && (
+          <span
+            style={{
+              fontSize: "8.5pt",
+              color: CORP_MUTED,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            {meta}
+          </span>
+        )}
+      </div>
+      {subtitle && (
+        <div
+          style={{
+            fontSize: "9pt",
+            fontStyle: "italic",
+            color: CORP_MUTED,
+            marginTop: 1,
+          }}
+        >
+          {subtitle}
+        </div>
+      )}
+    </>
+  );
+}
+
+function CorporateBullets({ items }: { items: string[] }) {
+  const visible = items.filter((b) => b.trim());
+  if (visible.length === 0) return null;
+  return (
+    <div style={{ marginTop: 5, paddingLeft: 10 }}>
+      {visible.map((b, i) => (
+        <div
+          key={i}
+          style={{ display: "flex", gap: 8, marginBottom: 4, alignItems: "flex-start" }}
+        >
+          <span
+            style={{
+              flexShrink: 0,
+              width: 4,
+              height: 4,
+              borderRadius: "50%",
+              background: CORP_MUTED,
+              marginTop: 6,
+            }}
+          />
+          <span style={{ fontSize: "9.5pt", lineHeight: 1.55, color: CORP_BODY }}>
+            {b}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// "Company Name, City, Country" — the employer line, with the location folded
+// in only when one was given.
+function joinPlace(name: string, location?: string) {
+  return [name, location].filter((part) => part && part.trim()).join(", ");
+}
+
+function CorporateHeader({ data }: { data: CvData }) {
+  const contact = [data.phone, data.email, data.linkedin, data.location].filter(
+    Boolean,
+  );
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 28,
+        borderBottom: `2px solid ${CORP_ACCENT}`,
+        paddingBottom: 12,
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h1
+          style={{
+            fontSize: "21pt",
+            fontWeight: 700,
+            color: CORP_NAVY,
+            lineHeight: 1.15,
+            marginBottom: data.tagline ? 5 : 0,
+          }}
+        >
+          {data.fullName || "Your Name"}
+        </h1>
+        {data.tagline && (
+          <div style={{ fontSize: "10pt", color: CORP_MUTED, lineHeight: 1.4 }}>
+            {data.tagline}
+          </div>
+        )}
+      </div>
+      {contact.length > 0 && (
+        <div
+          style={{
+            fontSize: "8.5pt",
+            color: CORP_MUTED,
+            lineHeight: 1.65,
+            flexShrink: 0,
+            maxWidth: "44%",
+            paddingTop: 3,
+          }}
+        >
+          {contact.map((item, i) => (
+            <div key={i}>{item}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CorporateExperience({ data }: { data: CvData }) {
+  return (
+    <>
+      {data.experience
+        .filter((e) => e.company || e.role)
+        .map((exp, i) => (
+          <div
+            key={i}
+            style={{ marginBottom: 13, pageBreakInside: "avoid", breakInside: "avoid" }}
+          >
+            <CorporateEntryHead
+              title={exp.role}
+              subtitle={joinPlace(exp.company, exp.location)}
+              meta={`${formatDate(exp.startDate)} – ${
+                exp.current ? "Present" : formatDate(exp.endDate)
+              }`}
+            />
+            <CorporateBullets items={exp.bullets} />
+          </div>
+        ))}
+    </>
+  );
+}
+
+function CorporateEducation({ data }: { data: CvData }) {
+  return (
+    <>
+      {data.education
+        .filter((e) => e.institution || e.degree)
+        .map((edu, i) => (
+          <div
+            key={i}
+            style={{ marginBottom: 9, pageBreakInside: "avoid", breakInside: "avoid" }}
+          >
+            <CorporateEntryHead
+              title={`${edu.degree}${edu.field ? ` in ${edu.field}` : ""}`}
+              subtitle={joinPlace(edu.institution, edu.location)}
+              meta={
+                edu.startDate
+                  ? `${formatDate(edu.startDate)} – ${formatDate(edu.endDate)}`
+                  : formatDate(edu.endDate)
+              }
+            />
+          </div>
+        ))}
+    </>
+  );
+}
+
+// Certificate name in bold navy running straight into the issuing body, with
+// the award date flush right.
+function CorporateCertifications({ data }: { data: CvData }) {
+  return (
+    <>
+      {(data.certifications ?? [])
+        .filter((c) => c.name)
+        .map((cert, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              gap: 16,
+              marginBottom: 6,
+              pageBreakInside: "avoid",
+              breakInside: "avoid",
+            }}
+          >
+            <div style={{ fontSize: "9.5pt", lineHeight: 1.45 }}>
+              <span style={{ fontWeight: 700, color: CORP_NAVY }}>{cert.name}</span>
+              {cert.issuer && (
+                <span style={{ color: CORP_BODY }}> {cert.issuer}</span>
+              )}
+            </div>
+            {cert.date && (
+              <span
+                style={{
+                  fontSize: "8.5pt",
+                  color: CORP_MUTED,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                {formatDate(cert.date)}
+              </span>
+            )}
+          </div>
+        ))}
+    </>
+  );
+}
+
+function CorporateSkills({ data }: { data: CvData }) {
+  return (
+    <div>
+      {data.skillGroups
+        .filter((g) => g.category && g.skills)
+        .map((g, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              gap: 18,
+              marginBottom: 7,
+              pageBreakInside: "avoid",
+              breakInside: "avoid",
+            }}
+          >
+            <span
+              style={{
+                fontWeight: 700,
+                fontSize: "9.5pt",
+                lineHeight: 1.5,
+                color: CORP_NAVY,
+                width: 140,
+                flexShrink: 0,
+              }}
+            >
+              {g.category}
+            </span>
+            <span
+              style={{
+                fontSize: "9.5pt",
+                lineHeight: 1.5,
+                color: CORP_BODY,
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+              {g.skills}
+            </span>
+          </div>
+        ))}
+    </div>
+  );
+}
+
+function CorporateProjects({ data }: { data: CvData }) {
+  return (
+    <>
+      {(data.projects ?? [])
+        .filter((p) => p.name)
+        .map((proj, i) => (
+          <div
+            key={i}
+            style={{ marginBottom: 13, pageBreakInside: "avoid", breakInside: "avoid" }}
+          >
+            <CorporateEntryHead
+              title={proj.name}
+              subtitle={proj.technologies}
+              meta={proj.link}
+            />
+            <CorporateBullets items={proj.bullets} />
+          </div>
+        ))}
+    </>
+  );
+}
+
+// Three referees side by side, divided by hairlines.
+function CorporateReferences({ data }: { data: CvData }) {
+  if (data.referencesUponRequest) {
+    return (
+      <p style={{ fontSize: "9pt", fontStyle: "italic", color: CORP_MUTED }}>
+        References provided upon request.
+      </p>
+    );
+  }
+  const referees = data.referees.filter((r) => r.name);
+  return (
+    <div style={{ display: "flex", gap: 20 }}>
+      {referees.map((ref, i) => (
+        <div
+          key={i}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            paddingLeft: i === 0 ? 0 : 20,
+            borderLeft: i === 0 ? "none" : `1px solid ${CORP_RULE}`,
+            pageBreakInside: "avoid",
+            breakInside: "avoid",
+          }}
+        >
+          <div style={{ fontSize: "9.5pt", fontWeight: 700, color: CORP_NAVY }}>
+            {ref.name}
+          </div>
+          {ref.title && (
+            <div
+              style={{
+                fontSize: "8.5pt",
+                fontStyle: "italic",
+                color: CORP_MUTED,
+                lineHeight: 1.5,
+              }}
+            >
+              {ref.title}
+            </div>
+          )}
+          {ref.company && (
+            <div style={{ fontSize: "8.5pt", color: CORP_BODY, lineHeight: 1.5 }}>
+              {ref.company}
+            </div>
+          )}
+          {ref.email && (
+            <div
+              style={{
+                fontSize: "8.5pt",
+                color: CORP_ACCENT,
+                lineHeight: 1.5,
+                wordBreak: "break-word" as const,
+              }}
+            >
+              {ref.email}
+            </div>
+          )}
+          {ref.phone && (
+            <div style={{ fontSize: "8.5pt", color: CORP_MUTED, lineHeight: 1.5 }}>
+              {ref.phone}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function CorporatePreview({ data }: { data: CvData }) {
-  const navy = "#1B3A5C";
   return (
-    <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", minHeight: 900 }}>
-      {/* Header */}
-      <div style={{ background: navy, color: "#fff", padding: 24, display: "flex", alignItems: "center", gap: 20 }}>
-        <PhotoCircle photo={data.photo} zoom={data.photoZoom} offsetX={data.photoOffsetX} offsetY={data.photoOffsetY} size={80} border="3px solid rgba(255,255,255,0.3)" placeholderBg="rgba(255,255,255,0.15)" placeholderIcon="rgba(255,255,255,0.4)" />
-        <div>
-          <h1 style={{ fontSize: "22pt", fontWeight: 700, color: "#fff", marginBottom: 2, textTransform: "uppercase", letterSpacing: "1px" }}>
-            {data.fullName || "Your Name"}
-          </h1>
-          {data.tagline && (
-            <div style={{ fontSize: "9pt", color: "rgba(255,255,255,0.7)", letterSpacing: "1.5px", textTransform: "uppercase" }}>{data.tagline}</div>
-          )}
-        </div>
-      </div>
+    <div
+      style={{
+        fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+        // ~14mm of A4 margin once the 680px preview is scaled to page width.
+        padding: "40px 44px 42px",
+        color: CORP_BODY,
+        minHeight: 900,
+      }}
+    >
+      <CorporateHeader data={data} />
 
-      {/* Body */}
-      <div style={{ display: "flex" }}>
-        {/* Sidebar */}
-        <div style={{ width: "32%", background: "#EDF1F5", padding: "24px 18px", flexShrink: 0 }}>
-          <h2 style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, marginBottom: 10 }}>
-            Contact
-          </h2>
-          <SidebarContact data={data} color="#333" muted={navy} />
+      {data.summary && (
+        <>
+          <CorporateSectionHeading>Professional Summary</CorporateSectionHeading>
+          <p
+            style={{
+              fontSize: "9.5pt",
+              lineHeight: 1.6,
+              color: CORP_BODY,
+              textAlign: "justify" as const,
+            }}
+          >
+            {data.summary}
+          </p>
+        </>
+      )}
 
-          {data.skillGroups.some((g) => g.category && g.skills) && (
-            <>
-              <h2 style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "18px 0 10px" }}>
-                Skills
-              </h2>
-              {data.skillGroups.filter((g) => g.category && g.skills).map((g, i) => (
-                <div key={i} style={{ marginBottom: 6 }}>
-                  <div style={{ fontSize: "8.5pt", fontWeight: 700, color: navy, marginBottom: 1 }}>{g.category}</div>
-                  <div style={{ fontSize: "8.5pt", color: "#555" }}>{g.skills}</div>
-                </div>
-              ))}
-            </>
-          )}
+      {data.experience.some((e) => e.company || e.role) && (
+        <>
+          <CorporateSectionHeading>Professional Experience</CorporateSectionHeading>
+          <CorporateExperience data={data} />
+        </>
+      )}
 
-          {hasRefs(data) && (
-            <>
-              <h2 style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "18px 0 10px" }}>
-                References
-              </h2>
-              {data.referencesUponRequest ? (
-                <p style={{ fontSize: "8.5pt", fontStyle: "italic", color: "#777" }}>Upon request.</p>
-              ) : (
-                data.referees.filter((r) => r.name).map((ref, i) => (
-                  <div key={i} style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: "8.5pt", fontWeight: 700, color: "#333" }}>{ref.name}</div>
-                    <div style={{ fontSize: "8pt", color: "#777" }}>{ref.title}{ref.title && ref.company && ", "}{ref.company}</div>
-                  </div>
-                ))
-              )}
-            </>
-          )}
-        </div>
+      {data.education.some((e) => e.institution || e.degree) && (
+        <>
+          <CorporateSectionHeading>Education</CorporateSectionHeading>
+          <CorporateEducation data={data} />
+        </>
+      )}
 
-        {/* Main */}
-        <div style={{ flex: 1, padding: 24, textAlign: "justify" as const }}>
-          {data.summary && (
-            <>
-              <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "0 0 10px" }}>Profile</h2>
-              <p style={{ fontSize: "9.5pt", lineHeight: 1.6, color: "#333" }}>{data.summary}</p>
-            </>
-          )}
+      {hasCertifications(data) && (
+        <>
+          <CorporateSectionHeading>Certifications</CorporateSectionHeading>
+          <CorporateCertifications data={data} />
+        </>
+      )}
 
-          {data.experience.some((e) => e.company || e.role) && (
-            <>
-              <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "16px 0 10px" }}>Experience</h2>
-              <ExperienceEntries data={data} />
-            </>
-          )}
+      {data.skillGroups.some((g) => g.category && g.skills) && (
+        <>
+          <CorporateSectionHeading>Core Skills</CorporateSectionHeading>
+          <CorporateSkills data={data} />
+        </>
+      )}
 
-          {data.education.some((e) => e.institution || e.degree) && (
-            <>
-              <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "16px 0 10px" }}>Education</h2>
-              <EducationEntries data={data} />
-            </>
-          )}
+      {hasProjects(data) && (
+        <>
+          <CorporateSectionHeading>Projects</CorporateSectionHeading>
+          <CorporateProjects data={data} />
+        </>
+      )}
 
-          {hasProjects(data) && (
-            <>
-              <h2 style={{ fontSize: "10pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: navy, borderBottom: `2px solid ${navy}`, paddingBottom: 3, margin: "16px 0 10px" }}>Projects</h2>
-              <ProjectEntries data={data} />
-            </>
-          )}
-        </div>
-      </div>
+      {hasRefs(data) && (
+        <>
+          <CorporateSectionHeading>References</CorporateSectionHeading>
+          <CorporateReferences data={data} />
+        </>
+      )}
+
+      <FooterNote data={data} color={CORP_MUTED} />
     </div>
   );
 }
@@ -3220,9 +3930,21 @@ export function FlorencePreview({ data }: { data: CvData }) {
                       {formatDate(edu.startDate)}{edu.endDate ? ` – ${formatDate(edu.endDate)}` : ""}
                     </span>
                   </div>
-                  {edu.institution && <div style={{ fontSize: "9.5pt", color: "#333" }}>{edu.institution}</div>}
+                  {edu.institution && (
+                    <div style={{ fontSize: "9.5pt", color: "#333" }}>
+                      {joinPlace(edu.institution, edu.location)}
+                    </div>
+                  )}
                 </div>
               ))}
+          </>
+        )}
+
+        {/* Certifications */}
+        {hasCertifications(data) && (
+          <>
+            <FlorenceSectionHeading>Certifications</FlorenceSectionHeading>
+            <CertificationEntries data={data} />
           </>
         )}
 
@@ -3249,6 +3971,7 @@ export function FlorencePreview({ data }: { data: CvData }) {
             <ReferencesBlock data={data} />
           </>
         )}
+        <FooterNote data={data} />
       </div>
     </div>
   );

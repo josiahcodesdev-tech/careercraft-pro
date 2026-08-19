@@ -37,8 +37,9 @@ interface ParsedCv {
   location: string;
   linkedin: string;
   summary: string;
-  experience: { company: string; role: string; startDate: string; endDate: string; current: boolean; bullets: string[] }[];
-  education: { institution: string; degree: string; field: string; startDate: string; endDate: string }[];
+  experience: { company: string; role: string; location?: string; startDate: string; endDate: string; current: boolean; bullets: string[] }[];
+  education: { institution: string; degree: string; field: string; location?: string; startDate: string; endDate: string }[];
+  certifications?: { name: string; issuer: string; date: string }[];
   skillGroups: { category: string; skills: string }[];
   matchedRole?: string;
   jdKeywords?: string[];

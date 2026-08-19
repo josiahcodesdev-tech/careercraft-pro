@@ -12,6 +12,7 @@ import { saveAs } from "file-saver";
 interface WorkEntry {
   company: string;
   role: string;
+  location?: string;
   startDate: string;
   endDate: string;
   current: boolean;
@@ -22,8 +23,15 @@ interface EducationEntry {
   institution: string;
   degree: string;
   field: string;
+  location?: string;
   startDate: string;
   endDate: string;
+}
+
+interface CertificationEntry {
+  name: string;
+  issuer: string;
+  date: string;
 }
 
 interface SkillGroup {
@@ -56,10 +64,12 @@ interface CvData {
   summary: string;
   experience: WorkEntry[];
   education: EducationEntry[];
+  certifications?: CertificationEntry[];
   skillGroups: SkillGroup[];
   projects?: ProjectEntry[];
   referees: RefereeEntry[];
   referencesUponRequest: boolean;
+  footerNote?: string;
 }
 
 function formatDateRange(start: string, end: string, current: boolean): string {
@@ -191,7 +201,7 @@ export async function downloadCvDocx(data: CvData): Promise<void> {
           children: [
             new TextRun({ text: exp.role || "", bold: true, size: 22, font: "Calibri" }),
             ...(exp.company
-              ? [new TextRun({ text: `  |  ${exp.company}`, size: 22, font: "Calibri", color: "444444" })]
+              ? [new TextRun({ text: `  |  ${[exp.company, exp.location].filter(Boolean).join(", ")}`, size: 22, font: "Calibri", color: "444444" })]
               : []),
             ...(dateRange
               ? [new TextRun({ text: `  |  ${dateRange}`, size: 20, font: "Calibri", color: "777777" })]
@@ -225,7 +235,7 @@ export async function downloadCvDocx(data: CvData): Promise<void> {
         new Paragraph({
           spacing: { before: 100, after: 40 },
           children: [
-            new TextRun({ text: edu.institution || "", bold: true, size: 22, font: "Calibri" }),
+            new TextRun({ text: [edu.institution, edu.location].filter(Boolean).join(", "), bold: true, size: 22, font: "Calibri" }),
             ...(dateRange
               ? [new TextRun({ text: `  |  ${dateRange}`, size: 20, font: "Calibri", color: "777777" })]
               : []),
@@ -241,6 +251,29 @@ export async function downloadCvDocx(data: CvData): Promise<void> {
           })
         );
       }
+    }
+  }
+
+  // Certifications
+  const hasCerts = data.certifications?.some((c) => c.name);
+  if (hasCerts) {
+    children.push(sectionHeading("Certifications"));
+    for (const cert of data.certifications ?? []) {
+      if (!cert.name) continue;
+      children.push(
+        new Paragraph({
+          spacing: { before: 80, after: 40 },
+          children: [
+            new TextRun({ text: cert.name, bold: true, size: 20, font: "Calibri" }),
+            ...(cert.issuer
+              ? [new TextRun({ text: `  |  ${cert.issuer}`, size: 20, font: "Calibri", color: "444444" })]
+              : []),
+            ...(cert.date
+              ? [new TextRun({ text: `  |  ${formatDateRange(cert.date, "", false)}`, size: 18, font: "Calibri", color: "777777" })]
+              : []),
+          ],
+        })
+      );
     }
   }
 
@@ -326,6 +359,28 @@ export async function downloadCvDocx(data: CvData): Promise<void> {
         if (contactParts) children.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: contactParts, size: 18, font: "Calibri", color: "777777" })] }));
       }
     }
+  }
+
+  // Closing line — citizenship, work authorisation, languages.
+  if (data.footerNote?.trim()) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 240 },
+        border: {
+          top: { style: BorderStyle.SINGLE, size: 4, color: "DDDDDD", space: 8 },
+        },
+        children: [
+          new TextRun({
+            text: data.footerNote.trim(),
+            size: 18,
+            font: "Calibri",
+            italics: true,
+            color: "777777",
+          }),
+        ],
+      })
+    );
   }
 
   const doc = new Document({

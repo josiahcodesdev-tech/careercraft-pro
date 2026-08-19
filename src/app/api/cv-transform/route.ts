@@ -126,6 +126,7 @@ Return ONLY raw JSON (no markdown, no code fences):
     {
       "role": "string",
       "company": "string",
+      "location": "string — city and country of the role, or empty if the CV does not say",
       "startDate": "string — YYYY-MM or empty",
       "endDate": "string — YYYY-MM or empty",
       "current": boolean,
@@ -137,8 +138,16 @@ Return ONLY raw JSON (no markdown, no code fences):
       "institution": "string",
       "degree": "string — degree type only",
       "field": "string — field of study",
+      "location": "string — city and country, or empty if the CV does not say",
       "startDate": "string — YYYY-MM or empty",
       "endDate": "string — YYYY-MM or empty"
+    }
+  ],
+  "certifications": [
+    {
+      "name": "string — certificate, short course or licence title",
+      "issuer": "string — awarding body",
+      "date": "string — YYYY-MM or empty"
     }
   ],
   "skillGroups": [
@@ -155,7 +164,8 @@ GENERAL RULES:
 3. Transform bullets: [Action Verb] + [What] + [How/Tool] + [Outcome]. Use quantification only where it can be reasonably inferred from the role context (team size, scope, industry norms). Do not fabricate specific numbers.
 4. Every role needs minimum 3 bullets — generate from the role title and company context if truly empty, but keep them plausible and conservative.
 5. Output 4-6 skill groups. Only include skills evidenced in the experience or explicitly listed by the candidate.
-6. Standardise all dates to YYYY-MM.${jdRewriteRules}`;
+6. Standardise all dates to YYYY-MM.
+7. Certifications: list only certificates, licences and short courses the CV actually names. Return an empty array if it names none — never invent one.${jdRewriteRules}`;
 
   const userMessage = jdReqs
     ? `Transform this CV. The job requirements have already been extracted below — your ONLY job now is to rewrite the CV to match them.\n${jdInjection}\n\n--- CV TO TRANSFORM ---\n${cvText}`
