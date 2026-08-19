@@ -8,9 +8,9 @@ import { Menu } from "lucide-react";
 import { useState } from "react";
 
 const navLinks = [
-  { href: "/", label: "Home" },
+  { href: "/cv-builder", label: "CV Builder" },
+  { href: "/interview-prep", label: "Interview Prep" },
   { href: "/services", label: "Services" },
-  { href: "/cv-builder", label: "ATS CV Builder" },
 ];
 
 export function Navbar() {
@@ -18,11 +18,11 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/92 backdrop-blur-md border-b border-border">
-      <div className="max-w-[1100px] mx-auto px-8 h-16 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 border-b border-black/5 bg-[#f5f3ee]/92 backdrop-blur-md">
+      <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between px-5 sm:px-8 2xl:h-28 2xl:max-w-[1840px] 2xl:px-10">
         <Link
           href="/"
-          className="flex items-center gap-2 font-heading text-xl font-extrabold text-brand tracking-tight"
+          className="flex items-center gap-2.5 font-heading text-xl font-extrabold tracking-tight text-[#173f31] sm:text-2xl"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
             <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -33,7 +33,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop */}
-        <ul className="hidden md:flex items-center gap-8">
+        <ul className="hidden items-center gap-9 md:flex">
           {navLinks.map((link) => (
             <li key={link.href}>
               <Link
@@ -50,10 +50,10 @@ export function Navbar() {
           ))}
           <li>
             <Link
-              href="/contact"
-              className={cn(buttonVariants({ size: "sm" }), "bg-brand hover:bg-brand-mid text-white")}
+              href="/cv-builder"
+              className={cn(buttonVariants(), "h-11 rounded-xl bg-brand px-5 font-bold text-white hover:bg-brand-mid")}
             >
-              Get in touch
+              Get started
             </Link>
           </li>
         </ul>
@@ -83,7 +83,7 @@ export function Navbar() {
             </Link>
           ))}
           <Link
-            href="/contact"
+            href="/cv-builder"
             onClick={() => setMobileOpen(false)}
             className={cn(buttonVariants({ size: "sm" }), "bg-brand hover:bg-brand-mid text-white w-full mt-2")}
           >

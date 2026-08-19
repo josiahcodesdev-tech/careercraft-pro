@@ -691,8 +691,8 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Left panel — Form */}
-      <div className="w-full lg:w-1/2 overflow-y-auto border-r border-border bg-background">
-        <div className="p-8">
+      <div className="w-full overflow-y-auto border-r border-border bg-background lg:w-[47%]">
+        <div className="p-8 lg:ml-auto lg:max-w-[680px]">
           {skipPayment && (
             <div className="mb-6 flex items-center gap-2 bg-brand-light text-brand text-xs font-semibold px-3 py-2 rounded-lg">
               <Sparkles className="w-3.5 h-3.5" /> Admin mode — downloads are free, no payment required
@@ -950,6 +950,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
                   role={data.tagline || undefined}
                   placeholder="Results-driven software engineer with 8+ years of experience building scalable web applications..."
                   className="min-h-[160px]"
+                  editor
                 />
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-text-muted">
@@ -1805,8 +1806,8 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
         className={cn(
           "flex-col bg-[#f0efe9] overflow-hidden",
           mobilePreviewOpen
-            ? "fixed inset-0 z-40 flex bg-white lg:static lg:z-auto lg:w-1/2 lg:bg-[#f0efe9]"
-            : "hidden lg:flex lg:w-1/2"
+            ? "fixed inset-0 z-40 flex bg-white lg:static lg:z-auto lg:w-[53%] lg:bg-[#f0efe9]"
+            : "hidden lg:flex lg:w-[53%]"
         )}
       >
         <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card gap-3">
@@ -1896,11 +1897,10 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 2xl:p-0">
           <div
             ref={previewRef}
-            className="bg-white rounded-lg shadow-md mx-auto overflow-hidden"
-            style={{ maxWidth: 680, minHeight: 900 }}
+            className="mx-auto min-h-[900px] max-w-[680px] overflow-hidden rounded-lg bg-white shadow-md 2xl:mx-0 2xl:min-h-[1160px] 2xl:max-w-[820px] 2xl:rounded-none"
           >
             {(() => {
               const previewData = hasContent ? data : DUMMY_DATA;

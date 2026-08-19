@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ServiceCarousel } from "@/components/service-carousel";
-import { CareerJourney } from "@/components/career-journey";
+import { ResumePreview } from "@/components/resume-preview";
 import { CtaSection } from "@/components/cta-section";
 import { JsonLd } from "@/components/json-ld";
 import { SITE_URL } from "@/lib/site-config";
-import { Zap } from "lucide-react";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
 
 const homeTitle = "MyCareerCraft — Career Development & Professional Growth";
 const homeDescription =
@@ -43,83 +43,37 @@ export default function HomePage() {
     <>
       <JsonLd data={websiteJsonLd} />
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 text-border/60"
-          style={{
-            backgroundImage: "radial-gradient(currentColor 1.1px, transparent 1.1px)",
-            backgroundSize: "22px 22px",
-            WebkitMaskImage: "radial-gradient(ellipse 80% 70% at 32% 22%, #000 8%, transparent 68%)",
-            maskImage: "radial-gradient(ellipse 80% 70% at 32% 22%, #000 8%, transparent 68%)",
-          }}
-        />
-        <div className="relative max-w-[1100px] mx-auto px-8 py-6">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <div>
-            <span className="inline-flex items-center gap-1.5 bg-brand-light text-brand text-xs font-semibold px-3.5 py-1.5 rounded-full uppercase tracking-wider mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-              Career development experts
-            </span>
-            <h1 className="font-heading text-[clamp(34px,4.5vw,52px)] font-black leading-[1.15] tracking-tight mb-5">
-              Shape the career
-              <br />
-              you{" "}
-              <span className="relative inline-block text-brand">
-                deserve
-                <svg
-                  aria-hidden
-                  viewBox="0 0 220 14"
-                  preserveAspectRatio="none"
-                  fill="none"
-                  className="absolute -bottom-1.5 left-0 w-full h-[0.4em] text-gold"
-                >
-                  <path
-                    d="M4 9 Q 70 3 110 6 T 216 8"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
-            </h1>
-            <p className="text-[17px] text-text-secondary leading-relaxed max-w-[440px] mb-8">
-              We help professionals at every stage discover their strengths,
-              position themselves strategically, and land the roles they truly
-              want.
-            </p>
-            <div className="flex flex-wrap gap-3 mb-10">
-              <Link
-                href="/cv-builder"
-                className={cn(buttonVariants(), "bg-brand hover:bg-brand-mid text-white")}
-              >
-                Build Your ATS-Ready CV Now →
-              </Link>
-              <Link
-                href="/interview-prep"
-                className={cn(buttonVariants(), "bg-gold hover:bg-gold/90 text-white")}
-              >
-                Interview Preparation
-              </Link>
+      <section className="relative overflow-hidden bg-[#f5f3ee]">
+        <div aria-hidden className="pointer-events-none absolute inset-0 text-border/60" style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", maskImage: "radial-gradient(ellipse 65% 65% at 25% 35%, #000 4%, transparent 72%)" }} />
+        <div className="relative mx-auto max-w-[1240px] px-5 py-14 sm:px-8 sm:py-20 md:py-8 lg:py-6 2xl:max-w-[1620px] 2xl:py-14">
+          <div className="grid items-center gap-10 lg:grid-cols-[1.02fr_.98fr] lg:items-start lg:gap-16 2xl:grid-cols-[1.08fr_.92fr] 2xl:gap-24">
+            <div className="max-w-[650px] 2xl:max-w-[790px]">
+              <span className="mb-7 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-brand lg:mb-4"><Sparkles className="h-4 w-4 text-gold" /> Kenya&apos;s career growth partner</span>
+              <h1 className="mb-7 font-heading text-[clamp(52px,6vw,78px)] font-black leading-[0.98] tracking-[-0.055em] text-[#101510] lg:mb-5 2xl:text-[88px]">Build a career that opens doors.</h1>
+              <p className="mb-4 max-w-[550px] text-lg leading-relaxed text-text-secondary sm:text-xl 2xl:max-w-[720px] 2xl:text-[24px]">Create an ATS-ready CV, prepare for interviews, and position yourself for the opportunities you deserve.</p>
+              <div className="mb-9 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-[#405149] lg:mb-6 2xl:mt-6 2xl:text-base">{["Expert-guided", "ATS-friendly", "Built for you"].map((item) => <span key={item} className="flex items-center gap-1.5"><Check className="h-4 w-4 text-brand" />{item}</span>)}</div>
+              <div className="mb-11 flex flex-wrap gap-3">
+                <Link href="/cv-builder" className={cn(buttonVariants(), "h-14 rounded-xl bg-brand px-7 text-base font-bold text-white shadow-lg shadow-brand/15 hover:bg-brand-mid")}>Build your CV <ArrowRight className="ml-1 h-4 w-4" /></Link>
+                <Link href="/services" className={cn(buttonVariants({ variant: "outline" }), "h-14 rounded-xl border-brand/25 bg-transparent px-7 text-base font-bold text-brand hover:bg-brand-light")}>Explore services</Link>
+              </div>
+              <div className="mt-12 grid grid-cols-1 gap-6 border-t border-brand/15 pt-7 sm:grid-cols-3 sm:gap-5 2xl:mt-16 2xl:gap-8">
+                {[
+                  { number: "01", title: "Add your details", text: "Start fresh or bring your current CV." },
+                  { number: "02", title: "Shape your story", text: "Turn your experience into clear impact." },
+                  { number: "03", title: "Apply confidently", text: "Download an ATS-ready professional CV." },
+                ].map((step) => (
+                  <div key={step.number}>
+                    <span className="text-xs font-black tracking-[0.16em] text-gold">{step.number}</span>
+                    <h2 className="mt-2 font-heading text-lg font-extrabold text-[#173f31]">{step.title}</h2>
+                    <p className="mt-2 max-w-[190px] text-sm leading-relaxed text-text-secondary">{step.text}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <Link
-              href="/cv-transform"
-              className="inline-flex items-center gap-3 bg-brand-light border border-brand/20 hover:border-brand/50 hover:bg-brand/10 rounded-xl px-4 py-3 transition-all group"
-            >
-              <div className="w-9 h-9 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-brand leading-tight">Transform your CV to ATS friendly</p>
-                <p className="text-xs text-text-muted leading-tight mt-0.5">Upload your CV · AI rewrites it · Download instantly</p>
-              </div>
-              <span className="text-brand text-sm font-bold ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
-            </Link>
+            <div className="mt-2 lg:mt-0">
+              <ResumePreview />
+            </div>
           </div>
-
-          {/* Hero visual — animated career-journey card */}
-          <CareerJourney />
-        </div>
         </div>
       </section>
 
