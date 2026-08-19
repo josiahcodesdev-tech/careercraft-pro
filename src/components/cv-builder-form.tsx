@@ -625,23 +625,26 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
     const html2pdf = ((await import("html2pdf.js")) as any).default;
     const fileName = data.fullName ? `${data.fullName.replace(/\s+/g, "_")}_CV` : "CV";
 
-    // Group each section on a clone so a section can't be split across pages.
-    // All template styles are inline, so the detached clone renders identically.
     const printSource = el.cloneNode(true) as HTMLElement;
     groupSectionsForPrint(printSource);
-
-    await html2pdf()
-      .set({
-        margin: 0,
-        filename: `${fileName}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 3, useCORS: true, logging: false },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        // Honour the break-inside:avoid boxes groupSectionsForPrint adds.
-        pagebreak: { mode: ["css", "legacy"] },
-      })
-      .from(printSource)
-      .save();
+    const measurementHost = mountPrintSource(printSource, el.getBoundingClientRect().width);
+    try {
+      await document.fonts.ready;
+      markMeasuredPageBreaks(printSource);
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename: `${fileName}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 3, useCORS: true, logging: false },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+          pagebreak: { mode: ["css", "legacy"], before: ".cv-page-break" },
+        })
+        .from(printSource)
+        .save();
+    } finally {
+      measurementHost.remove();
+    }
   }
 
   async function handleDownloadDocx() {
@@ -2296,25 +2299,57 @@ function FooterNote({
 function groupSectionsForPrint(root: HTMLElement) {
   const headings = Array.from(root.querySelectorAll("h2"));
   for (const heading of headings) {
-    const label = (heading.textContent || "").trim().toLowerCase();
-    if (label.includes("experience")) continue;
     const parent = heading.parentElement;
     if (!parent) continue;
-
-    // Gather the heading and the siblings after it, up to the next section.
-    const members: Element[] = [];
-    let node: Element | null = heading;
-    while (node) {
-      if (node !== heading && node.tagName === "H2") break;
-      members.push(node);
-      node = node.nextElementSibling;
-    }
-
+    const firstContent = heading.nextElementSibling;
     const group = document.createElement("div");
     group.style.breakInside = "avoid";
     group.style.pageBreakInside = "avoid";
     parent.insertBefore(group, heading);
-    members.forEach((m) => group.appendChild(m));
+    group.appendChild(heading);
+    if (firstContent && firstContent.tagName !== "H2") group.appendChild(firstContent);
+  }
+}
+
+function mountPrintSource(source: HTMLElement, width: number) {
+  const host = document.createElement("div");
+  host.setAttribute("aria-hidden", "true");
+  Object.assign(host.style, {
+    position: "fixed",
+    left: "-100000px",
+    top: "0",
+    width: `${width}px`,
+    pointerEvents: "none",
+    zIndex: "-1",
+  });
+  source.style.width = `${width}px`;
+  source.style.maxWidth = "none";
+  host.appendChild(source);
+  document.body.appendChild(host);
+  return host;
+}
+
+function markMeasuredPageBreaks(root: HTMLElement) {
+  const rootRect = root.getBoundingClientRect();
+  const pageHeight = rootRect.width * (297 / 210);
+  if (!pageHeight) return;
+
+  const candidates = Array.from(root.querySelectorAll<HTMLElement>(
+    "h2, [style*='page-break-inside'], [style*='break-inside']"
+  )).filter((element) => !element.parentElement?.closest("[style*='break-inside']"));
+
+  let insertedSpace = 0;
+  for (const element of candidates) {
+    const rect = element.getBoundingClientRect();
+    const top = rect.top - rootRect.top + insertedSpace;
+    const bottom = rect.bottom - rootRect.top + insertedSpace;
+    const startsOn = Math.floor(top / pageHeight);
+    const endsOn = Math.floor(Math.max(top, bottom - 1) / pageHeight);
+    if (startsOn === endsOn || rect.height >= pageHeight * 0.85) continue;
+    insertedSpace += (startsOn + 1) * pageHeight - top;
+    element.classList.add("cv-page-break");
+    element.style.breakBefore = "page";
+    element.style.pageBreakBefore = "always";
   }
 }
 
