@@ -454,8 +454,8 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Left panel — Form */}
-      <div className="w-full lg:w-[420px] overflow-y-auto border-r border-border bg-background flex-shrink-0">
-        <div className="p-8">
+      <div className="w-full flex-shrink-0 overflow-y-auto border-r border-border bg-background lg:w-[47%]">
+        <div className="p-8 lg:ml-auto lg:max-w-[680px]">
           {skipPayment && (
             <div className="mb-6 flex items-center gap-2 bg-brand-light text-brand text-xs font-semibold px-3 py-2 rounded-lg">
               <Sparkles className="w-3.5 h-3.5" /> Admin mode — downloads are free, no payment required
@@ -719,8 +719,8 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
         className={cn(
           "flex-col bg-[#f0efe9] overflow-hidden",
           mobilePreviewOpen
-            ? "fixed inset-0 z-50 flex bg-white lg:static lg:z-auto lg:flex-1 lg:bg-[#f0efe9]"
-            : "hidden lg:flex lg:flex-1"
+            ? "fixed inset-0 z-50 flex bg-white lg:static lg:z-auto lg:w-[53%] lg:bg-[#f0efe9]"
+            : "hidden lg:flex lg:w-[53%]"
         )}
       >
         <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card">
@@ -757,7 +757,7 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 relative">
+        <div className="relative flex-1 overflow-y-auto p-6 2xl:p-0">
           {/* Blur starts at the second section (page 2 equivalent) */}
           {(() => {
             const secondSection = dialogue.findIndex((qa, i) => i > 0 && !!qa.section);
@@ -806,11 +806,9 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
 
           <div
             ref={previewRef}
-            className="bg-white rounded-lg shadow-md mx-auto p-10 sm:p-12"
+            className="mx-auto min-h-[900px] max-w-[700px] rounded-lg bg-white p-10 shadow-md sm:p-12 2xl:mx-0 2xl:min-h-[1160px] 2xl:max-w-[820px] 2xl:rounded-none"
             style={{
               fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
-              maxWidth: 700,
-              minHeight: 900,
             }}
           >
             <InterviewDialogueContent

@@ -34,7 +34,7 @@ const serviceJsonLd = createServiceJsonLd({
 
 export default function CvTransformPage() {
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100dvh-5rem)] flex-col 2xl:h-[calc(100dvh-7rem)]">
       <JsonLd data={serviceJsonLd} />
       <CvTransformForm />
     </div>

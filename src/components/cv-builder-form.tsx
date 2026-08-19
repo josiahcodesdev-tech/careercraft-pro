@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PaymentModal } from "@/components/payment-modal";
 import { JdTailor, type JdDraft } from "@/components/jd-tailor";
@@ -34,6 +35,7 @@ import {
   Download,
   Eye,
   ArrowLeft,
+  FileUp,
 } from "lucide-react";
 
 export type Template = "classic" | "modern" | "executive" | "minimal" | "bold" | "professional" | "creative" | "corporate" | "florence";
@@ -748,9 +750,22 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
             ))}
           </div>
 
-          {/* Tailor the CV to a job description (text or screenshot) */}
-          <div className="mb-6">
-            <JdTailor onApply={applyJdDraft} />
+          {/* Quick-start actions */}
+          <div className="mb-6 grid gap-3 sm:grid-cols-2">
+            <JdTailor onApply={applyJdDraft} floating />
+            <Link
+              href="/cv-transform"
+              className="group inline-flex w-full items-center gap-3 rounded-2xl border border-brand/15 bg-white px-4 py-4 text-left shadow-[0_10px_28px_rgba(20,64,47,0.10)] transition-all hover:-translate-y-0.5 hover:border-brand/35 hover:shadow-[0_14px_34px_rgba(20,64,47,0.16)]"
+            >
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gold text-white">
+                <FileUp className="h-4 w-4" />
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm font-semibold leading-tight text-brand">Import my CV</span>
+                <span className="mt-0.5 block text-xs leading-tight text-text-muted">Upload your current CV to get started</span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-brand" />
+            </Link>
           </div>
 
           {/* Step content */}

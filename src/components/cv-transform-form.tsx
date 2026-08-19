@@ -511,7 +511,7 @@ const MAX_PREVIEW_CHARS = 20000;
 function PreviewPage({ children }: { children: ReactNode }) {
   return (
     <div
-      className="bg-white rounded-lg shadow-md mx-auto p-10 w-full max-w-[700px] text-neutral-800"
+      className="mx-auto w-full max-w-[700px] rounded-lg bg-white p-10 text-neutral-800 shadow-md 2xl:mx-0 2xl:min-h-[1160px] 2xl:max-w-[820px] 2xl:rounded-none"
       style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}
     >
       {children}
@@ -834,8 +834,8 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Left panel */}
-      <div className="w-full lg:w-1/2 overflow-y-auto border-r border-border bg-background">
-        <div className="p-8">
+      <div className="w-full overflow-y-auto border-r border-border bg-background lg:w-[47%]">
+        <div className="p-8 lg:ml-auto lg:max-w-[680px]">
           <div className="mb-8">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-brand mb-2">
               CV Transform
@@ -1044,10 +1044,10 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
 
       {/* Right panel — live preview of the CV, falling back to How it works
           until there is something readable to show. */}
-      <div className="hidden lg:flex flex-1 flex-col bg-[#f0efe9] overflow-y-auto">
+      <div className="hidden flex-col overflow-y-auto bg-[#f0efe9] lg:flex lg:w-[53%]">
         {parsed ? (
-          <div className="p-8 w-full">
-            <div className="max-w-[700px] mx-auto mb-3 flex items-center justify-between gap-3">
+          <div className="w-full p-8 2xl:p-0">
+            <div className="mx-auto mb-3 flex max-w-[700px] items-center justify-between gap-3 2xl:mx-0 2xl:max-w-[820px] 2xl:px-4 2xl:pt-4">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-brand">
                 ATS Preview
               </p>
@@ -1063,8 +1063,8 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
             <p className="text-sm font-medium">Reading {cvFileName}…</p>
           </div>
         ) : previewText ? (
-          <div className="p-8 w-full">
-            <div className="max-w-[700px] mx-auto mb-3 flex items-center justify-between gap-3">
+          <div className="w-full p-8 2xl:p-0">
+            <div className="mx-auto mb-3 flex max-w-[700px] items-center justify-between gap-3 2xl:mx-0 2xl:max-w-[820px] 2xl:px-4 2xl:pt-4">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-brand">
                 Your CV
               </p>

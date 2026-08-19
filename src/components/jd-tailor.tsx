@@ -13,7 +13,7 @@ export interface JdDraft {
 // A compact panel for the CV Builder: paste/upload a job-description (text or a
 // screenshot) and pre-fill a tailored draft (headline, summary, key skills)
 // that the user then completes with their real experience.
-export function JdTailor({ onApply }: { onApply: (draft: JdDraft, jd: string) => void }) {
+export function JdTailor({ onApply, floating = false }: { onApply: (draft: JdDraft, jd: string) => void; floating?: boolean }) {
   const [open, setOpen] = useState(false);
   const [jd, setJd] = useState("");
   const [ocr, setOcr] = useState(false);
@@ -82,13 +82,15 @@ export function JdTailor({ onApply }: { onApply: (draft: JdDraft, jd: string) =>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full inline-flex items-center gap-2.5 rounded-xl border border-brand/20 bg-brand-light px-4 py-3 text-left transition-colors hover:border-brand/50 hover:bg-brand/10"
+        className={floating
+          ? "group inline-flex w-full items-center gap-3 rounded-2xl border border-brand/15 bg-white px-4 py-4 text-left shadow-[0_10px_28px_rgba(20,64,47,0.10)] transition-all hover:-translate-y-0.5 hover:border-brand/35 hover:shadow-[0_14px_34px_rgba(20,64,47,0.16)]"
+          : "w-full inline-flex items-center gap-2.5 rounded-xl border border-brand/20 bg-brand-light px-4 py-3 text-left transition-colors hover:border-brand/50 hover:bg-brand/10"}
       >
         <span className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
           <Sparkles className="w-4 h-4 text-white" />
         </span>
         <span className="flex-1">
-          <span className="block text-sm font-semibold text-brand leading-tight">Tailor this CV to a job</span>
+          <span className="block text-sm font-semibold text-brand leading-tight">Tailor CV for a job description</span>
           <span className="block text-xs text-text-muted leading-tight mt-0.5">
             {applied ? "Draft tailored — edit below, or tailor to another job" : "Paste or upload a job post (text or screenshot)"}
           </span>
@@ -99,7 +101,7 @@ export function JdTailor({ onApply }: { onApply: (draft: JdDraft, jd: string) =>
   }
 
   return (
-    <div className="rounded-xl border border-brand/30 bg-brand-light/50 p-4">
+    <div className={`rounded-xl border border-brand/30 bg-brand-light/50 p-4 ${floating ? "sm:col-span-2" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm font-semibold text-brand">Tailor this CV to a job</p>
         <button type="button" onClick={() => setOpen(false)} className="text-text-muted hover:text-foreground p-1">
