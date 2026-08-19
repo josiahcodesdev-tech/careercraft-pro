@@ -2041,25 +2041,17 @@ function groupSectionsForPrint(root: HTMLElement) {
   }
 }
 
-// Classic keeps its own entry blocks instead of the shared ones: the traditional
-// look — centred masthead, italic employer under a bold role, hanging bullets —
-// only holds together if these pieces stay in step with each other.
-const CLASSIC_INK = "#1a1a1a";
-const CLASSIC_MUTED = "#4a4a4a";
-const CLASSIC_FAINT = "#6f6f6f";
-
 function ClassicSectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <h2
       style={{
-        fontSize: "10pt",
+        fontSize: "10.5pt",
         fontWeight: 700,
         textTransform: "uppercase",
-        letterSpacing: "2.2px",
-        color: CLASSIC_INK,
-        borderBottom: `1px solid ${CLASSIC_INK}`,
-        paddingBottom: 4,
-        margin: "20px 0 10px",
+        letterSpacing: "1.5px",
+        borderBottom: "1.5px solid #1a1a1a",
+        paddingBottom: 3,
+        margin: "16px 0 10px",
         pageBreakAfter: "avoid",
         breakAfter: "avoid",
       }}
@@ -2069,374 +2061,74 @@ function ClassicSectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ClassicHeader({ data }: { data: CvData }) {
-  const contact = [data.phone, data.email, data.linkedin, data.location].filter(
-    Boolean,
-  );
-  return (
-    <header
-      style={{
-        textAlign: "center" as const,
-        borderBottom: `4px double ${CLASSIC_INK}`,
-        paddingBottom: 12,
-        marginBottom: 4,
-      }}
-    >
-      <h1
-        style={{
-          fontSize: "23pt",
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "3.5px",
-          lineHeight: 1.15,
-          color: CLASSIC_INK,
-          marginBottom: 7,
-        }}
-      >
-        {data.fullName || "Your Name"}
-      </h1>
-      {data.tagline && (
-        <div
-          style={{
-            fontSize: "10pt",
-            fontStyle: "italic",
-            color: CLASSIC_MUTED,
-            letterSpacing: "0.5px",
-            lineHeight: 1.4,
-            marginBottom: 8,
-          }}
-        >
-          {data.tagline}
-        </div>
-      )}
-      {contact.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap" as const,
-            justifyContent: "center",
-            fontSize: "9pt",
-            color: CLASSIC_MUTED,
-            lineHeight: 1.6,
-          }}
-        >
-          {contact.map((item, i) => (
-            <span key={i} style={{ whiteSpace: "nowrap" }}>
-              {i > 0 && (
-                <span style={{ padding: "0 9px", color: "#b0b0b0" }}>|</span>
-              )}
-              {item}
-            </span>
-          ))}
-        </div>
-      )}
-    </header>
-  );
-}
-
-// Bold title on the left, dates flush right, employer/institution italic
-// underneath — the arrangement a recruiter's eye already knows.
-function ClassicEntryHead({
-  title,
-  subtitle,
-  meta,
-}: {
-  title: string;
-  subtitle?: string;
-  meta?: string;
-}) {
-  return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 16,
-          pageBreakAfter: "avoid",
-          breakAfter: "avoid",
-        }}
-      >
-        <span style={{ fontWeight: 700, fontSize: "10.5pt", color: CLASSIC_INK }}>
-          {title}
-        </span>
-        {meta && (
-          <span
-            style={{
-              fontSize: "8.5pt",
-              color: CLASSIC_FAINT,
-              letterSpacing: "0.4px",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            {meta}
-          </span>
-        )}
-      </div>
-      {subtitle && (
-        <div
-          style={{
-            fontSize: "9.5pt",
-            fontStyle: "italic",
-            color: CLASSIC_MUTED,
-            marginTop: 1,
-          }}
-        >
-          {subtitle}
-        </div>
-      )}
-    </>
-  );
-}
-
-function ClassicBullets({ items }: { items: string[] }) {
-  const visible = items.filter((b) => b.trim());
-  if (visible.length === 0) return null;
-  return (
-    <div style={{ marginTop: 5 }}>
-      {visible.map((b, i) => (
-        <div
-          key={i}
-          style={{ display: "flex", gap: 8, marginBottom: 4, alignItems: "flex-start" }}
-        >
-          <span
-            style={{
-              flexShrink: 0,
-              fontSize: "9.5pt",
-              lineHeight: 1.55,
-              color: CLASSIC_FAINT,
-            }}
-          >
-            •
-          </span>
-          <span style={{ fontSize: "9.5pt", lineHeight: 1.55, color: "#262626" }}>
-            {b}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ClassicExperience({ data }: { data: CvData }) {
-  return (
-    <>
-      {data.experience
-        .filter((e) => e.company || e.role)
-        .map((exp, i) => (
-          <div
-            key={i}
-            style={{ marginBottom: 13, pageBreakInside: "avoid", breakInside: "avoid" }}
-          >
-            <ClassicEntryHead
-              title={exp.role}
-              subtitle={exp.company}
-              meta={`${formatDate(exp.startDate)} – ${
-                exp.current ? "Present" : formatDate(exp.endDate)
-              }`}
-            />
-            <ClassicBullets items={exp.bullets} />
-          </div>
-        ))}
-    </>
-  );
-}
-
-function ClassicEducation({ data }: { data: CvData }) {
-  return (
-    <>
-      {data.education
-        .filter((e) => e.institution || e.degree)
-        .map((edu, i) => (
-          <div
-            key={i}
-            style={{ marginBottom: 9, pageBreakInside: "avoid", breakInside: "avoid" }}
-          >
-            <ClassicEntryHead
-              title={`${edu.degree}${edu.field ? ` in ${edu.field}` : ""}`}
-              subtitle={edu.institution}
-              meta={`${formatDate(edu.startDate)} – ${formatDate(edu.endDate)}`}
-            />
-          </div>
-        ))}
-    </>
-  );
-}
-
-function ClassicSkills({ data }: { data: CvData }) {
-  return (
-    <div>
-      {data.skillGroups
-        .filter((g) => g.category && g.skills)
-        .map((g, i) => (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              gap: 12,
-              marginBottom: 6,
-              pageBreakInside: "avoid",
-              breakInside: "avoid",
-            }}
-          >
-            <span
-              style={{
-                fontWeight: 700,
-                fontSize: "9.5pt",
-                lineHeight: 1.55,
-                width: 150,
-                flexShrink: 0,
-              }}
-            >
-              {g.category}
-            </span>
-            <span
-              style={{
-                fontSize: "9.5pt",
-                lineHeight: 1.55,
-                color: "#262626",
-                borderLeft: "1px solid #d8d8d8",
-                paddingLeft: 12,
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
-              {g.skills}
-            </span>
-          </div>
-        ))}
-    </div>
-  );
-}
-
-function ClassicProjects({ data }: { data: CvData }) {
-  return (
-    <>
-      {(data.projects ?? [])
-        .filter((p) => p.name)
-        .map((proj, i) => (
-          <div
-            key={i}
-            style={{ marginBottom: 13, pageBreakInside: "avoid", breakInside: "avoid" }}
-          >
-            <ClassicEntryHead
-              title={proj.name}
-              subtitle={proj.technologies}
-              meta={proj.link}
-            />
-            <ClassicBullets items={proj.bullets} />
-          </div>
-        ))}
-    </>
-  );
-}
-
-function ClassicReferences({ data }: { data: CvData }) {
-  if (data.referencesUponRequest) {
-    return (
-      <p style={{ fontSize: "9.5pt", fontStyle: "italic", color: CLASSIC_MUTED }}>
-        References provided upon request.
-      </p>
-    );
-  }
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "14px 36px",
-      }}
-    >
-      {data.referees
-        .filter((r) => r.name)
-        .map((ref, i) => (
-          <div key={i} style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
-            <div style={{ fontWeight: 700, fontSize: "9.5pt" }}>{ref.name}</div>
-            {(ref.title || ref.company) && (
-              <div
-                style={{
-                  fontSize: "9pt",
-                  fontStyle: "italic",
-                  color: CLASSIC_MUTED,
-                  lineHeight: 1.45,
-                }}
-              >
-                {ref.title}
-                {ref.title && ref.company && ", "}
-                {ref.company}
-              </div>
-            )}
-            {ref.email && (
-              <div style={{ fontSize: "9pt", color: CLASSIC_FAINT, lineHeight: 1.45 }}>
-                {ref.email}
-              </div>
-            )}
-            {ref.phone && (
-              <div style={{ fontSize: "9pt", color: CLASSIC_FAINT, lineHeight: 1.45 }}>
-                {ref.phone}
-              </div>
-            )}
-          </div>
-        ))}
-    </div>
-  );
-}
-
 export function ClassicPreview({ data }: { data: CvData }) {
   return (
     <div
       style={{
-        fontFamily: "'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif",
-        // ~14mm of A4 margin once the 680px preview is scaled to page width.
-        padding: "38px 44px 42px",
-        color: CLASSIC_INK,
-        lineHeight: 1.5,
+        fontFamily: "'Palatino Linotype', 'Times New Roman', serif",
+        padding: 24,
+        textAlign: "justify" as const,
       }}
     >
-      <ClassicHeader data={data} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, marginBottom: 18, borderBottom: "2px solid #1B3A5C", paddingBottom: 14 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{ fontSize: "22pt", fontWeight: 700, marginBottom: 2, color: "#1B3A5C", textAlign: "left" }}>
+            {data.fullName || "Your Name"}
+          </h1>
+          {data.tagline && (
+            <div style={{ fontSize: "10pt", color: "#666", lineHeight: 1.4 }}>
+              {data.tagline}
+            </div>
+          )}
+        </div>
+        <div style={{ fontSize: "8.5pt", color: "#555", textAlign: "right", lineHeight: 1.7, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 4 }}>
+          {[data.phone, data.email, data.linkedin, data.location]
+            .filter(Boolean)
+            .map((item, i) => (
+              <div key={i}>{item}</div>
+            ))}
+        </div>
+      </div>
 
       {data.summary && (
         <>
           <ClassicSectionHeading>Professional Summary</ClassicSectionHeading>
-          <p style={{ fontSize: "9.5pt", lineHeight: 1.6, color: "#262626" }}>
-            {data.summary}
-          </p>
+          <p style={{ fontSize: "9.5pt", lineHeight: 1.6 }}>{data.summary}</p>
         </>
       )}
 
       {data.experience.some((e) => e.company || e.role) && (
         <>
           <ClassicSectionHeading>Professional Experience</ClassicSectionHeading>
-          <ClassicExperience data={data} />
+          <ExperienceEntries data={data} />
         </>
       )}
 
       {data.education.some((e) => e.institution || e.degree) && (
         <>
           <ClassicSectionHeading>Education</ClassicSectionHeading>
-          <ClassicEducation data={data} />
+          <EducationEntries data={data} />
         </>
       )}
 
       {data.skillGroups.some((g) => g.category && g.skills) && (
         <>
           <ClassicSectionHeading>Core Skills</ClassicSectionHeading>
-          <ClassicSkills data={data} />
+          <SkillRows data={data} />
         </>
       )}
 
       {hasProjects(data) && (
         <>
           <ClassicSectionHeading>Projects</ClassicSectionHeading>
-          <ClassicProjects data={data} />
+          <ProjectEntries data={data} />
         </>
       )}
 
       {hasRefs(data) && (
         <>
           <ClassicSectionHeading>References</ClassicSectionHeading>
-          <ClassicReferences data={data} />
+          <ReferencesBlock data={data} />
         </>
       )}
     </div>
@@ -2978,11 +2670,8 @@ function TemplateThumbnail({ id, accent }: { id: Template; accent: string }) {
   // classic
   return (
     <div style={{ height: "100%", padding: "14px 16px" }}>
-      <div style={{ height: 8, width: "58%", background: accent, borderRadius: 2, margin: "0 auto 4px" }} />
-      <div style={{ height: 3, width: "38%", background: "#ccc", borderRadius: 2, margin: "0 auto 4px" }} />
-      <div style={{ height: 2.5, width: "70%", background: "#ddd", borderRadius: 2, margin: "0 auto 5px" }} />
-      <div style={{ height: 1, width: "100%", background: accent, marginBottom: 1.5 }} />
-      <div style={{ height: 1, width: "100%", background: accent, marginBottom: 7 }} />
+      <div style={{ height: 8, width: "50%", background: accent, borderRadius: 2, marginBottom: 4 }} />
+      <div style={{ height: 4, width: "35%", background: "#ccc", borderRadius: 2, marginBottom: 8 }} />
       <div style={{ height: 4, width: "25%", background: accent, borderRadius: 2, marginBottom: 2 }} />
       <div style={{ height: 1, width: "100%", background: accent, marginBottom: 5 }} />
       {lineW.map((w, i) => (
