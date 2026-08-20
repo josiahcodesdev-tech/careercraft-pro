@@ -669,6 +669,7 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
   const [parsed, setParsed] = useState<ParsedCv | null>(null);
   const [error, setError] = useState("");
   const [usedBuilderDraft, setUsedBuilderDraft] = useState(false);
+  const [isDraggingCv, setIsDraggingCv] = useState(false);
   const router = useRouter();
 
   // Detect bfcache restoration and force a clean reload
@@ -680,16 +681,18 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
     return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
 
-  const handleCvSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  const loadCvFile = useCallback(async (f: File) => {
+    const extension = f.name.toLowerCase().split(".").pop();
+    if (!extension || !["pdf", "doc", "docx", "txt"].includes(extension)) {
+      setError("Please upload a PDF, DOC, DOCX, or TXT file.");
+      return;
+    }
+
     setCvFile(f);
     setCvFileName(f.name);
     setError("");
     setParsed(null);
     setCvText("");
-    e.target.value = "";
-
     // Read it now purely to drive the preview. A failure here is not surfaced
     // as an error — the transform re-reads the file and reports properly then,
     // including the image-based-PDF recovery path, which needs its own
@@ -706,6 +709,19 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
       setExtracting(false);
     }
   }, []);
+
+  const handleCvSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) void loadCvFile(f);
+    e.target.value = "";
+  }, [loadCvFile]);
+
+  const handleCvDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDraggingCv(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) void loadCvFile(f);
+  }, [loadCvFile]);
 
   const handleJdUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -972,12 +988,29 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
                       </button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-border rounded-xl bg-background cursor-pointer hover:border-brand/40 hover:bg-brand-light/20 transition-all">
+                    <label
+                      onDragEnter={(e) => { e.preventDefault(); setIsDraggingCv(true); }}
+                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setIsDraggingCv(true); }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setIsDraggingCv(false);
+                      }}
+                      onDrop={handleCvDrop}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 cursor-pointer transition-all",
+                        isDraggingCv
+                          ? "scale-[1.01] border-brand bg-brand-light/50 shadow-sm"
+                          : "border-border bg-background hover:border-brand/40 hover:bg-brand-light/20"
+                      )}
+                    >
                       <div className="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center">
                         <Upload className="w-5 h-5 text-brand" />
                       </div>
                       <div className="text-center">
-                        <p className="text-sm font-semibold mb-0.5">Upload your CV</p>
+                        <p className="text-sm font-semibold mb-0.5">
+                          {isDraggingCv ? "Drop your CV here" : "Drag & drop your CV here"}
+                        </p>
+                        {!isDraggingCv && <p className="mb-1 text-xs text-text-muted">or click to browse</p>}
                         <p className="text-xs text-text-muted">PDF, DOC, DOCX, or TXT</p>
                       </div>
                       <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleCvSelect} className="hidden" />
