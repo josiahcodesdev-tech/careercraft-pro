@@ -42,6 +42,13 @@ export type Template = "classic" | "modern" | "executive" | "minimal" | "bold" |
 
 const TEMPLATES: { id: Template; name: string; description: string; accent: string; font: string; hasPhoto?: boolean }[] = [
   {
+    id: "corporate",
+    name: "Corporate",
+    description: "Single column with terracotta section rules and navy headings. Consultancy-grade and ATS-safe.",
+    accent: "#C0392B",
+    font: "Segoe UI",
+  },
+  {
     id: "classic",
     name: "Classic",
     description: "Traditional serif layout with black section dividers. Timeless and ATS-proven.",
@@ -92,13 +99,6 @@ const TEMPLATES: { id: Template; name: string; description: string; accent: stri
     accent: "#C8A84E",
     font: "Georgia",
     hasPhoto: true,
-  },
-  {
-    id: "corporate",
-    name: "Corporate",
-    description: "Single column with terracotta section rules and navy headings. Consultancy-grade and ATS-safe.",
-    accent: "#C0392B",
-    font: "Segoe UI",
   },
   {
     id: "florence",
@@ -323,7 +323,7 @@ const DUMMY_DATA: CvData = {
 export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean } = {}) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<CvData>(initial);
-  const [template, setTemplate] = useState<Template>("classic");
+  const [template, setTemplate] = useState<Template>("corporate");
   const [showTemplates, setShowTemplates] = useState(false);
   const [enhancingSummary, setEnhancingSummary] = useState(false);
   const [enhancingBullets, setEnhancingBullets] = useState<number | null>(null);
@@ -1798,6 +1798,11 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
                     {template === t.id && (
                       <div className="absolute top-1.5 right-1.5 bg-brand text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
                         Active
+                      </div>
+                    )}
+                    {t.id === "corporate" && template !== t.id && (
+                      <div className="absolute top-1.5 right-1.5 rounded-full bg-gold px-1.5 py-0.5 text-[9px] font-bold text-white">
+                        Recommended
                       </div>
                     )}
                     {t.hasPhoto && (
