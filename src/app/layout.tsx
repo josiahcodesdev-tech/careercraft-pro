@@ -12,13 +12,25 @@ import { SITE_URL } from "@/lib/site-config";
 
 const organizationJsonLd = {
   "@context": "https://schema.org",
-  "@type": "Organization",
+  "@type": ["Organization", "ProfessionalService"],
+  "@id": `${SITE_URL}/#organization`,
   name: "MyCareerCraft",
   url: SITE_URL,
   logo: `${SITE_URL}/favicon.svg`,
   description:
     "MyCareerCraft helps professionals shape their careers through expert coaching, CV writing, interview preparation, and personal branding strategies.",
-  areaServed: "KE",
+  telephone: "+254110242289",
+  email: "josiahcodes.dev@gmail.com",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Nairobi",
+    addressCountry: "KE",
+  },
+  areaServed: [
+    { "@type": "Country", name: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Worldwide" },
+  ],
+  sameAs: ["https://wa.me/254110242289"],
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer service",
@@ -45,6 +57,38 @@ export const metadata: Metadata = {
     "MyCareerCraft helps professionals shape their careers through expert coaching, CV writing, interview preparation, and personal branding strategies.",
   icons: {
     icon: "/favicon.svg",
+  },
+  applicationName: "MyCareerCraft",
+  authors: [{ name: "MyCareerCraft", url: SITE_URL }],
+  creator: "MyCareerCraft",
+  publisher: "MyCareerCraft",
+  category: "career development",
+  formatDetection: { email: false, address: false, telephone: false },
+  openGraph: {
+    title: "MyCareerCraft — Career Development & Professional Growth",
+    description:
+      "ATS-ready CV writing, personalised interview preparation, and career coaching for professionals in Kenya and beyond.",
+    url: "/",
+    siteName: "MyCareerCraft",
+    locale: "en_KE",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MyCareerCraft — Career Development & Professional Growth",
+    description:
+      "ATS-ready CV writing, personalised interview preparation, and career coaching for professionals in Kenya and beyond.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
 };
 

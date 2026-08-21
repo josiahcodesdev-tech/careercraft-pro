@@ -66,7 +66,7 @@ export function CtaSection() {
               <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center mb-3">
                 <f.icon className="w-[18px] h-[18px] text-white/80" />
               </div>
-              <h4 className="text-sm font-semibold mb-1">{f.title}</h4>
+              <h3 className="text-sm font-semibold mb-1">{f.title}</h3>
               <p className="text-xs text-white/50 leading-relaxed">{f.desc}</p>
             </div>
           ))}

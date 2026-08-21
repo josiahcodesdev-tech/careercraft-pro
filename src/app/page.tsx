@@ -36,6 +36,8 @@ const websiteJsonLd = {
   "@type": "WebSite",
   name: "MyCareerCraft",
   url: SITE_URL,
+  publisher: { "@id": `${SITE_URL}/#organization` },
+  inLanguage: "en-KE",
 };
 
 export default function HomePage() {

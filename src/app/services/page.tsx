@@ -114,6 +114,7 @@ export default function ServicesPage() {
                     src={service.image}
                     alt={service.title}
                     fill
+                    sizes="(min-width: 768px) 33vw, 100vw"
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <span className="absolute top-4 left-4 bg-gold text-white text-[11px] font-bold px-3.5 py-1.5 rounded uppercase tracking-widest shadow-sm">
@@ -121,9 +122,9 @@ export default function ServicesPage() {
                   </span>
                 </div>
                 <div className="px-7 pt-7 pb-6 flex flex-col flex-1">
-                  <h3 className="font-heading text-[20px] font-extrabold tracking-tight text-foreground mb-3 leading-tight">
+                  <h2 className="font-heading text-[20px] font-extrabold tracking-tight text-foreground mb-3 leading-tight">
                     {service.title}
-                  </h3>
+                  </h2>
                   <p className="text-[15px] text-text-secondary leading-[1.75] flex-1 mb-6">
                     {service.description}
                   </p>
@@ -140,9 +141,9 @@ export default function ServicesPage() {
 
           {/* Pricing note */}
           <div className="bg-card border border-border rounded-2xl p-10 text-center mt-12">
-            <h3 className="font-heading text-[22px] font-black tracking-tight mb-3">
+            <h2 className="font-heading text-[22px] font-black tracking-tight mb-3">
               Every project is different
-            </h3>
+            </h2>
             <p className="text-[15px] text-text-secondary leading-relaxed max-w-[500px] mx-auto mb-6">
               We tailor our pricing to the scope of your needs. Reach out for a
               free consultation and we&apos;ll provide a clear, upfront quote —

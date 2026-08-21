@@ -12,6 +12,7 @@ const serviceLinks = [
 const companyLinks = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
+  { href: "/blog", label: "Career advice" },
   { href: "/contact", label: "Contact" },
 ];
 

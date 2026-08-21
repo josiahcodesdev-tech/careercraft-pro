@@ -15,10 +15,11 @@ export function createServiceJsonLd(opts: {
     url: `${SITE_URL}${opts.url}`,
     provider: {
       "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
       name: "MyCareerCraft",
       url: SITE_URL,
     },
-    areaServed: "KE",
+    areaServed: { "@type": "Country", name: "Kenya" },
     ...(opts.price
       ? {
           offers: {

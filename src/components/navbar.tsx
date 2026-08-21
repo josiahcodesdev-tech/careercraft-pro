@@ -11,6 +11,7 @@ const navLinks = [
   { href: "/cv-builder", label: "CV Builder" },
   { href: "/interview-prep", label: "Interview Prep" },
   { href: "/services", label: "Services" },
+  { href: "/blog", label: "Career Advice" },
 ];
 
 export function Navbar() {

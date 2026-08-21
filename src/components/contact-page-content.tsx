@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -278,7 +279,7 @@ export function ContactPageContent() {
                 <div className="rounded-xl overflow-hidden border border-border">
                   <div className="bg-[#075E54] px-4 py-2.5 flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center overflow-hidden p-1.5">
-                      <img src="/favicon.svg" alt="MyCareerCraft" className="w-full h-full" />
+                      <Image src="/favicon.svg" alt="MyCareerCraft" width={24} height={24} className="h-full w-full" />
                     </div>
                     <div>
                       <div className="text-white text-sm font-semibold">MyCareerCraft</div>
@@ -331,9 +332,9 @@ export function ContactPageContent() {
                   <card.icon className="w-[22px] h-[22px] text-brand" />
                 </div>
                 <div>
-                  <h4 className="text-[15px] font-semibold mb-1">
+                  <h3 className="text-[15px] font-semibold mb-1">
                     {card.title}
-                  </h4>
+                  </h3>
                   <div className="text-sm text-text-secondary leading-relaxed">
                     {card.content}
                   </div>
@@ -343,9 +344,9 @@ export function ContactPageContent() {
 
             {/* Hours */}
             <div className="bg-brand text-white rounded-2xl p-8">
-              <h4 className="font-heading text-lg font-extrabold mb-4">
+              <h3 className="font-heading text-lg font-extrabold mb-4">
                 Working hours
-              </h4>
+              </h3>
               {hours.map((row) => (
                 <div
                   key={row.day}
