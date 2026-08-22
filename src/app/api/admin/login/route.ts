@@ -11,13 +11,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
   }
 
-  const res = NextResponse.json({ success: true });
+  const res = NextResponse.json(
+    { success: true },
+    { headers: { "Cache-Control": "no-store" } },
+  );
   res.cookies.set(ADMIN_SESSION_COOKIE, createSessionToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 12,
+    priority: "high",
   });
   return res;
 }

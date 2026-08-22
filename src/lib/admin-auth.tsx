@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, useContext, useCallback } from "react";
+import { createContext, useContext, useCallback, useEffect } from "react";
+
+const LEGACY_ADMIN_AUTH_KEY = "careercraft_admin_auth";
 
 interface AdminAuthCtx {
   login: (email: string, password: string) => Promise<boolean>;
@@ -20,6 +22,12 @@ export function useAdminAuth() {
 // signed httpOnly session cookie before any /admin page or /api/admin route
 // is reached. This provider is just a thin client for the login/logout API.
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    // Older releases trusted this client-editable flag for admin access.
+    // Authentication is now exclusively handled by the signed HttpOnly cookie.
+    localStorage.removeItem(LEGACY_ADMIN_AUTH_KEY);
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const res = await fetch("/api/admin/login", {
       method: "POST",
