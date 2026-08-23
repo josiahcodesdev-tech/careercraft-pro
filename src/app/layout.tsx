@@ -20,7 +20,7 @@ const organizationJsonLd = {
   description:
     "MyCareerCraft helps professionals shape their careers through expert coaching, CV writing, interview preparation, and personal branding strategies.",
   telephone: "+254110242289",
-  email: "josiahcodes.dev@gmail.com",
+  email: "info@mycareercraft.site",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Nairobi",

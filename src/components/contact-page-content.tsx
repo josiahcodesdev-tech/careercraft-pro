@@ -39,8 +39,8 @@ const infoCards = [
     icon: Mail,
     title: "Email us",
     content: (
-      <a href="mailto:josiahcodes.dev@gmail.com" className="text-brand font-medium hover:underline">
-        josiahcodes.dev@gmail.com
+      <a href="mailto:info@mycareercraft.site" className="text-brand font-medium hover:underline">
+        info@mycareercraft.site
       </a>
     ),
   },

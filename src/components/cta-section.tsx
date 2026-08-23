@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Mail, Clock, MapPin, Phone } from "lucide-react";
 
 const features = [
-  { icon: Mail, title: "Email us", desc: "josiahcodes.dev@gmail.com" },
+  { icon: Mail, title: "Email us", desc: "info@mycareercraft.site" },
   { icon: Clock, title: "Response time", desc: "Within a few hours" },
   { icon: MapPin, title: "Based in", desc: "Nairobi, serving globally" },
   { icon: Phone, title: "Call us", desc: "+254 110 242 289" },
