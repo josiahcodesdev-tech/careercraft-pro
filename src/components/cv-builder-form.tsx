@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { takeTransformedCv } from "@/lib/transient-cv-data";
 import { PaymentModal } from "@/components/payment-modal";
 import { JdTailor, type JdDraft } from "@/components/jd-tailor";
 import { AssistedTextarea } from "@/components/assisted-textarea";
@@ -354,9 +355,8 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
   useEffect(() => {
     if (searchParams.get("transform") === "1") {
       try {
-        const raw = localStorage.getItem("careercraft_cv_transform");
-        if (raw) {
-          const parsed = JSON.parse(raw);
+        const parsed = takeTransformedCv() as Record<string, unknown> | null;
+        if (parsed) {
 
           const experience = Array.isArray(parsed.experience) && parsed.experience.length > 0
             ? parsed.experience.map((exp: Record<string, unknown>) => ({
@@ -420,7 +420,6 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
             footerNote: String(parsed.footerNote || ""),
           }));
 
-          localStorage.removeItem("careercraft_cv_transform");
           // Strip ?transform=1 from the CURRENT path so a refresh loads a clean
           // form — must stay on this route (public /cv-builder or the admin
           // /admin/cv-writing/new), not hop to /cv-builder, which would unmount
@@ -432,24 +431,6 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
       }
     }
   }, [searchParams, router, pathname]);
-
-  // Persist CV builder data so cv-transform can recover it from image-based PDFs
-  useEffect(() => {
-    const hasAnyContent =
-      data.fullName ||
-      data.summary ||
-      data.experience.some((e) => e.company || e.role) ||
-      data.education.some((e) => e.institution || e.degree);
-    if (hasAnyContent) {
-      try {
-        // Strip photo (base64) to keep localStorage size small
-        const { photo: _photo, ...rest } = data;
-        localStorage.setItem("careercraft_cv_builder_draft", JSON.stringify(rest));
-      } catch {
-        // localStorage full — silently ignore
-      }
-    }
-  }, [data]);
 
   function update<K extends keyof CvData>(key: K, value: CvData[K]) {
     setData((prev) => ({ ...prev, [key]: value }));

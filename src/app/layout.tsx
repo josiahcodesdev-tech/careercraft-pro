@@ -8,6 +8,7 @@ const GTM_ID = "GTM-WN796MND";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { PublicLayoutWrapper } from "@/components/public-layout-wrapper";
 import { JsonLd } from "@/components/json-ld";
+import { PrivacyStorageCleanup } from "@/components/privacy-storage-cleanup";
 import { SITE_URL } from "@/lib/site-config";
 
 const organizationJsonLd = {
@@ -110,6 +111,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         </Script>
       </head>
       <body className="min-h-screen flex flex-col">
+        <PrivacyStorageCleanup />
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe
