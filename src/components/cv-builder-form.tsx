@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { takeTransformedCv } from "@/lib/transient-cv-data";
@@ -331,6 +331,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
   const [aiError, setAiError] = useState("");
   // The pasted job description, used to tailor AI enhance + inline suggestions.
   const [jdContext, setJdContext] = useState("");
+  const [tailorOpen, setTailorOpen] = useState(false);
   const [payTarget, setPayTarget] = useState<"pdf" | "word" | null>(null);
   // Site-wide switch the admin flips from the dashboard. Null while loading,
   // which counts as "charging" — see freeDownloads below.
@@ -352,73 +353,78 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
     return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
 
+  // Load an AI-parsed CV into the form — used both by the /cv-transform hand-off
+  // and by a CV uploaded straight into the tailor panel.
+  const applyParsedCv = useCallback((parsed: Record<string, unknown>) => {
+    const experience = Array.isArray(parsed.experience) && parsed.experience.length > 0
+      ? parsed.experience.map((exp: Record<string, unknown>) => ({
+          company: String(exp.company || ""),
+          role: String(exp.role || ""),
+          location: String(exp.location || ""),
+          startDate: String(exp.startDate || ""),
+          endDate: String(exp.endDate || ""),
+          current: exp.current === true || /present/i.test(String(exp.endDate || "")),
+          bullets: Array.isArray(exp.bullets) && exp.bullets.length > 0
+            ? exp.bullets.map(String)
+            : [""],
+        }))
+      : [{ ...emptyWork, bullets: [""] }];
+
+    const education = Array.isArray(parsed.education) && parsed.education.length > 0
+      ? parsed.education.map((edu: Record<string, unknown>) => ({
+          institution: String(edu.institution || ""),
+          degree: String(edu.degree || ""),
+          field: String(edu.field || ""),
+          location: String(edu.location || ""),
+          startDate: String(edu.startDate || ""),
+          endDate: String(edu.endDate || ""),
+        }))
+      : [{ ...emptyEducation }];
+
+    const certifications = Array.isArray(parsed.certifications) && parsed.certifications.length > 0
+      ? parsed.certifications.map((c: Record<string, unknown>) => ({
+          name: String(c.name || ""),
+          issuer: String(c.issuer || ""),
+          date: String(c.date || ""),
+        }))
+      : [{ ...emptyCertification }];
+
+    const skillGroups = Array.isArray(parsed.skillGroups) && parsed.skillGroups.length > 0
+      ? parsed.skillGroups.map((g: Record<string, unknown>) => ({
+          category: String(g.category || ""),
+          skills: String(g.skills || ""),
+        }))
+      : [{ category: "", skills: "" }];
+
+    setData((prev) => ({
+      ...prev,
+      fullName: String(parsed.fullName || ""),
+      tagline: String(parsed.tagline || ""),
+      email: String(parsed.email || ""),
+      phone: String(parsed.phone || ""),
+      location: String(parsed.location || ""),
+      linkedin: String(parsed.linkedin || ""),
+      photo: "",
+      photoZoom: 1,
+      photoOffsetX: 0,
+      photoOffsetY: 0,
+      summary: String(parsed.summary || ""),
+      experience,
+      education,
+      certifications,
+      skillGroups,
+      referees: prev.referees,
+      referencesUponRequest: prev.referencesUponRequest,
+      footerNote: String(parsed.footerNote || ""),
+    }));
+  }, []);
+
   useEffect(() => {
     if (searchParams.get("transform") === "1") {
       try {
         const parsed = takeTransformedCv() as Record<string, unknown> | null;
         if (parsed) {
-
-          const experience = Array.isArray(parsed.experience) && parsed.experience.length > 0
-            ? parsed.experience.map((exp: Record<string, unknown>) => ({
-                company: String(exp.company || ""),
-                role: String(exp.role || ""),
-                location: String(exp.location || ""),
-                startDate: String(exp.startDate || ""),
-                endDate: String(exp.endDate || ""),
-                current: exp.current === true || /present/i.test(String(exp.endDate || "")),
-                bullets: Array.isArray(exp.bullets) && exp.bullets.length > 0
-                  ? exp.bullets.map(String)
-                  : [""],
-              }))
-            : [{ ...emptyWork, bullets: [""] }];
-
-          const education = Array.isArray(parsed.education) && parsed.education.length > 0
-            ? parsed.education.map((edu: Record<string, unknown>) => ({
-                institution: String(edu.institution || ""),
-                degree: String(edu.degree || ""),
-                field: String(edu.field || ""),
-                location: String(edu.location || ""),
-                startDate: String(edu.startDate || ""),
-                endDate: String(edu.endDate || ""),
-              }))
-            : [{ ...emptyEducation }];
-
-          const certifications = Array.isArray(parsed.certifications) && parsed.certifications.length > 0
-            ? parsed.certifications.map((c: Record<string, unknown>) => ({
-                name: String(c.name || ""),
-                issuer: String(c.issuer || ""),
-                date: String(c.date || ""),
-              }))
-            : [{ ...emptyCertification }];
-
-          const skillGroups = Array.isArray(parsed.skillGroups) && parsed.skillGroups.length > 0
-            ? parsed.skillGroups.map((g: Record<string, unknown>) => ({
-                category: String(g.category || ""),
-                skills: String(g.skills || ""),
-              }))
-            : [{ category: "", skills: "" }];
-
-          setData((prev) => ({
-            ...prev,
-            fullName: String(parsed.fullName || ""),
-            tagline: String(parsed.tagline || ""),
-            email: String(parsed.email || ""),
-            phone: String(parsed.phone || ""),
-            location: String(parsed.location || ""),
-            linkedin: String(parsed.linkedin || ""),
-            photo: "",
-            photoZoom: 1,
-            photoOffsetX: 0,
-            photoOffsetY: 0,
-            summary: String(parsed.summary || ""),
-            experience,
-            education,
-            certifications,
-            skillGroups,
-            referees: prev.referees,
-            referencesUponRequest: prev.referencesUponRequest,
-            footerNote: String(parsed.footerNote || ""),
-          }));
+          applyParsedCv(parsed);
 
           // Strip ?transform=1 from the CURRENT path so a refresh loads a clean
           // form — must stay on this route (public /cv-builder or the admin
@@ -430,7 +436,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
         console.error("Failed to load transform data:", err);
       }
     }
-  }, [searchParams, router, pathname]);
+  }, [searchParams, router, pathname, applyParsedCv]);
 
   function update<K extends keyof CvData>(key: K, value: CvData[K]) {
     setData((prev) => ({ ...prev, [key]: value }));
@@ -480,6 +486,14 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
         skillGroups,
       };
     });
+  }
+
+  // A CV uploaded into the tailor panel comes back fully rewritten against the
+  // job description, so it replaces the form contents outright.
+  function applyTailoredCv(parsed: Record<string, unknown>, jd: string) {
+    setJdContext(jd);
+    applyParsedCv(parsed);
+    setStep(0);
   }
 
   function updateProject(index: number, patch: Partial<ProjectEntry>) {
@@ -734,9 +748,16 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
             ))}
           </div>
 
-          {/* Quick-start actions */}
+          {/* Quick-start actions — the tailor panel takes the full row when it
+              is open, since it accepts the CV upload itself. */}
           <div className="mb-6 grid gap-3 sm:grid-cols-2">
-            <JdTailor onApply={applyJdDraft} floating />
+            <JdTailor
+              onApply={applyJdDraft}
+              onImport={applyTailoredCv}
+              onOpenChange={setTailorOpen}
+              floating
+            />
+            {!tailorOpen && (
             <Link
               href="/cv-transform"
               className="group inline-flex w-full items-center gap-3 rounded-2xl border border-brand/15 bg-white px-4 py-4 text-left shadow-[0_10px_28px_rgba(20,64,47,0.10)] transition-all hover:-translate-y-0.5 hover:border-brand/35 hover:shadow-[0_14px_34px_rgba(20,64,47,0.16)]"
@@ -750,6 +771,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
               </span>
               <ChevronRight className="h-4 w-4 text-text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-brand" />
             </Link>
+            )}
           </div>
 
           {/* Step content */}
