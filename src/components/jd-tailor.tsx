@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Sparkles, Loader2, Upload, X, Check, FileText } from "lucide-react";
 import { ocrJdImage, imageFromPaste } from "@/lib/jd-image";
-import { extractTextFromPdf } from "@/lib/pdf-extract";
+import { readDocumentText } from "@/lib/doc-text";
 
 export interface JdDraft {
   role: string;
@@ -49,14 +49,11 @@ export function JdTailor({
     if (!f) return;
     setError("");
     try {
+      setOcr(true);
       if (f.type.startsWith("image/")) {
-        setOcr(true);
         setJd(await ocrJdImage(f));
-      } else if (f.name.toLowerCase().endsWith(".pdf")) {
-        setOcr(true);
-        setJd((await extractTextFromPdf(f)).slice(0, 5000));
       } else {
-        setJd((await f.text()).slice(0, 5000));
+        setJd((await readDocumentText(f)).slice(0, 5000));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not read the file.");
@@ -82,14 +79,14 @@ export function JdTailor({
   }
 
   // Read the CV as soon as it is picked so the tailor click only waits on the
-  // AI call. A failed read leaves cvText empty and is reported on submit.
+  // AI call — and so an unreadable file is reported now, not after the wait.
   async function handleCvFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
     const extension = f.name.toLowerCase().split(".").pop();
     if (!extension || !CV_EXTENSIONS.includes(extension)) {
-      setError("Please upload a PDF, DOC, DOCX, or TXT file.");
+      setError("Please upload a PDF, DOCX, or TXT file.");
       return;
     }
     setError("");
@@ -97,9 +94,10 @@ export function JdTailor({
     setCvText("");
     setReading(true);
     try {
-      setCvText(extension === "pdf" ? await extractTextFromPdf(f) : await f.text());
-    } catch {
-      setCvText("");
+      setCvText(await readDocumentText(f));
+    } catch (err) {
+      setCvFile(null);
+      setError(err instanceof Error ? err.message : "Could not read this file.");
     } finally {
       setReading(false);
     }
@@ -114,12 +112,7 @@ export function JdTailor({
   // we only draft a headline/summary/skills starting point.
   async function tailorUploadedCv() {
     if (!cvFile || !onImport) return;
-    let text = cvText;
-    if (!text) {
-      text = cvFile.name.toLowerCase().endsWith(".pdf")
-        ? await extractTextFromPdf(cvFile)
-        : await cvFile.text();
-    }
+    const text = cvText || (await readDocumentText(cvFile));
     if (!text || text.trim().length < 20) {
       throw new Error(
         cvFile.name.toLowerCase().endsWith(".pdf")
@@ -219,7 +212,7 @@ export function JdTailor({
       <label className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-brand cursor-pointer hover:underline">
         {ocr ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
         {ocr ? "Reading job post…" : "upload screenshot / file"}
-        <input type="file" accept=".txt,.pdf,image/*" onChange={handleJdFile} className="hidden" />
+        <input type="file" accept=".txt,.pdf,.docx,image/*" onChange={handleJdFile} className="hidden" />
       </label>
 
       {/* CV to tailor */}
@@ -248,9 +241,9 @@ export function JdTailor({
               </span>
               <span className="flex-1">
                 <span className="block text-sm font-medium leading-tight">Upload the CV to tailor</span>
-                <span className="block text-xs text-text-muted leading-tight mt-0.5">PDF, DOC, DOCX or TXT</span>
+                <span className="block text-xs text-text-muted leading-tight mt-0.5">PDF, Word (.docx) or TXT</span>
               </span>
-              <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleCvFile} className="hidden" />
+              <input type="file" accept=".pdf,.docx,.txt" onChange={handleCvFile} className="hidden" />
             </label>
           )}
         </div>

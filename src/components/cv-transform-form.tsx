@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { storeTransformedCv } from "@/lib/transient-cv-data";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { extractTextFromPdf } from "@/lib/pdf-extract";
+import { readDocumentText } from "@/lib/doc-text";
 import { ocrJdImage, imageFromPaste } from "@/lib/jd-image";
 import {
   Upload,
@@ -623,7 +623,7 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
   const loadCvFile = useCallback(async (f: File) => {
     const extension = f.name.toLowerCase().split(".").pop();
     if (!extension || !["pdf", "doc", "docx", "txt"].includes(extension)) {
-      setError("Please upload a PDF, DOC, DOCX, or TXT file.");
+      setError("Please upload a PDF, DOCX, or TXT file.");
       return;
     }
 
@@ -632,18 +632,20 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
     setError("");
     setParsed(null);
     setCvText("");
-    // Read it now purely to drive the preview. A failure here is not surfaced
-    // as an error — the transform re-reads the file and reports properly then,
+    // Read it now to drive the preview. A read that simply comes back empty is
+    // not surfaced — the transform re-reads the file and reports properly then,
     // including the image-based-PDF recovery path, which needs its own
-    // messaging. All that happens here is the preview stays on How-it-works.
+    // messaging; the preview just stays on How-it-works. A file we cannot read
+    // at all (a legacy .doc, a corrupt .docx) is reported straight away, since
+    // waiting for the transform would tell the user nothing new.
     setExtracting(true);
     try {
-      const text = f.name.toLowerCase().endsWith(".pdf")
-        ? await extractTextFromPdf(f)
-        : await f.text();
-      setCvText(text);
-    } catch {
+      setCvText(await readDocumentText(f));
+    } catch (err) {
       setCvText("");
+      setCvFile(null);
+      setCvFileName("");
+      setError(err instanceof Error ? err.message : "Could not read this file.");
     } finally {
       setExtracting(false);
     }
@@ -666,15 +668,8 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
     const f = e.target.files?.[0];
     if (!f) return;
     try {
-      let text: string;
-      if (f.type.startsWith("image/")) {
-        setJdOcr(true);
-        text = await ocrJdImage(f);
-      } else if (f.name.toLowerCase().endsWith(".pdf")) {
-        text = await extractTextFromPdf(f);
-      } else {
-        text = await f.text();
-      }
+      setJdOcr(true);
+      const text = f.type.startsWith("image/") ? await ocrJdImage(f) : await readDocumentText(f);
       setJdText(text.slice(0, 5000));
       setJdFileName(f.name);
     } catch (err) {
@@ -711,14 +706,7 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
     try {
       // Already read when the file was picked (that is what feeds the live
       // preview); only re-read if that attempt failed.
-      let text = cvText;
-      if (!text) {
-        if (cvFile.name.toLowerCase().endsWith(".pdf")) {
-          text = await extractTextFromPdf(cvFile);
-        } else {
-          text = await cvFile.text();
-        }
-      }
+      const text = cvText || (await readDocumentText(cvFile));
 
       if (!text || text.trim().length < 20) {
         throw new Error(
@@ -929,9 +917,9 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
                           {isDraggingCv ? "Drop your CV here" : "Drag & drop your CV here"}
                         </p>
                         {!isDraggingCv && <p className="mb-1 text-xs text-text-muted">or click to browse</p>}
-                        <p className="text-xs text-text-muted">PDF, DOC, DOCX, or TXT</p>
+                        <p className="text-xs text-text-muted">PDF, Word (.docx), or TXT</p>
                       </div>
-                      <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleCvSelect} className="hidden" />
+                      <input type="file" accept=".pdf,.docx,.txt" onChange={handleCvSelect} className="hidden" />
                     </label>
                   )}
                 </div>
@@ -968,7 +956,7 @@ export function CvTransformForm({ skipPayment = false }: { skipPayment?: boolean
                         <span className="text-xs text-text-muted">or</span>
                         <label className="text-xs font-medium text-brand cursor-pointer hover:underline">
                           upload a file or screenshot
-                          <input type="file" accept=".pdf,.doc,.docx,.txt,image/*" onChange={handleJdUpload} className="hidden" />
+                          <input type="file" accept=".pdf,.docx,.txt,image/*" onChange={handleJdUpload} className="hidden" />
                         </label>
                       </>
                     )}
