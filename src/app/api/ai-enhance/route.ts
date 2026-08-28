@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI, AI_MODEL } from "@/lib/openai";
+import { aiText, aiConfigured, AiError } from "@/lib/ai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // A slower OpenAI response can exceed Vercel's 10s default timeout —
@@ -15,11 +15,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let client;
-  try {
-    client = getOpenAI();
-  } catch {
-    return NextResponse.json({ error: "OpenAI API key not configured." }, { status: 503 });
+  if (!aiConfigured()) {
+    return NextResponse.json({ error: "AI is not configured." }, { status: 503 });
   }
 
   const body = await req.json() as {
@@ -40,44 +37,27 @@ export async function POST(req: NextRequest) {
 
   try {
     if (body.type === "summary") {
-      const chat = await client.chat.completions.create({
-        model: AI_MODEL.quality,
-        messages: [
-          {
-            role: "system",
-            content:
+      const result = await aiText({
+        tier: "quality",
+        system:
               "You are a senior recruitment consultant and CV writer. Rewrite the provided professional summary to be compelling, ATS-optimised, and recruiter-ready. Requirements: (1) 4-6 sentences. (2) Open with role identity + years of experience if inferable. (3) Include 3-5 industry keywords. (4) Mention at least one specific strength or achievement. (5) Close with value proposition. No first-person pronouns (no I/my/me). Active voice. No placeholders like [X years]. Return only the improved summary text.",
-          },
-          {
-            role: "user",
-            content: `Target role: ${body.targetRole || "not specified"}\n\nCurrent summary:\n${body.summary}${jdBlock}`,
-          },
-        ],
-        max_completion_tokens: 900,
+        user: `Target role: ${body.targetRole || "not specified"}\n\nCurrent summary:\n${body.summary}${jdBlock}`,
+        maxTokens: 900,
       });
 
-      return NextResponse.json({ result: chat.choices[0].message.content?.trim() ?? "" });
+      return NextResponse.json({ result });
     }
 
     if (body.type === "bullets") {
       const existing = (body.bullets ?? []).filter((b) => b.trim()).join("\n");
-      const chat = await client.chat.completions.create({
-        model: AI_MODEL.quality,
-        messages: [
-          {
-            role: "system",
-            content:
+      const text = await aiText({
+        tier: "quality",
+        system:
               "You are a senior CV writer and recruitment specialist. Transform the provided experience bullets into achievement-focused, ATS-optimised statements. Rules: (1) Start each bullet with a strong past-tense action verb. (2) Use the formula: [Action Verb] + [What was done] + [How/with what] + [Measurable outcome]. (3) Add quantification (%, numbers, team sizes, KES amounts) where it can be reasonably inferred from the role level. (4) Remove 'Responsible for', 'I was', 'Worked on', 'Helped with', 'Assisted in'. (5) If fewer than 3 bullets, generate additional ones based on the role and company. (6) No first-person pronouns. Return ONLY the improved bullets, one per line, no symbols or numbering.",
-          },
-          {
-            role: "user",
-            content: `Role: ${body.role || "not specified"}\nCompany: ${body.company || "not specified"}\n\nCurrent bullets:\n${existing}${jdBlock}`,
-          },
-        ],
-        max_completion_tokens: 1200,
+        user: `Role: ${body.role || "not specified"}\nCompany: ${body.company || "not specified"}\n\nCurrent bullets:\n${existing}${jdBlock}`,
+        maxTokens: 1200,
       });
 
-      const text = chat.choices[0].message.content?.trim() ?? "";
       const bullets = text
         .split("\n")
         .map((l) => l.replace(/^[-•*]\s*/, "").trim())
@@ -89,10 +69,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unknown type." }, { status: 400 });
   } catch (err) {
     console.error("AI enhance error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    if (message.includes("401") || message.includes("Incorrect API key") || message.includes("authentication")) {
-      return NextResponse.json({ error: "Invalid API key. Please check your OpenAI key." }, { status: 401 });
+    if (err instanceof AiError && (err.status === 401 || err.status === 429)) {
+      return NextResponse.json(
+        { error: "AI is unavailable right now. Please try again shortly." },
+        { status: err.status }
+      );
     }
+    const message = err instanceof Error ? err.message : "Unknown error";
     if (message.includes("429") || message.includes("quota") || message.includes("billing")) {
       return NextResponse.json({ error: "OpenAI quota exceeded. Please check your billing." }, { status: 429 });
     }

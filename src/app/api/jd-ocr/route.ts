@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI, AI_MODEL } from "@/lib/openai";
+import { aiText, aiConfigured, AiError } from "@/lib/ai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Vision OCR: read a job-description screenshot into plain text. Shared by the
@@ -27,34 +27,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Image is too large. Please use a smaller screenshot." }, { status: 413 });
   }
 
-  let client: ReturnType<typeof getOpenAI>;
-  try {
-    client = getOpenAI();
-  } catch {
-    return NextResponse.json({ error: "OpenAI API key not configured." }, { status: 503 });
+  if (!aiConfigured()) {
+    return NextResponse.json({ error: "AI is not configured." }, { status: 503 });
   }
 
   try {
-    const res = await client.chat.completions.create({
-      model: AI_MODEL.quality,
-      messages: [
-        {
-          role: "system",
-          content:
+    const text = await aiText({
+      tier: "quality",
+      system:
             "You transcribe job postings from images. Output ONLY the plain text of the posting exactly as written — job title, company, responsibilities, requirements, qualifications, everything visible. No commentary, no markdown, no headings you add yourself.",
-        },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: "Transcribe the full job description text from this image." },
-            { type: "image_url", image_url: { url: image, detail: "high" } },
-          ],
-        },
-      ],
-      max_completion_tokens: 3000,
+      user: "Transcribe the full job description text from this image.",
+      image,
+      maxTokens: 3000,
     });
 
-    const text = res.choices[0]?.message?.content?.trim() ?? "";
     if (text.length < 15) {
       return NextResponse.json(
         { error: "Couldn't read a job description from that image. Try a clearer screenshot." },
@@ -63,12 +49,8 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ text: text.slice(0, 5000) });
   } catch (e) {
-    const msg = e instanceof Error ? e.message.toLowerCase() : "";
-    if (msg.includes("api key") || msg.includes("401")) {
-      return NextResponse.json({ error: "Invalid OpenAI API key." }, { status: 401 });
-    }
-    if (msg.includes("quota") || msg.includes("429")) {
-      return NextResponse.json({ error: "OpenAI quota exceeded." }, { status: 429 });
+    if (e instanceof AiError && (e.status === 401 || e.status === 429)) {
+      return NextResponse.json({ error: "AI is unavailable right now. Please try again shortly." }, { status: e.status });
     }
     return NextResponse.json({ error: "Could not read the image. Please try again." }, { status: 500 });
   }

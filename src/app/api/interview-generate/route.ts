@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI, AI_MODEL } from "@/lib/openai";
+import { aiText, aiConfigured, AiError } from "@/lib/ai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Generating 30 Q&A pairs can take longer than Vercel's 10s default —
@@ -15,11 +15,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let client;
-  try {
-    client = getOpenAI();
-  } catch {
-    return NextResponse.json({ error: "OpenAI API key not configured." }, { status: 503 });
+  if (!aiConfigured()) {
+    return NextResponse.json({ error: "AI is not configured." }, { status: 503 });
   }
 
   const body = await req.json() as {
@@ -76,21 +73,17 @@ Only include "section" on the first question of each new section.`;
   const userPrompt = `Job Description:\n${jobDescription.slice(0, 3000)}\n\nCandidate Qualifications (from CV):\n${qualifications.slice(0, 2000)}`;
 
   try {
-    const chat = await client.chat.completions.create({
-      model: AI_MODEL.bulk,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      max_completion_tokens: 6000,
-      response_format: { type: "json_object" },
+    const raw = await aiText({
+      tier: "bulk",
+      system: systemPrompt,
+      user: userPrompt,
+      maxTokens: 6000,
+      json: true,
     });
-
-    const raw = chat.choices[0].message.content?.trim() ?? "{}";
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(raw);
+      parsed = JSON.parse(raw || "{}");
     } catch {
       return NextResponse.json({ error: "AI returned invalid JSON." }, { status: 500 });
     }
@@ -128,10 +121,13 @@ Only include "section" on the first question of each new section.`;
     return NextResponse.json({ qa });
   } catch (err) {
     console.error("Interview generate error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    if (message.includes("401") || message.includes("Incorrect API key") || message.includes("authentication")) {
-      return NextResponse.json({ error: "Invalid API key. Please check your OpenAI key." }, { status: 401 });
+    if (err instanceof AiError && (err.status === 401 || err.status === 429)) {
+      return NextResponse.json(
+        { error: "AI is unavailable right now. Please try again shortly." },
+        { status: err.status }
+      );
     }
+    const message = err instanceof Error ? err.message : "Unknown error";
     if (message.includes("429") || message.includes("quota") || message.includes("billing")) {
       return NextResponse.json({ error: "OpenAI quota exceeded. Please check your billing." }, { status: 429 });
     }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI, AI_MODEL } from "@/lib/openai";
+import { aiText, aiConfigured } from "@/lib/ai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // As-you-type writing assist: given what the user has written so far in a CV
@@ -24,10 +24,7 @@ export async function POST(req: NextRequest) {
   const text = (body.text ?? "").slice(0, 1200);
   if (text.trim().length < 8) return NextResponse.json({ suggestion: "" });
 
-  let client: ReturnType<typeof getOpenAI>;
-  try {
-    client = getOpenAI();
-  } catch {
+  if (!aiConfigured()) {
     return NextResponse.json({ suggestion: "" }, { status: 503 });
   }
 
@@ -44,23 +41,14 @@ export async function POST(req: NextRequest) {
   const companyContext = body.company ? `\nCompany: ${body.company}` : "";
 
   try {
-    const res = await client.chat.completions.create({
-      model: AI_MODEL.fast,
-      messages: [
-        {
-          role: "system",
-          content:
+    let suggestion = await aiText({
+      tier: "fast",
+      system:
             `You autocomplete a CV as the user writes it. Given their text so far, return ONLY the continuation to append — the next few words or one short clause/sentence that flows on naturally. Do NOT repeat any of their existing text. Do not add quotes, labels or explanations. Keep it under ~22 words. If their sentence already reads complete, suggest the beginning of a natural next sentence. ${styleRules}`,
-        },
-        {
-          role: "user",
-          content: `Text so far:\n"""${text}"""${roleContext}${companyContext}${jdContext}\n\nContinuation:`,
-        },
-      ],
-      max_completion_tokens: 200,
+      user: `Text so far:\n"""${text}"""${roleContext}${companyContext}${jdContext}\n\nContinuation:`,
+      maxTokens: 200,
     });
 
-    let suggestion = res.choices[0]?.message?.content?.trim() ?? "";
     // Strip wrapping quotes and any leading ellipsis the model may add.
     suggestion = suggestion.replace(/^["'“”]+|["'“”]+$/g, "").replace(/^\.{2,}\s*/, "").trim();
     return NextResponse.json({ suggestion: suggestion.slice(0, 160) });

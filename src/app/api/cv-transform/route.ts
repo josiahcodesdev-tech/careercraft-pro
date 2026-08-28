@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI, AI_MODEL } from "@/lib/openai";
+import { aiText, aiConfigured, AiError } from "@/lib/ai";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Parsing/rewriting a full CV can take longer than Vercel's 10s default —
@@ -14,27 +14,18 @@ interface JdRequirements {
   atsKeywords: string[];
 }
 
-async function extractJdRequirements(client: ReturnType<typeof import("@/lib/openai").getOpenAI>, jd: string): Promise<JdRequirements> {
-  const res = await client.chat.completions.create({
-    model: AI_MODEL.quality,
-    messages: [
-      {
-        role: "system",
-        content:
+async function extractJdRequirements(jd: string): Promise<JdRequirements> {
+  const raw = await aiText({
+    tier: "quality",
+    system:
           "You are a job description analyst. Extract key hiring requirements from the job description. Return ONLY raw JSON with no markdown or code fences.",
-      },
-      {
-        role: "user",
-        content: `Analyse this job description and return JSON:\n\n${jd}\n\nJSON structure:\n{"targetRole":"exact job title from JD","targetCompany":"company name or empty string","requiredSkills":["skill1","skill2"...],"coreResponsibilities":["responsibility1","responsibility2"...],"atsKeywords":["keyword1","keyword2..."]}`,
-      },
-    ],
-    max_completion_tokens: 1500,
-    response_format: { type: "json_object" },
+    user: `Analyse this job description and return JSON:\n\n${jd}\n\nJSON structure:\n{"targetRole":"exact job title from JD","targetCompany":"company name or empty string","requiredSkills":["skill1","skill2"...],"coreResponsibilities":["responsibility1","responsibility2"...],"atsKeywords":["keyword1","keyword2..."]}`,
+    maxTokens: 1500,
+    json: true,
   });
 
   try {
-    const raw = res.choices[0].message.content?.trim() ?? "{}";
-    const parsed = JSON.parse(raw) as JdRequirements;
+    const parsed = JSON.parse(raw || "{}") as JdRequirements;
     return {
       targetRole: parsed.targetRole || "",
       targetCompany: parsed.targetCompany || "",
@@ -56,11 +47,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let client;
-  try {
-    client = getOpenAI();
-  } catch {
-    return NextResponse.json({ error: "OpenAI API key not configured." }, { status: 503 });
+  if (!aiConfigured()) {
+    return NextResponse.json({ error: "AI is not configured." }, { status: 503 });
   }
 
   const body = await req.json() as { text: string; jobDescription?: string };
@@ -76,7 +64,7 @@ export async function POST(req: NextRequest) {
   let jdReqs: JdRequirements | null = null;
   if (hasJd) {
     try {
-      jdReqs = await extractJdRequirements(client, jd);
+      jdReqs = await extractJdRequirements(jd);
     } catch {
       // non-fatal — fall through to single-stage transform without JD
     }
@@ -171,21 +159,17 @@ GENERAL RULES:
     : `Transform this CV to be ATS-optimised and recruiter-ready:\n\n${cvText}`;
 
   try {
-    const chat = await client.chat.completions.create({
-      model: AI_MODEL.quality,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ],
-      max_completion_tokens: 6000,
-      response_format: { type: "json_object" },
+    const raw = await aiText({
+      tier: "quality",
+      system: systemPrompt,
+      user: userMessage,
+      maxTokens: 6000,
+      json: true,
     });
-
-    const raw = chat.choices[0].message.content?.trim() ?? "{}";
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(raw);
+      parsed = JSON.parse(raw || "{}");
     } catch {
       return NextResponse.json({ error: "AI returned invalid JSON." }, { status: 500 });
     }
@@ -202,10 +186,13 @@ GENERAL RULES:
     return NextResponse.json({ result: parsed });
   } catch (err) {
     console.error("CV transform error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    if (message.includes("401") || message.includes("Incorrect API key") || message.includes("authentication")) {
-      return NextResponse.json({ error: "Invalid API key. Please check your OpenAI key in settings." }, { status: 401 });
+    if (err instanceof AiError && (err.status === 401 || err.status === 429)) {
+      return NextResponse.json(
+        { error: "AI is unavailable right now. Please try again shortly." },
+        { status: err.status }
+      );
     }
+    const message = err instanceof Error ? err.message : "Unknown error";
     if (message.includes("429") || message.includes("quota") || message.includes("billing")) {
       return NextResponse.json({ error: "OpenAI quota exceeded. Please check your billing at platform.openai.com." }, { status: 429 });
     }
