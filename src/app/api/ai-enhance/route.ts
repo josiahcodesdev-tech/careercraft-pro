@@ -69,10 +69,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unknown type." }, { status: 400 });
   } catch (err) {
     console.error("AI enhance error:", err);
-    if (err instanceof AiError && (err.status === 401 || err.status === 429)) {
+    if (err instanceof AiError && err.unavailable) {
       return NextResponse.json(
         { error: "AI is unavailable right now. Please try again shortly." },
-        { status: err.status }
+        { status: 503 }
       );
     }
     const message = err instanceof Error ? err.message : "Unknown error";

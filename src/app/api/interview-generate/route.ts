@@ -121,10 +121,10 @@ Only include "section" on the first question of each new section.`;
     return NextResponse.json({ qa });
   } catch (err) {
     console.error("Interview generate error:", err);
-    if (err instanceof AiError && (err.status === 401 || err.status === 429)) {
+    if (err instanceof AiError && err.unavailable) {
       return NextResponse.json(
         { error: "AI is unavailable right now. Please try again shortly." },
-        { status: err.status }
+        { status: 503 }
       );
     }
     const message = err instanceof Error ? err.message : "Unknown error";

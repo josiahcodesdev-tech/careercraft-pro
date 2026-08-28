@@ -64,12 +64,18 @@ export interface AiTextOptions {
   json?: boolean;
 }
 
-/** Thrown when no provider could answer. `status` is the last failure's. */
+/**
+ * Thrown when no provider could answer. `status` is the last failure's.
+ * `unavailable` marks the provider as the problem — no credit, rate limited,
+ * key rejected, down — rather than the request, so routes can tell the user to
+ * come back shortly instead of reporting a fault in what they sent.
+ */
 export class AiError extends Error {
   constructor(
     message: string,
     readonly status?: number,
-    readonly provider?: Provider
+    readonly provider?: Provider,
+    readonly unavailable = false
   ) {
     super(message);
     this.name = "AiError";
@@ -172,24 +178,32 @@ async function callAnthropic(opts: AiTextOptions): Promise<string> {
   return opts.json ? stripCodeFence(text) : text;
 }
 
+// An account with no money left does not answer with a payment status code.
+// OpenAI sends 429 insufficient_quota, but Anthropic sends a plain 400 whose
+// only tell is the wording — so the message is read as well as the status,
+// or an empty balance would look like a malformed request and never fail over.
+const BILLING_MESSAGE = /credit balance|insufficient|quota|billing|payment required|too low/i;
+
 /**
- * Whether the other provider is worth trying. A 400/404/422 means the request
- * itself is wrong and would be rejected identically; everything else — no
- * credit, rate limit, rejected key, an outage, a dropped connection — is the
- * provider's problem, not the request's.
+ * Whether the failure is the provider's rather than the request's — and so
+ * whether the other provider is worth trying. A 400/404/422 normally means the
+ * request itself is wrong and would be rejected identically; no credit, a rate
+ * limit, a rejected key, an outage or a dropped connection would not.
  */
-function shouldFailOver(err: unknown): boolean {
-  const status =
-    err instanceof OpenAI.APIError || err instanceof Anthropic.APIError ? err.status : undefined;
-  if (status === undefined) return true; // connection error or timeout
-  return status === 401 || status === 403 || status === 408 || status === 429 || status >= 500;
+function isProviderFailure(err: unknown): boolean {
+  const apiError = err instanceof OpenAI.APIError || err instanceof Anthropic.APIError ? err : null;
+  if (!apiError) return true; // connection error or timeout
+  const status = apiError.status;
+  if (status === undefined) return true;
+  if (status === 401 || status === 403 || status === 408 || status === 429 || status >= 500) return true;
+  return BILLING_MESSAGE.test(apiError.message);
 }
 
 function toAiError(err: unknown, provider: Provider): AiError {
   const status =
     err instanceof OpenAI.APIError || err instanceof Anthropic.APIError ? err.status : undefined;
   const message = err instanceof Error ? err.message : "AI request failed.";
-  return new AiError(message, status, provider);
+  return new AiError(message, status, provider, isProviderFailure(err));
 }
 
 /**
@@ -199,7 +213,7 @@ function toAiError(err: unknown, provider: Provider): AiError {
 export async function aiText(opts: AiTextOptions): Promise<string> {
   const available = providers();
   if (available.length === 0) {
-    throw new AiError("No AI provider is configured.", 503);
+    throw new AiError("No AI provider is configured.", 503, undefined, true);
   }
 
   let lastError: AiError | null = null;
@@ -209,7 +223,7 @@ export async function aiText(opts: AiTextOptions): Promise<string> {
       return provider === "openai" ? await callOpenAI(opts) : await callAnthropic(opts);
     } catch (err) {
       lastError = toAiError(err, provider);
-      if (!shouldFailOver(err)) throw lastError;
+      if (!lastError.unavailable) throw lastError;
       console.warn(`[ai] ${provider} failed (${lastError.status ?? "no status"}): ${lastError.message}`);
     }
   }

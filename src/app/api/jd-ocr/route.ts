@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ text: text.slice(0, 5000) });
   } catch (e) {
-    if (e instanceof AiError && (e.status === 401 || e.status === 429)) {
-      return NextResponse.json({ error: "AI is unavailable right now. Please try again shortly." }, { status: e.status });
+    if (e instanceof AiError && e.unavailable) {
+      return NextResponse.json({ error: "AI is unavailable right now. Please try again shortly." }, { status: 503 });
     }
     return NextResponse.json({ error: "Could not read the image. Please try again." }, { status: 500 });
   }

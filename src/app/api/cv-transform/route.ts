@@ -186,10 +186,10 @@ GENERAL RULES:
     return NextResponse.json({ result: parsed });
   } catch (err) {
     console.error("CV transform error:", err);
-    if (err instanceof AiError && (err.status === 401 || err.status === 429)) {
+    if (err instanceof AiError && err.unavailable) {
       return NextResponse.json(
         { error: "AI is unavailable right now. Please try again shortly." },
-        { status: err.status }
+        { status: 503 }
       );
     }
     const message = err instanceof Error ? err.message : "Unknown error";
