@@ -10,13 +10,24 @@ import {
   Smartphone,
   Receipt,
   XCircle,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  DEFAULT_COUNTRY,
+  enabledCountries,
+  findCountry,
+  formatPrice,
+  networkFor,
+  normalisePhone,
+  type ProductId,
+} from "@/lib/payment-countries";
 
 export interface PaymentModalProps {
   service: string;
-  amount: number;
+  /** What is being bought. The price for it is set per country, server-side. */
+  product: ProductId;
   onSuccess: (reference: string) => void;
   onClose: () => void;
 }
@@ -42,7 +53,8 @@ function formatTime(d: Date) {
 const POLL_INTERVAL_MS = 1200;
 const MAX_POLLS = 100; // 100 × 1.2 s = 2 min
 
-export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentModalProps) {
+export function PaymentModal({ service, product, onSuccess, onClose }: PaymentModalProps) {
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY);
   const [phone, setPhone] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState("");
@@ -52,9 +64,17 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
   const [lastRawStatus, setLastRawStatus] = useState<string>("");
   const paidAt = useRef(new Date());
 
+  const countries = enabledCountries();
+  const country = findCountry(countryCode) ?? countries[0];
+  const price = formatPrice(country, product);
+  // Uganda and Tanzania each run several wallets, so the button cannot just
+  // say "M-Pesa" — name the one the typed number actually belongs to.
+  const network = networkFor(normalisePhone(phone, country), country);
+  const walletName = network?.label ?? country.networks[0].label;
+
   const handlePay = useCallback(async () => {
     const raw = phone.trim();
-    if (!raw) { setError("Enter your M-Pesa phone number."); return; }
+    if (!raw) { setError(`Enter your ${walletName} phone number.`); return; }
 
     setError("");
     setLastRawStatus("");
@@ -66,7 +86,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
       const res = await fetch("/api/payhero/stk-push", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: raw, amount, reference }),
+        body: JSON.stringify({ phone: raw, product, reference, country: country.code }),
       });
       const data = await res.json() as { error?: string; checkoutRequestId?: string };
 
@@ -87,7 +107,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
       setStage("failed");
       setError("Network error. Please check your connection and try again.");
     }
-  }, [phone, amount]);
+  }, [phone, product, country, walletName]);
 
   useEffect(() => {
     if (stage !== "polling" || !pollRef) return;
@@ -139,7 +159,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
     setLastRawStatus("");
     setStage("failed");
     setError(
-      `Transaction cancelled. If M-Pesa already deducted KES ${amount}, quote reference ${externalRef} when contacting support.`
+      `Transaction cancelled. If ${walletName} already deducted ${price}, quote reference ${externalRef} when contacting support.`
     );
   };
 
@@ -169,15 +189,37 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
           {/* Amount */}
           <div className="flex items-center justify-between bg-brand-light rounded-xl px-4 py-3">
             <span className="text-xs text-text-secondary font-medium">Amount</span>
-            <span className="font-heading font-extrabold text-2xl text-brand">KES {amount}</span>
+            <span className="font-heading font-extrabold text-2xl text-brand">{price}</span>
           </div>
 
           {/* ── IDLE / FAILED ── */}
           {(stage === "idle" || stage === "failed") && (
             <>
+              {countries.length > 1 && (
+                <div>
+                  <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wider block mb-1.5">
+                    Country
+                  </label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+                    <select
+                      value={country.code}
+                      onChange={(e) => { setCountryCode(e.target.value); setPhone(""); setError(""); }}
+                      className="w-full appearance-none rounded-xl border border-border bg-background pl-10 pr-4 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors"
+                    >
+                      {countries.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.flag} {c.name} — {c.networks.map((n) => n.label).join(" / ")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wider block mb-1.5">
-                  M-Pesa Number
+                  {walletName} Number
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
@@ -186,7 +228,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
                     value={phone}
                     onChange={(e) => { setPhone(e.target.value); setError(""); }}
                     onKeyDown={(e) => e.key === "Enter" && handlePay()}
-                    placeholder="07XX XXX XXX"
+                    placeholder={country.hint}
                     autoFocus
                     className="w-full rounded-xl border border-border bg-background pl-10 pr-4 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors"
                   />
@@ -210,7 +252,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
                 className={cn(buttonVariants(), "w-full bg-brand hover:bg-brand-mid text-white gap-2")}
               >
                 <Smartphone className="w-4 h-4" />
-                Pay KES {amount} via M-Pesa
+                Pay {price} via {walletName}
               </button>
             </>
           )}
@@ -219,7 +261,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
           {stage === "pushing" && (
             <div className="flex flex-col items-center py-5 gap-3">
               <Loader2 className="w-10 h-10 text-brand animate-spin" />
-              <p className="text-sm font-medium">Sending M-Pesa prompt…</p>
+              <p className="text-sm font-medium">Sending {walletName} prompt…</p>
               <p className="text-xs text-text-muted">This usually takes a few seconds</p>
             </div>
           )}
@@ -233,13 +275,13 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
               <div>
                 <p className="text-sm font-semibold">Check your phone</p>
                 <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  Enter your M-Pesa PIN to confirm payment of{" "}
-                  <strong>KES {amount}</strong>
+                  Enter your {walletName} PIN to confirm payment of{" "}
+                  <strong>{price}</strong>
                 </p>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-text-muted">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Waiting for M-Pesa confirmation… ({secondsWaited}s)
+                Waiting for {walletName} confirmation… ({secondsWaited}s)
               </div>
               {lastRawStatus && (
                 <span className="text-[10px] bg-background border border-border rounded px-2 py-0.5 font-mono text-text-muted">
@@ -280,7 +322,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
                 </div>
                 <div className="flex justify-between">
                   <span className="text-text-muted">Amount</span>
-                  <span className="font-semibold text-brand">KES {amount}</span>
+                  <span className="font-semibold text-brand">{price}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-text-muted">Phone</span>
@@ -303,7 +345,7 @@ export function PaymentModal({ service, amount, onSuccess, onClose }: PaymentMod
           )}
 
           <p className="text-[10px] text-text-muted text-center pb-1">
-            Powered by PayHero · M-Pesa payments are secure and instant
+            Powered by PayHero · {walletName} payments are secure and instant
           </p>
         </div>
       </div>

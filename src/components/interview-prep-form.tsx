@@ -747,7 +747,7 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
           {showPayment && (
             <PaymentModal
               service="Interview Prep Download"
-              amount={100}
+              product="interview"
               onSuccess={async (reference) => {
                 setShowPayment(false);
                 await completeUnlockAndDownload(reference);

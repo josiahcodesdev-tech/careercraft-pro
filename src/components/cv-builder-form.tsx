@@ -1745,7 +1745,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
       {payTarget && (
         <PaymentModal
           service="CV Builder Download"
-          amount={40}
+          product="cv"
           onSuccess={async (reference) => {
             const target = payTarget;
             setPayTarget(null);
