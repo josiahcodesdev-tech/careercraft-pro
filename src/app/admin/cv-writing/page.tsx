@@ -7,8 +7,8 @@ import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { mountForPrint, pdfOptions } from "@/lib/page-geometry";
-import { clearTemplatePagePadding } from "@/lib/cv-print-geometry";
+import { markMeasuredPageBreaks, mountForPrint, pdfOptions } from "@/lib/page-geometry";
+import { clearTemplatePagePadding, groupSectionsForPrint } from "@/lib/cv-print-geometry";
 import { FileText, Eye, Download, Loader2, Plus, Sparkles } from "lucide-react";
 import {
   type CvData,
@@ -62,8 +62,11 @@ export default function CvWritingPage() {
       const html2pdf = ((await import("html2pdf.js")) as any).default;
       const printSource = pdfRef.current.cloneNode(true) as HTMLElement;
       clearTemplatePagePadding(printSource, pdfTarget.cv.template);
+      groupSectionsForPrint(printSource);
       const host = mountForPrint(printSource, pdfRef.current.getBoundingClientRect().width);
       try {
+        await document.fonts.ready;
+        markMeasuredPageBreaks(printSource);
         await html2pdf().set(pdfOptions(pdfTarget.fileName)).from(printSource).save();
       } finally {
         host.remove();

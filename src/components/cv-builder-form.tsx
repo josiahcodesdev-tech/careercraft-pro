@@ -12,8 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePaymentsEnabled } from "@/lib/use-payments-enabled";
-import { CONTENT_ASPECT, mountForPrint, pdfOptions } from "@/lib/page-geometry";
-import { clearTemplatePagePadding } from "@/lib/cv-print-geometry";
+import { markMeasuredPageBreaks, mountForPrint, pdfOptions } from "@/lib/page-geometry";
+import { clearTemplatePagePadding, groupSectionsForPrint } from "@/lib/cv-print-geometry";
 import {
   Plus,
   Trash2,
@@ -630,7 +630,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
       await document.fonts.ready;
       markMeasuredPageBreaks(printSource);
       await html2pdf()
-        .set(pdfOptions(fileName, { pagebreak: { mode: ["css", "legacy"], before: ".cv-page-break" } }))
+        .set(pdfOptions(fileName))
         .from(printSource)
         .save();
     } finally {
@@ -2300,48 +2300,9 @@ function FooterNote({
 // the page edge with no room for the footer. Runs on a throwaway clone so the
 // on-screen preview is untouched. Experience is skipped: it can legitimately
 // run past one page and shouldn't be forced whole onto the next.
-function groupSectionsForPrint(root: HTMLElement) {
-  const headings = Array.from(root.querySelectorAll("h2"));
-  for (const heading of headings) {
-    const parent = heading.parentElement;
-    if (!parent) continue;
-    const firstContent = heading.nextElementSibling;
-    const group = document.createElement("div");
-    group.style.breakInside = "avoid";
-    group.style.pageBreakInside = "avoid";
-    parent.insertBefore(group, heading);
-    group.appendChild(heading);
-    if (firstContent && firstContent.tagName !== "H2") group.appendChild(firstContent);
-  }
-}
 
 
 
-function markMeasuredPageBreaks(root: HTMLElement) {
-  const rootRect = root.getBoundingClientRect();
-  // Content is scaled to the 174 mm printable width, so a page is that box's
-  // aspect ratio tall — not the full sheet's 297/210.
-  const pageHeight = rootRect.width * CONTENT_ASPECT;
-  if (!pageHeight) return;
-
-  const candidates = Array.from(root.querySelectorAll<HTMLElement>(
-    "h2, [style*='page-break-inside'], [style*='break-inside']"
-  )).filter((element) => !element.parentElement?.closest("[style*='break-inside']"));
-
-  let insertedSpace = 0;
-  for (const element of candidates) {
-    const rect = element.getBoundingClientRect();
-    const top = rect.top - rootRect.top + insertedSpace;
-    const bottom = rect.bottom - rootRect.top + insertedSpace;
-    const startsOn = Math.floor(top / pageHeight);
-    const endsOn = Math.floor(Math.max(top, bottom - 1) / pageHeight);
-    if (startsOn === endsOn || rect.height >= pageHeight * 0.85) continue;
-    insertedSpace += (startsOn + 1) * pageHeight - top;
-    element.classList.add("cv-page-break");
-    element.style.breakBefore = "page";
-    element.style.pageBreakBefore = "always";
-  }
-}
 
 function ClassicSectionHeading({ children }: { children: React.ReactNode }) {
   return (

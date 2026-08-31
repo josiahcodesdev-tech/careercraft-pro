@@ -34,3 +34,22 @@ export function clearTemplatePagePadding(printSource: HTMLElement, template: Tem
   }
   clearPagePadding(templateRoot, KEEP_PRINT_PADDING[template]);
 }
+
+/**
+ * Keep a section heading with the block that follows it, so a heading cannot
+ * be left stranded at the foot of a page with its content overleaf.
+ */
+export function groupSectionsForPrint(root: HTMLElement): void {
+  const headings = Array.from(root.querySelectorAll("h2"));
+  for (const heading of headings) {
+    const parent = heading.parentElement;
+    if (!parent) continue;
+    const firstContent = heading.nextElementSibling;
+    const group = document.createElement("div");
+    group.style.breakInside = "avoid";
+    group.style.pageBreakInside = "avoid";
+    parent.insertBefore(group, heading);
+    group.appendChild(heading);
+    if (firstContent && firstContent.tagName !== "H2") group.appendChild(firstContent);
+  }
+}

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { clearPagePadding, mountForPrint, pdfOptions } from "@/lib/page-geometry";
+import { clearPagePadding, markMeasuredPageBreaks, mountForPrint, pdfOptions } from "@/lib/page-geometry";
 import { usePaymentsEnabled } from "@/lib/use-payments-enabled";
 import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download, Lock, ArrowLeft } from "lucide-react";
 import { PaymentModal } from "@/components/payment-modal";
@@ -414,6 +414,9 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
     const host = mountForPrint(printSource, el.getBoundingClientRect().width);
     try {
       await document.fonts.ready;
+      // Each question and its answer is one block; this is what stops the pair
+      // being sliced across the page boundary.
+      markMeasuredPageBreaks(printSource);
       await html2pdf().set(pdfOptions(fileName)).from(printSource).save();
     } finally {
       host.remove();
@@ -890,11 +893,14 @@ export function InterviewDialogueContent({
       {dialogue.map((qa, i) => (
         <div
           key={i}
-          style={
-            i >= blurFrom && !paid
+          style={{
+            // A section label belongs with the question that opens the section,
+            // so the two are kept in one unbreakable block.
+            ...(qa.section ? { pageBreakInside: "avoid" as const, breakInside: "avoid" as const } : {}),
+            ...(i >= blurFrom && !paid
               ? { filter: "blur(5px)", userSelect: "none", pointerEvents: "none" }
-              : {}
-          }
+              : {}),
+          }}
         >
           {qa.section && (
             <div

@@ -27,6 +27,9 @@ export const CONTENT_HEIGHT_MM = PAGE_HEIGHT_MM - PAGE_MARGIN_MM * 2;
  */
 export const CONTENT_ASPECT = CONTENT_HEIGHT_MM / CONTENT_WIDTH_MM;
 
+/** Marks an element that must start a fresh page. */
+export const PAGE_BREAK_CLASS = "pdf-page-break";
+
 /** html2pdf settings implementing the standard. `extra` adds per-document options. */
 export function pdfOptions(filename: string, extra: Record<string, unknown> = {}) {
   return {
@@ -36,6 +39,7 @@ export function pdfOptions(filename: string, extra: Record<string, unknown> = {}
     image: { type: "jpeg", quality: 0.98 },
     html2canvas: { scale: 3, useCORS: true, logging: false },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    pagebreak: { mode: ["css", "legacy"], before: `.${PAGE_BREAK_CLASS}` },
     ...extra,
   };
 }
@@ -70,4 +74,43 @@ export function mountForPrint(source: HTMLElement, width: number): HTMLElement {
  */
 export function clearPagePadding(el: HTMLElement | null, keep = "0") {
   if (el) el.style.padding = keep;
+}
+
+/**
+ * Push anything that would straddle a page boundary onto the next page.
+ *
+ * CSS break rules alone are not enough: html2pdf rasterises the document and
+ * slices the image, so a block that says break-inside: avoid can still be cut
+ * in half. Measuring where each block actually lands and inserting the space
+ * to clear the boundary is what keeps a CV section, or an interview question
+ * and its answer, whole.
+ *
+ * Call this after the copy is mounted and fonts have loaded — it reads layout.
+ */
+export function markMeasuredPageBreaks(root: HTMLElement): void {
+  const rootRect = root.getBoundingClientRect();
+  // Content is scaled to the 174 mm printable width, so a page is that box's
+  // aspect ratio tall — not the full sheet's 297/210.
+  const pageHeight = rootRect.width * CONTENT_ASPECT;
+  if (!pageHeight) return;
+
+  const candidates = Array.from(
+    root.querySelectorAll<HTMLElement>("h2, [style*='page-break-inside'], [style*='break-inside']")
+  ).filter((element) => !element.parentElement?.closest("[style*='break-inside']"));
+
+  let insertedSpace = 0;
+  for (const element of candidates) {
+    const rect = element.getBoundingClientRect();
+    const top = rect.top - rootRect.top + insertedSpace;
+    const bottom = rect.bottom - rootRect.top + insertedSpace;
+    const startsOn = Math.floor(top / pageHeight);
+    const endsOn = Math.floor(Math.max(top, bottom - 1) / pageHeight);
+    // A block taller than most of a page has to be split somewhere; moving it
+    // would only leave a blank page behind it.
+    if (startsOn === endsOn || rect.height >= pageHeight * 0.85) continue;
+    insertedSpace += (startsOn + 1) * pageHeight - top;
+    element.classList.add(PAGE_BREAK_CLASS);
+    element.style.breakBefore = "page";
+    element.style.pageBreakBefore = "always";
+  }
 }
