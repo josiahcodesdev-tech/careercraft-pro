@@ -2,16 +2,16 @@ import type { Template } from "@/components/cv-builder-form";
 import { clearPagePadding } from "@/lib/page-geometry";
 
 /**
- * The padding each CV template uses as its own page margin, which the PDF's
- * 18 mm now replaces. Templates absent from this map already draw to the page
- * edge (the banner and sidebar designs), so they have nothing to clear.
- * Executive keeps a left edge: that padding clears its decorative stripe
- * rather than framing the page.
+ * Padding kept when a CV is printed.
+ *
+ * A template's root padding is its page margin, and the PDF supplies that now,
+ * so the default is to clear it outright — which is what makes a newly added
+ * template comply without anyone remembering to list it here. Only a root
+ * whose padding does something *besides* frame the page belongs in this map:
+ * Executive's left padding clears the decorative stripe drawn at its edge, so
+ * zeroing it would run the text over the stripe.
  */
-const PRINT_PAGE_PADDING: Partial<Record<Template, string>> = {
-  classic: "0",
-  minimal: "0",
-  corporate: "0",
+const KEEP_PRINT_PADDING: Partial<Record<Template, string>> = {
   executive: "0 0 0 14px",
 };
 
@@ -25,5 +25,12 @@ export function templateRootOf(root: HTMLElement): HTMLElement | null {
 
 /** Hand the page margin over to the PDF for a CV about to be printed. */
 export function clearTemplatePagePadding(printSource: HTMLElement, template: Template): void {
-  clearPagePadding(templateRootOf(printSource), PRINT_PAGE_PADDING[template]);
+  const templateRoot = templateRootOf(printSource);
+  if (!templateRoot) {
+    // Not fatal — the PDF still gets its 18 mm — but the template's own padding
+    // would sit on top of it, so say so rather than shipping a fat margin.
+    console.warn(`[print] no template root found for "${template}"; page padding left in place`);
+    return;
+  }
+  clearPagePadding(templateRoot, KEEP_PRINT_PADDING[template]);
 }
