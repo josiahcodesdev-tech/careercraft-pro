@@ -7,6 +7,7 @@ import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { clearPagePadding, mountForPrint, pdfOptions } from "@/lib/page-geometry";
 import { Users, Eye, User, FileText, Download, Loader2, Plus } from "lucide-react";
 import { InterviewDialogueContent, type QA } from "@/components/interview-prep-form";
 
@@ -38,16 +39,14 @@ export default function InterviewCoachingPage() {
       if (cancelled || !pdfRef.current) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const html2pdf = ((await import("html2pdf.js")) as any).default;
-      await html2pdf()
-        .set({
-          margin: 0,
-          filename: `${pdfTarget.fileName}.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 3, useCORS: true, logging: false },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        })
-        .from(pdfRef.current)
-        .save();
+      const printSource = pdfRef.current.cloneNode(true) as HTMLElement;
+      clearPagePadding(printSource);
+      const host = mountForPrint(printSource, pdfRef.current.getBoundingClientRect().width);
+      try {
+        await html2pdf().set(pdfOptions(pdfTarget.fileName)).from(printSource).save();
+      } finally {
+        host.remove();
+      }
       if (!cancelled) {
         setPdfTarget(null);
         setBusyId(null);

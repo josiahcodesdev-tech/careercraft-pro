@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePaymentsEnabled } from "@/lib/use-payments-enabled";
+import { CONTENT_ASPECT, mountForPrint, pdfOptions } from "@/lib/page-geometry";
+import { clearTemplatePagePadding } from "@/lib/cv-print-geometry";
 import {
   Plus,
   Trash2,
@@ -621,20 +623,14 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
     const fileName = data.fullName ? `${data.fullName.replace(/\s+/g, "_")}_CV` : "CV";
 
     const printSource = el.cloneNode(true) as HTMLElement;
+    clearTemplatePagePadding(printSource, template);
     groupSectionsForPrint(printSource);
-    const measurementHost = mountPrintSource(printSource, el.getBoundingClientRect().width);
+    const measurementHost = mountForPrint(printSource, el.getBoundingClientRect().width);
     try {
       await document.fonts.ready;
       markMeasuredPageBreaks(printSource);
       await html2pdf()
-        .set({
-          margin: 0,
-          filename: `${fileName}.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 3, useCORS: true, logging: false },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-          pagebreak: { mode: ["css", "legacy"], before: ".cv-page-break" },
-        })
+        .set(pdfOptions(fileName, { pagebreak: { mode: ["css", "legacy"], before: ".cv-page-break" } }))
         .from(printSource)
         .save();
     } finally {
@@ -2319,27 +2315,13 @@ function groupSectionsForPrint(root: HTMLElement) {
   }
 }
 
-function mountPrintSource(source: HTMLElement, width: number) {
-  const host = document.createElement("div");
-  host.setAttribute("aria-hidden", "true");
-  Object.assign(host.style, {
-    position: "fixed",
-    left: "-100000px",
-    top: "0",
-    width: `${width}px`,
-    pointerEvents: "none",
-    zIndex: "-1",
-  });
-  source.style.width = `${width}px`;
-  source.style.maxWidth = "none";
-  host.appendChild(source);
-  document.body.appendChild(host);
-  return host;
-}
+
 
 function markMeasuredPageBreaks(root: HTMLElement) {
   const rootRect = root.getBoundingClientRect();
-  const pageHeight = rootRect.width * (297 / 210);
+  // Content is scaled to the 174 mm printable width, so a page is that box's
+  // aspect ratio tall — not the full sheet's 297/210.
+  const pageHeight = rootRect.width * CONTENT_ASPECT;
   if (!pageHeight) return;
 
   const candidates = Array.from(root.querySelectorAll<HTMLElement>(

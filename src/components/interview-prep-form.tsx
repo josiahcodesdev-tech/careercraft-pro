@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { clearPagePadding, mountForPrint, pdfOptions } from "@/lib/page-geometry";
 import { usePaymentsEnabled } from "@/lib/use-payments-enabled";
 import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download, Lock, ArrowLeft } from "lucide-react";
 import { PaymentModal } from "@/components/payment-modal";
@@ -406,16 +407,17 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const html2pdf = ((await import("html2pdf.js")) as any).default;
     const fileName = `Interview_Prep_${(data.candidateName || "Candidate").replace(/\s+/g, "_")}`;
-    await html2pdf()
-      .set({
-        margin: 0,
-        filename: `${fileName}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 3, useCORS: true, logging: false },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      })
-      .from(el)
-      .save();
+    // Printed from a copy: the on-screen padding is the preview's page margin,
+    // and the PDF supplies that itself now.
+    const printSource = el.cloneNode(true) as HTMLElement;
+    clearPagePadding(printSource);
+    const host = mountForPrint(printSource, el.getBoundingClientRect().width);
+    try {
+      await document.fonts.ready;
+      await html2pdf().set(pdfOptions(fileName)).from(printSource).save();
+    } finally {
+      host.remove();
+    }
   }
 
   async function completeUnlockAndDownload(reference?: string) {

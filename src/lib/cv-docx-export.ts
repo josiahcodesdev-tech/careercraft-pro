@@ -6,8 +6,11 @@ import {
   HeadingLevel,
   AlignmentType,
   BorderStyle,
+  PageOrientation,
+  convertMillimetersToTwip,
 } from "docx";
 import { saveAs } from "file-saver";
+import { PAGE_HEIGHT_MM, PAGE_MARGIN_MM, PAGE_WIDTH_MM } from "@/lib/page-geometry";
 
 interface WorkEntry {
   company: string;
@@ -398,8 +401,20 @@ export async function downloadCvDocx(data: CvData): Promise<void> {
     sections: [
       {
         properties: {
+          // A4 portrait with the same 18 mm margin the PDF uses, so the two
+          // downloads of one CV are the same document on paper.
           page: {
-            margin: { top: 720, right: 720, bottom: 720, left: 720 },
+            size: {
+              width: convertMillimetersToTwip(PAGE_WIDTH_MM),
+              height: convertMillimetersToTwip(PAGE_HEIGHT_MM),
+              orientation: PageOrientation.PORTRAIT,
+            },
+            margin: {
+              top: convertMillimetersToTwip(PAGE_MARGIN_MM),
+              right: convertMillimetersToTwip(PAGE_MARGIN_MM),
+              bottom: convertMillimetersToTwip(PAGE_MARGIN_MM),
+              left: convertMillimetersToTwip(PAGE_MARGIN_MM),
+            },
           },
         },
         children,
