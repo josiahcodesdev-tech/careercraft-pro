@@ -68,9 +68,9 @@ export const PAYMENT_COUNTRIES: PaymentCountry[] = [
       { label: "MTN MoMo", provider: "mtn", prefixes: ["76", "77", "78", "79"] },
       { label: "Airtel Money", provider: "airtel", prefixes: ["70", "74", "75"] },
     ],
-    // KES 40 ≈ UGX 1,090 and KES 100 ≈ UGX 2,730, rounded up to clean notes
-    // that also clear the networks' minimum collection amounts.
-    prices: { cv: 1500, interview: 3500 },
+    // A local price point, not a conversion of the Kenyan one: UGX 3,000 is
+    // roughly KES 110, and well clear of the networks' minimum collection.
+    prices: { cv: 3000, interview: 6500 },
     hint: "07XX XXX XXX",
     enabled: false,
     note: "Coming soon",
@@ -88,9 +88,10 @@ export const PAYMENT_COUNTRIES: PaymentCountry[] = [
       { label: "Airtel Money", provider: "airtel", prefixes: ["68", "69", "78"] },
       { label: "Halopesa", provider: "halotel", prefixes: ["61", "62"] },
     ],
-    // KES 40 ≈ TZS 800 and KES 100 ≈ TZS 2,000 — rounded up, since TZS 800 sits
-    // under the minimum most Tanzanian networks will collect.
-    prices: { cv: 1000, interview: 2500 },
+    // A local price point, not a conversion: TZS 3,000 is roughly KES 150.
+    // Converting literally would give TZS 800, under the minimum most
+    // Tanzanian networks will collect anyway.
+    prices: { cv: 3000, interview: 6500 },
     hint: "07XX XXX XXX",
     enabled: false,
     note: "Coming soon",

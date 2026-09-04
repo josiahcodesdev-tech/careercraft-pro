@@ -31,7 +31,12 @@ const organizationJsonLd = {
     { "@type": "Country", name: "Kenya" },
     { "@type": "AdministrativeArea", name: "Worldwide" },
   ],
-  sameAs: ["https://wa.me/254110242289"],
+  // Every profile that is genuinely this business. Google uses these to tie
+  // the pages together as one entity, so only add accounts we actually own.
+  sameAs: [
+    "https://www.facebook.com/Mycareercraftkenya/",
+    "https://wa.me/254110242289",
+  ],
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer service",
