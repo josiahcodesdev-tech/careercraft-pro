@@ -29,7 +29,7 @@ const serviceJsonLd = createServiceJsonLd({
   name: "CV Transformation to ATS Format",
   description,
   url: "/cv-transform",
-  price: "50",
+  price: "40",
 });
 
 export default function CvTransformPage() {
