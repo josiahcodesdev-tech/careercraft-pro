@@ -7,7 +7,7 @@ import { StatCard } from "@/components/admin/stat-card";
 import { DataTable } from "@/components/admin/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { clearPagePadding, markMeasuredPageBreaks, mountForPrint, pdfOptions } from "@/lib/page-geometry";
+import { CONTENT_WIDTH_PX, clearPagePadding, markMeasuredPageBreaks, mountForPrint, pdfOptions } from "@/lib/page-geometry";
 import { Users, Eye, User, FileText, Download, Loader2, Plus } from "lucide-react";
 import { InterviewDialogueContent, type QA } from "@/components/interview-prep-form";
 
@@ -41,7 +41,7 @@ export default function InterviewCoachingPage() {
       const html2pdf = ((await import("html2pdf.js")) as any).default;
       const printSource = pdfRef.current.cloneNode(true) as HTMLElement;
       clearPagePadding(printSource);
-      const host = mountForPrint(printSource, pdfRef.current.getBoundingClientRect().width);
+      const host = mountForPrint(printSource, CONTENT_WIDTH_PX);
       try {
         await document.fonts.ready;
         markMeasuredPageBreaks(printSource);

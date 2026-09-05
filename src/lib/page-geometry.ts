@@ -20,6 +20,9 @@ export const PAGE_MARGIN_MM = 18;
 export const CONTENT_WIDTH_MM = PAGE_WIDTH_MM - PAGE_MARGIN_MM * 2;
 export const CONTENT_HEIGHT_MM = PAGE_HEIGHT_MM - PAGE_MARGIN_MM * 2;
 
+/** CSS pixels inside the PDF margins, rounded down to avoid canvas clipping. */
+export const CONTENT_WIDTH_PX = Math.floor(CONTENT_WIDTH_MM * 96 / 25.4);
+
 /**
  * Height-to-width ratio of the printable box. Rendered content is scaled to
  * the content width, so this — not the paper's own 297/210 — converts a

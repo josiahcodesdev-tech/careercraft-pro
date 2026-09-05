@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { clearPagePadding, markMeasuredPageBreaks, mountForPrint, pdfOptions } from "@/lib/page-geometry";
+import { CONTENT_WIDTH_PX, clearPagePadding, markMeasuredPageBreaks, mountForPrint, pdfOptions } from "@/lib/page-geometry";
 import { usePaymentsEnabled } from "@/lib/use-payments-enabled";
 import { FileText, Sparkles, Loader2, User, MessageSquare, Upload, X, Download, Lock, ArrowLeft } from "lucide-react";
 import { PaymentModal } from "@/components/payment-modal";
@@ -411,7 +411,7 @@ export function InterviewPrepForm({ skipPayment = false }: { skipPayment?: boole
     // and the PDF supplies that itself now.
     const printSource = el.cloneNode(true) as HTMLElement;
     clearPagePadding(printSource);
-    const host = mountForPrint(printSource, el.getBoundingClientRect().width);
+    const host = mountForPrint(printSource, CONTENT_WIDTH_PX);
     try {
       await document.fonts.ready;
       // Each question and its answer is one block; this is what stops the pair
@@ -948,7 +948,7 @@ export function InterviewDialogueContent({
                 style={{ width: 14, height: 14, color: "#1B3A5C" }}
               />
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
               <div
                 className="speaker interviewer"
                 style={{
@@ -967,7 +967,7 @@ export function InterviewDialogueContent({
                 style={{
                   fontSize: "9.5pt",
                   lineHeight: 1.6,
-                  textAlign: "justify",
+                  textAlign: "left",
                 }}
               >
                 {qa.question}
@@ -1000,7 +1000,7 @@ export function InterviewDialogueContent({
                 style={{ width: 14, height: 14, color: "#1A5C3A" }}
               />
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
               <div
                 className="speaker candidate"
                 style={{
@@ -1019,7 +1019,7 @@ export function InterviewDialogueContent({
                 style={{
                   fontSize: "9.5pt",
                   lineHeight: 1.6,
-                  textAlign: "justify",
+                  textAlign: "left",
                 }}
               >
                 {qa.answer}
