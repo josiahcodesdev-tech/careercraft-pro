@@ -25,6 +25,9 @@ export function templateRootOf(root: HTMLElement): HTMLElement | null {
 
 /** Hand the page margin over to the PDF for a CV about to be printed. */
 export function clearTemplatePagePadding(printSource: HTMLElement, template: Template): void {
+  // The preview's paper-like minimum height must not create empty PDF pages.
+  printSource.style.minHeight = "0";
+  printSource.style.height = "auto";
   const templateRoot = templateRootOf(printSource);
   if (!templateRoot) {
     // Not fatal — the PDF still gets its 18 mm — but the template's own padding

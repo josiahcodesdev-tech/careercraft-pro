@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePaymentsEnabled } from "@/lib/use-payments-enabled";
-import { markMeasuredPageBreaks, mountForPrint, pdfOptions } from "@/lib/page-geometry";
+import { CONTENT_WIDTH_PX, mountForPrint, pdfOptions } from "@/lib/page-geometry";
 import { clearTemplatePagePadding, groupSectionsForPrint } from "@/lib/cv-print-geometry";
 import {
   Plus,
@@ -341,6 +341,17 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [showMobileDownloadMenu, setShowMobileDownloadMenu] = useState(false);
   const [generatingFile, setGeneratingFile] = useState(false);
+  const downloadInProgress = useRef(false);
+  const [readyPdf, setReadyPdf] = useState<{ file: File; url: string; canShare: boolean } | null>(null);
+  const [downloadError, setDownloadError] = useState<{ message: string; target: "pdf" | "word"; reference?: string } | null>(null);
+  const [shareError, setShareError] = useState("");
+  const downloadDialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (readyPdf || downloadError) downloadDialogRef.current?.showModal();
+  }, [readyPdf, downloadError]);
+  useEffect(() => {
+    return () => { if (readyPdf) URL.revokeObjectURL(readyPdf.url); };
+  }, [readyPdf]);
   const previewRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -616,7 +627,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
 
   async function handlePrint() {
     const el = previewRef.current;
-    if (!el) return;
+    if (!el) throw new Error("The CV preview is not ready. Please try again.");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const html2pdf = ((await import("html2pdf.js")) as any).default;
@@ -625,15 +636,37 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
     const printSource = el.cloneNode(true) as HTMLElement;
     clearTemplatePagePadding(printSource, template);
     groupSectionsForPrint(printSource);
-    const measurementHost = mountForPrint(printSource, el.getBoundingClientRect().width);
+    // Match the PDF content width; let html2pdf apply CSS breaks once at that width.
+    const measurementHost = mountForPrint(printSource, CONTENT_WIDTH_PX);
+    const worker = html2pdf().set(pdfOptions(fileName)).from(printSource);
     try {
       await document.fonts.ready;
-      markMeasuredPageBreaks(printSource);
-      await html2pdf()
-        .set(pdfOptions(fileName))
-        .from(printSource)
-        .save();
+      // Measure the final, paginated container before allocating a mobile canvas.
+      await worker.toContainer();
+      const container = worker.prop.container as HTMLElement;
+      const mobile = window.matchMedia("(pointer: coarse)").matches;
+      if (mobile) {
+        const width = Math.max(1, container.scrollWidth);
+        const height = Math.max(1, container.scrollHeight);
+        const scale = Math.min(2, Math.sqrt(3_000_000 / (width * height)), 4096 / width, 4096 / height);
+        await worker.set({ html2canvas: { scale, useCORS: true, logging: false } });
+      }
+      const blob = await worker.outputPdf("blob") as Blob;
+      if (!blob.size) throw new Error("The PDF could not be created. Please try again.");
+      const file = new File([blob], `${fileName}.pdf`, { type: "application/pdf" });
+      const url = URL.createObjectURL(file);
+      setShareError("");
+      setReadyPdf({ file, url, canShare: !!navigator.canShare?.({ files: [file] }) });
+      if (!mobile) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
     } finally {
+      worker.prop.overlay?.remove();
       measurementHost.remove();
     }
   }
@@ -644,11 +677,19 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
   }
 
   async function completeDownload(target: "pdf" | "word", reference?: string) {
+    if (downloadInProgress.current) return;
+    downloadInProgress.current = true;
+    setDownloadError(null);
+    setReadyPdf(null);
     setGeneratingFile(true);
     try {
       if (target === "pdf") await handlePrint();
       else await handleDownloadDocx();
+    } catch (error) {
+      setDownloadError({ message: error instanceof Error ? error.message : "Could not prepare your download. Please try again.", target, reference });
+      return;
     } finally {
+      downloadInProgress.current = false;
       setGeneratingFile(false);
     }
     fetch("/api/cv-events", {
@@ -667,6 +708,7 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
   const freeDownloads = skipPayment || paymentsEnabled === false;
 
   function triggerDownload(target: "pdf" | "word") {
+    if (downloadInProgress.current) return;
     if (freeDownloads) completeDownload(target);
     else setPayTarget(target);
   }
@@ -1738,6 +1780,26 @@ export function CvBuilderForm({ skipPayment = false }: { skipPayment?: boolean }
       </div>
 
       {/* Payment modal */}
+      {(readyPdf || downloadError) && (
+        <dialog ref={downloadDialogRef} aria-labelledby="cv-download-title" onCancel={() => { setReadyPdf(null); setDownloadError(null); }} className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-sm rounded-2xl border border-border bg-card p-6 text-text-primary shadow-xl backdrop:bg-black/40">
+          <h2 id="cv-download-title" className="text-lg font-semibold">{readyPdf ? "Your PDF is ready" : "Download could not finish"}</h2>
+          {readyPdf && <>
+            <p className="mt-2 text-sm text-text-secondary">Tap Download PDF to save your CV. If it opens in a preview, use your browser’s Share or Save option.</p>
+            <a href={readyPdf.url} download={readyPdf.file.name} target="_blank" rel="noopener" className={cn(buttonVariants(), "mt-4 w-full bg-brand text-white")}>Download PDF</a>
+            {readyPdf.canShare && <button type="button" className={cn(buttonVariants({ variant: "outline" }), "mt-2 w-full")} onClick={async () => {
+              setShareError("");
+              try { await navigator.share({ files: [readyPdf.file] }); }
+              catch (error) { if (!(error instanceof DOMException && error.name === "AbortError")) setShareError("Sharing is unavailable. Use Download PDF instead."); }
+            }}>Share or save to Files</button>}
+            {shareError && <p role="alert" className="mt-2 text-sm text-red-600">{shareError}</p>}
+          </>}
+          {downloadError && <>
+            <p role="alert" className="mt-2 text-sm text-text-secondary">{downloadError.message}</p>
+            <button type="button" className={cn(buttonVariants(), "mt-4 w-full bg-brand text-white")} onClick={() => completeDownload(downloadError.target, downloadError.reference)}>Retry download</button>
+          </>}
+          <button type="button" className={cn(buttonVariants({ variant: "ghost" }), "mt-2 w-full")} onClick={() => { setReadyPdf(null); setDownloadError(null); }}>Close</button>
+        </dialog>
+      )}
       {payTarget && (
         <PaymentModal
           service="CV Builder Download"
