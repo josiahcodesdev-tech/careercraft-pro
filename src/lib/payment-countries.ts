@@ -120,7 +120,7 @@ export const PAYMENT_COUNTRIES: PaymentCountry[] = [
 export const DEFAULT_COUNTRY = "KE";
 
 export function findCountry(code: string | undefined): PaymentCountry | undefined {
-  return PAYMENT_COUNTRIES.find((c) => c.code === (code ?? DEFAULT_COUNTRY));error
+  return PAYMENT_COUNTRIES.find((c) => c.code === (code ?? DEFAULT_COUNTRY));
 }
 
 export function enabledCountries(): PaymentCountry[] {
